@@ -62,8 +62,20 @@ def weights_file() -> Path:
     return OUTPUT_DIR / "weights.json"
 
 
+def cluster_metrics_file() -> Path:
+    return OUTPUT_DIR / "cluster_metrics.json"
+
+
+def feature_ranking_file() -> Path:
+    return OUTPUT_DIR / "feature_ranking.json"
+
+
 def predictions_file() -> Path:
     return OUTPUT_DIR / "validation_predictions.parquet"
+
+
+def alerts_file() -> Path:
+    return OUTPUT_DIR / "top_risk_alerts.parquet"
 
 
 def load_forecaster_data(clusters: list[str]) -> pl.DataFrame:
@@ -239,6 +251,56 @@ def build_metrics(train_df: pl.DataFrame, valid_df: pl.DataFrame, split_time: in
     }
 
 
+def build_cluster_metrics(
+    train_df: pl.DataFrame,
+    valid_df: pl.DataFrame,
+    split_time: int,
+) -> dict[str, dict[str, float | int]]:
+    cluster_metrics = {}
+
+    for cluster_id in valid_df.get_column("cluster_id").unique().sort().to_list():
+        train_cluster_df = train_df.filter(pl.col("cluster_id") == cluster_id)
+        valid_cluster_df = valid_df.filter(pl.col("cluster_id") == cluster_id)
+        cluster_metrics[cluster_id] = build_metrics(train_cluster_df, valid_cluster_df, split_time)
+
+    return cluster_metrics
+
+
+def rank_feature_weights(weights: dict[str, float]) -> list[dict[str, float | str | int]]:
+    ranked = sorted(weights.items(), key=lambda item: abs(item[1]), reverse=True)
+    return [
+        {
+            "rank": index,
+            "feature": feature,
+            "weight": weight,
+            "abs_weight": abs(weight),
+        }
+        for index, (feature, weight) in enumerate(ranked, start=1)
+    ]
+
+
+def select_alert_candidates(frame: pl.DataFrame, limit: int = 10_000) -> pl.DataFrame:
+    return (
+        frame
+        .sort("risk_score", descending=True)
+        .select(
+            [
+                "cluster_id",
+                "collection_id",
+                "instance_index",
+                "machine_id",
+                "start_time",
+                "end_time",
+                "risk_score",
+                "target_failure_15m",
+                "final_event_type",
+                "time_to_terminal_event_us",
+            ]
+        )
+        .head(limit)
+    )
+
+
 def save_json(path: Path, payload: dict) -> None:
     with path.open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, indent=2, sort_keys=True)
@@ -260,6 +322,9 @@ def main() -> None:
     feature_stats, weights = fit_feature_weights(train_df, features)
     scored_valid_df = score_frame(valid_df, features, feature_stats, weights)
     metrics = build_metrics(train_df, scored_valid_df, split_time)
+    cluster_metrics = build_cluster_metrics(train_df, scored_valid_df, split_time)
+    ranked_weights = rank_feature_weights(weights)
+    alert_candidates = select_alert_candidates(scored_valid_df)
 
     save_json(
         weights_file(),
@@ -270,7 +335,10 @@ def main() -> None:
         },
     )
     save_json(metrics_file(), metrics)
+    save_json(cluster_metrics_file(), cluster_metrics)
+    save_json(feature_ranking_file(), {"ranked_features": ranked_weights})
     scored_valid_df.sort("risk_score", descending=True).head(100_000).write_parquet(predictions_file())
+    alert_candidates.write_parquet(alerts_file())
 
     print(f"Loaded rows: {frame.height}")
     print(f"Split timestamp: {split_time}")
@@ -278,6 +346,9 @@ def main() -> None:
     print(f"Validation rows: {valid_df.height}")
     print(f"Validation rows with scores: {scored_valid_df.height}")
     print(f"Metrics: {json.dumps(metrics, sort_keys=True)}")
+    print(f"Cluster metrics saved to: {cluster_metrics_file()}")
+    print(f"Feature ranking saved to: {feature_ranking_file()}")
+    print(f"Top-risk alerts saved to: {alerts_file()}")
 
 
 if __name__ == "__main__":
