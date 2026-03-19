@@ -92,23 +92,101 @@ def split_by_time(frame: pl.DataFrame, valid_fraction: float) -> tuple[pl.DataFr
     return train_df, valid_df, int(split_time)
 
 
+def compute_feature_statistics(train_df: pl.DataFrame, features: list[str]) -> dict[str, dict[str, float]]:
+    stats = {}
+
+    for feature in features:
+        summary = train_df.select(
+            [
+                pl.col(feature).cast(pl.Float64, strict=False).median().alias("median"),
+                pl.col(feature).cast(pl.Float64, strict=False).mean().alias("mean"),
+                pl.col(feature).cast(pl.Float64, strict=False).std().alias("std"),
+            ]
+        ).to_dicts()[0]
+
+        median = summary["median"] if summary["median"] is not None else 0.0
+        mean = summary["mean"] if summary["mean"] is not None else median
+        std = summary["std"] if summary["std"] not in (None, 0.0) else 1.0
+
+        stats[feature] = {"median": float(median), "mean": float(mean), "std": float(std)}
+
+    return stats
+
+
+def standardize_frame(
+    frame: pl.DataFrame,
+    features: list[str],
+    feature_stats: dict[str, dict[str, float]],
+) -> pl.DataFrame:
+    exprs = []
+    for feature in features:
+        stats = feature_stats[feature]
+        exprs.append(
+            (
+                pl.col(feature)
+                .cast(pl.Float64, strict=False)
+                .fill_null(stats["median"])
+                .sub(stats["mean"])
+                .truediv(stats["std"])
+            ).alias(feature)
+        )
+    return frame.with_columns(exprs)
+
+
+def fit_feature_weights(train_df: pl.DataFrame, features: list[str]) -> tuple[dict[str, dict[str, float]], dict[str, float]]:
+    feature_stats = compute_feature_statistics(train_df, features)
+    standardized = standardize_frame(train_df, features, feature_stats)
+
+    positives = standardized.filter(pl.col("target_failure_15m"))
+    negatives = standardized.filter(~pl.col("target_failure_15m"))
+
+    weights = {}
+    for feature in features:
+        pos_mean = positives.select(pl.col(feature).mean().alias("value")).item()
+        neg_mean = negatives.select(pl.col(feature).mean().alias("value")).item()
+        pos_mean = float(pos_mean) if pos_mean is not None else 0.0
+        neg_mean = float(neg_mean) if neg_mean is not None else 0.0
+        weights[feature] = pos_mean - neg_mean
+
+    return feature_stats, weights
+
+
+def score_frame(
+    frame: pl.DataFrame,
+    features: list[str],
+    feature_stats: dict[str, dict[str, float]],
+    weights: dict[str, float],
+) -> pl.DataFrame:
+    standardized = standardize_frame(frame, features, feature_stats)
+
+    score_expr = pl.lit(0.0)
+    for feature in features:
+        score_expr = score_expr + pl.col(feature) * pl.lit(weights[feature])
+
+    return standardized.with_columns(score_expr.alias("risk_score"))
+
+
 def main() -> None:
     clusters = parse_clusters()
     valid_fraction = validation_fraction()
+    features = feature_names()
 
     print(f"Reading forecaster datasets from: {FORECASTER_DIR}")
     print(f"Writing baseline artifacts to: {OUTPUT_DIR}")
     print(f"Clusters: {clusters}")
     print(f"Validation fraction: {valid_fraction}")
-    print(f"Features: {feature_names()}")
+    print(f"Features: {features}")
 
     frame = load_forecaster_data(clusters)
     train_df, valid_df, split_time = split_by_time(frame, valid_fraction)
+    feature_stats, weights = fit_feature_weights(train_df, features)
+    scored_valid_df = score_frame(valid_df, features, feature_stats, weights)
 
     print(f"Loaded rows: {frame.height}")
     print(f"Split timestamp: {split_time}")
     print(f"Train rows: {train_df.height}")
     print(f"Validation rows: {valid_df.height}")
+    print(f"Validation rows with scores: {scored_valid_df.height}")
 
 
 if __name__ == "__main__":
