@@ -1,0 +1,10 @@
+# Data folders
+borg_data/
+borg_processed/
+*.parquet
+*.json.gz
+
+# Python
+__pycache__/
+venv/
+.env
