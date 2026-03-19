@@ -31,6 +31,22 @@ How to read these calculations:
 - For the `base` profile, `1.2266% / 0.0301% ≈ 40.7`, so the top `0.1%` ranked slice is about `40x` denser in positives than random selection.
 - For the `base` profile, `0.7068% / 0.0301% ≈ 23.5`, so the top `1%` ranked slice is about `23x` denser in positives than random selection.
 
+Immediate effect of ML ranking versus no-ML random selection:
+
+| Metric | No-ML baseline (random/base rate) | ML baseline (`base`) | Effect |
+| --- | ---: | ---: | ---: |
+| Positive rate in full validation set | `0.0301%` | `0.0301%` | same underlying data |
+| Precision in top `0.1%` slice | `0.0301%` | `1.2266%` | about `40.7x` higher |
+| Precision in top `1%` slice | `0.0301%` | `0.7068%` | about `23.5x` higher |
+| Recall in top `0.1%` slice | `0.1%` expected by random ranking | `4.0746%` | about `40.7x` higher |
+| Recall in top `1%` slice | `1%` expected by random ranking | `23.4807%` | about `23.5x` higher |
+
+Interpretation of the table:
+
+- The no-ML baseline is random selection, where the expected precision equals the base rate because there is no ranking signal.
+- Under random ranking, selecting the top `0.1%` or `1%` of rows would recover about `0.1%` or `1%` of all positives on average.
+- The ML model substantially increases both the positive density of the inspected slice and the share of all failures recovered in that slice.
+
 How the risk score is calculated:
 
 - Each input feature is standardized using the training split statistics: null values are filled with the training median, then each value is transformed with `(value - mean) / std`.
@@ -38,6 +54,14 @@ How the risk score is calculated:
 - The final `risk_score` is a linear weighted sum of the standardized feature values across the selected feature set.
 - Higher `risk_score` means the row is more similar to the positive class under this baseline ranking model.
 - The score is used as a ranking value, not as a calibrated probability.
+
+How recall is calculated:
+
+- `Recall@0.1%` means: after sorting by descending `risk_score`, take the top `0.1%` of rows and measure what fraction of all validation positives are contained inside that slice.
+- `Recall@1%` means the same calculation on the top `1%` ranked slice.
+- For the `base` profile, `Recall@0.1% = 0.0407459`, which means the top `0.1%` highest-risk rows contain about `4.07%` of all true positives.
+- For the `base` profile, `Recall@1% = 0.2348066`, which means the top `1%` highest-risk rows contain about `23.48%` of all true positives.
+- Recall answers a different question from precision: precision asks “how many selected rows are truly positive?”, while recall asks “how many of all true positives did we successfully recover?”
 
 ## Alternate Rolling Profile
 
