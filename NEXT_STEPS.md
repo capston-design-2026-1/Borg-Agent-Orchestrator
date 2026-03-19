@@ -116,6 +116,7 @@ Alternate rolling-profile run summary:
 - Prefer continuing to the next implementation step without waiting for explicit user prompts.
 - Use KST timestamp-prefixed filenames in `reports/` with format `YYYYMMDDHHMM_*`.
 - If the user types `milestone`, update the repository memory files for the completed work before ending the session.
+- When a new parquet type or artifact directory is created under `~/Documents/borg_processed`, place a schema or artifact explanation file in that same directory.
 
 ## Repository Memory
 
