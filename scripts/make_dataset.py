@@ -114,10 +114,102 @@ def load_machine_features(cluster_id: str) -> pl.LazyFrame:
     )
 
 
+def load_usage_features(cluster_id: str) -> pl.LazyFrame:
+    usage = pl.scan_parquet(cluster_file(cluster_id, "usage"))
+
+    return (
+        usage
+        .select(
+            [
+                str_col("cluster_id").alias("cluster_id"),
+                int_col("start_time").alias("start_time"),
+                int_col("end_time").alias("end_time"),
+                int_col("collection_id").alias("collection_id"),
+                int_col("instance_index").alias("instance_index"),
+                int_col("machine_id").alias("machine_id"),
+                int_col("alloc_collection_id").alias("alloc_collection_id"),
+                int_col("alloc_instance_index").alias("alloc_instance_index"),
+                float_col("avg_cpu").alias("avg_cpu"),
+                float_col("avg_mem").alias("avg_mem"),
+                float_col("max_cpu").alias("max_cpu"),
+                float_col("max_mem").alias("max_mem"),
+                float_col("assigned_memory").alias("assigned_memory"),
+                float_col("page_cache_memory").alias("page_cache_memory"),
+                float_col("sample_rate").alias("sample_rate"),
+                float_col("memory_accesses_per_instruction").alias("memory_accesses_per_instruction"),
+            ]
+        )
+        .filter(pl.col("collection_id").is_not_null() & pl.col("instance_index").is_not_null())
+    )
+
+
+def build_cluster_dataset(cluster_id: str) -> pl.DataFrame:
+    usage = load_usage_features(cluster_id)
+    events = load_event_features(cluster_id)
+    machines = load_machine_features(cluster_id)
+
+    dataset = (
+        usage
+        .join(events, on=["collection_id", "instance_index"], how="left", suffix="_event")
+        .join(machines, on="machine_id", how="left", suffix="_machine")
+        .with_columns(
+            [
+                (pl.col("end_time") - pl.col("start_time")).alias("usage_window"),
+                (pl.col("avg_cpu") / pl.col("machine_cpu")).alias("avg_cpu_utilization"),
+                (pl.col("max_cpu") / pl.col("machine_cpu")).alias("max_cpu_utilization"),
+                (pl.col("avg_mem") / pl.col("machine_mem")).alias("avg_mem_utilization"),
+                (pl.col("max_mem") / pl.col("machine_mem")).alias("max_mem_utilization"),
+                (
+                    (pl.col("first_event_time").is_not_null()) &
+                    (pl.col("first_event_time") <= pl.col("start_time"))
+                ).alias("has_started"),
+                (
+                    (pl.col("last_event_time").is_not_null()) &
+                    (pl.col("last_event_time") >= pl.col("end_time"))
+                ).alias("active_during_window"),
+            ]
+        )
+        .with_columns(pl.lit(cluster_id).alias("source_cluster"))
+        .sort(["start_time", "collection_id", "instance_index"])
+        .collect(engine="streaming")
+    )
+
+    return dataset
+
+
+def write_cluster_dataset(cluster_id: str) -> Path:
+    output_path = dataset_file(cluster_id)
+    dataset = build_cluster_dataset(cluster_id)
+    dataset.write_parquet(output_path)
+    print(f"✅ {cluster_id}: wrote {dataset.height} rows to {output_path}")
+    return output_path
+
+
 def main() -> None:
+    clusters = parse_clusters()
+
     print(f"Reading flattened parquet files from: {PROCESSED_DIR}")
     print(f"Writing joined datasets to: {DATASET_DIR}")
-    print(f"Clusters: {parse_clusters()}")
+    print(f"Clusters: {clusters}")
+
+    for cluster_id in clusters:
+        usage_path = cluster_file(cluster_id, "usage")
+        event_path = cluster_file(cluster_id, "events")
+        machine_path = cluster_file(cluster_id, "machines")
+
+        if not usage_path.exists():
+            print(f"Skipping {cluster_id}: missing {usage_path.name}")
+            continue
+
+        if not event_path.exists():
+            print(f"Skipping {cluster_id}: missing {event_path.name}")
+            continue
+
+        if not machine_path.exists():
+            print(f"Skipping {cluster_id}: missing {machine_path.name}")
+            continue
+
+        write_cluster_dataset(cluster_id)
 
 
 if __name__ == "__main__":
