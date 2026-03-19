@@ -10,7 +10,8 @@ Project scaffold for a Borg-inspired multi-agent scheduling and cluster optimiza
 ├── scripts/
 │   ├── download_shards.sh
 │   ├── data_flattener.py
-│   └── make_dataset.py
+│   ├── make_dataset.py
+│   └── make_forecaster_dataset.py
 ├── src/
 │   ├── agents/
 │   └── environment/
@@ -41,6 +42,20 @@ To download shards into the default external location:
 ```bash
 ./scripts/download_shards.sh
 ```
+
+To build joined per-window datasets for clusters `b` through `g`:
+
+```bash
+python scripts/make_dataset.py
+```
+
+To build forecaster training datasets from the joined datasets:
+
+```bash
+python scripts/make_forecaster_dataset.py
+```
+
+The forecaster builder labels a row as positive when the task's final terminal event is in the default failure set `2,3,6` and occurs within the next 15 minutes after the usage window ends.
 
 ## Python Environment
 
