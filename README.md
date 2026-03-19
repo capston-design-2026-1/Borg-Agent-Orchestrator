@@ -11,7 +11,8 @@ Project scaffold for a Borg-inspired multi-agent scheduling and cluster optimiza
 │   ├── download_shards.sh
 │   ├── data_flattener.py
 │   ├── make_dataset.py
-│   └── make_forecaster_dataset.py
+│   ├── make_forecaster_dataset.py
+│   └── train_forecaster_baseline.py
 ├── src/
 │   ├── agents/
 │   └── environment/
@@ -56,6 +57,20 @@ python scripts/make_forecaster_dataset.py
 ```
 
 The forecaster builder labels a row as positive when the task's final terminal event is in the default failure set `2,3,6` and occurs within the next 15 minutes after the usage window ends.
+
+To train and evaluate the first Polars-only forecasting baseline:
+
+```bash
+python scripts/train_forecaster_baseline.py
+```
+
+The baseline trainer writes:
+
+- `metrics.json`
+- `weights.json`
+- `validation_predictions.parquet`
+
+under `~/Documents/borg_processed/datasets/forecaster/baseline` by default.
 
 ## Python Environment
 
