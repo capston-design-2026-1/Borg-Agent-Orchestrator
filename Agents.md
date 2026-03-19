@@ -14,6 +14,10 @@ These instructions apply to work performed in this repository.
 - Always push committed changes to the remote branch for this repository.
 - Do not ask the user for permission before committing or pushing.
 - Split changes into small, specific, logically separated commits.
+- Split commits more aggressively than usual: when practical, separate Python code, documentation, handoff files, config/examples, and workflow-policy changes into different commits.
+- Do not bundle unrelated file classes together in one commit just because they were edited in the same session.
+- If one session touches multiple concerns, stage and commit each concern independently in the order they were validated.
+- Prefer the smallest defensible commit that leaves the repository in a coherent state.
 - When working in a single file, still shard commits by function, feature slice, or behavior change where practical.
 - Use clear commit messages that describe the specific unit of work.
 
