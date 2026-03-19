@@ -31,6 +31,18 @@ def str_col(name: str) -> pl.Expr:
     return pl.col(name).cast(pl.Utf8, strict=False)
 
 
+def optional_int_col(schema_names: set[str], name: str) -> pl.Expr:
+    if name in schema_names:
+        return int_col(name).alias(name)
+    return pl.lit(None, dtype=pl.Int64).alias(name)
+
+
+def optional_float_col(schema_names: set[str], name: str) -> pl.Expr:
+    if name in schema_names:
+        return float_col(name).alias(name)
+    return pl.lit(None, dtype=pl.Float64).alias(name)
+
+
 def cluster_file(cluster_id: str, suffix: str) -> Path:
     return PROCESSED_DIR / f"{cluster_id}_{suffix}.parquet"
 
@@ -116,6 +128,7 @@ def load_machine_features(cluster_id: str) -> pl.LazyFrame:
 
 def load_usage_features(cluster_id: str) -> pl.LazyFrame:
     usage = pl.scan_parquet(cluster_file(cluster_id, "usage"))
+    schema_names = set(usage.collect_schema().names())
 
     return (
         usage
@@ -127,16 +140,16 @@ def load_usage_features(cluster_id: str) -> pl.LazyFrame:
                 int_col("collection_id").alias("collection_id"),
                 int_col("instance_index").alias("instance_index"),
                 int_col("machine_id").alias("machine_id"),
-                int_col("alloc_collection_id").alias("alloc_collection_id"),
-                int_col("alloc_instance_index").alias("alloc_instance_index"),
+                optional_int_col(schema_names, "alloc_collection_id"),
+                optional_int_col(schema_names, "alloc_instance_index"),
                 float_col("avg_cpu").alias("avg_cpu"),
                 float_col("avg_mem").alias("avg_mem"),
                 float_col("max_cpu").alias("max_cpu"),
                 float_col("max_mem").alias("max_mem"),
-                float_col("assigned_memory").alias("assigned_memory"),
-                float_col("page_cache_memory").alias("page_cache_memory"),
-                float_col("sample_rate").alias("sample_rate"),
-                float_col("memory_accesses_per_instruction").alias("memory_accesses_per_instruction"),
+                optional_float_col(schema_names, "assigned_memory"),
+                optional_float_col(schema_names, "page_cache_memory"),
+                optional_float_col(schema_names, "sample_rate"),
+                optional_float_col(schema_names, "memory_accesses_per_instruction"),
             ]
         )
         .filter(pl.col("collection_id").is_not_null() & pl.col("instance_index").is_not_null())
