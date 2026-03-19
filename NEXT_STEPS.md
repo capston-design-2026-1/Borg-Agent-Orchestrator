@@ -47,7 +47,7 @@ Supporting docs:
 - `Agents.md` for repository workflow instructions
 - `MAS_ARCHITECTURE.md` for the MAS design
 - `README.md` for the user-facing workflow
-- `reports/202603191919_milestone.md` for the latest milestone checkpoint
+- `reports/202603191933_milestone.md` for the latest milestone checkpoint
 
 ## Latest Verified Outputs
 
@@ -72,6 +72,11 @@ Local-cloud adapter status:
 - Generic adapter script added for parquet/CSV telemetry with JSON column mapping
 - Example mapping file: `config/local_common_forecaster.example.json`
 - Verified with a synthetic local telemetry sample and wrote canonical parquet successfully
+
+Local parquet documentation status:
+
+- Schema and artifact explanation files were added beside the generated parquet and artifact directories under `~/Documents/borg_processed`
+- Future parquet-producing work should continue this convention
 
 Baseline artifacts:
 
@@ -129,7 +134,7 @@ These files should be kept current so a new Codex session behaves consistently:
 
 Latest milestone checkpoint:
 
-- `reports/202603191919_milestone.md`
+- `reports/202603191933_milestone.md`
 - Use it together with `Agents.md` and this file when resuming in a new Codex context
 
 ## Immediate Next Steps
@@ -158,13 +163,13 @@ If continuing the forecaster improvements, split work into commits like:
 
 ## Recent Commit Landmarks
 
+- `e8f06d6` Record parquet schema-note rule in handoff
+- `f599a15` Require local parquet schema notes
+- `7e426f2` Refresh milestone handoff state
+- `fd9e0cf` Add milestone checkpoint report
 - `7a70556` Update handoff continuity notes
 - `e25f5e8` Record milestone persistence workflow
 - `be8a3e8` Prefix report filenames with KST timestamp
-- `e56f619` Add schema reference report
-- `4d13170` Add forecaster evaluation report
-- `281af51` Tighten commit sharding policy
-- `032709b` Add local cloud forecaster adapter
 
 ## Launch Command
 
