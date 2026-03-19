@@ -6,7 +6,8 @@ Project scaffold for a Borg-inspired multi-agent scheduling and cluster optimiza
 
 ```text
 .
-├── Agents.md
+├── AGENTS.md
+├── MAS_ARCHITECTURE.md
 ├── scripts/
 │   ├── download_shards.sh
 │   ├── data_flattener.py
@@ -19,6 +20,8 @@ Project scaffold for a Borg-inspired multi-agent scheduling and cluster optimiza
 ├── .gitignore
 └── README.md
 ```
+
+Note: on this filesystem, `AGENTS.md` is stored via the existing tracked [`Agents.md`](/Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator/Agents.md) path because filenames are case-insensitive.
 
 ## Data Layout
 
