@@ -5,7 +5,7 @@ import polars as pl
 
 DEFAULT_PROCESSED_DIR = Path.home() / "Documents" / "borg_processed"
 DEFAULT_DATASET_DIR = DEFAULT_PROCESSED_DIR / "datasets"
-DEFAULT_CLUSTERS = ("a", "b", "c", "d", "e", "f", "g", "h")
+DEFAULT_CLUSTERS = ("b", "c", "d", "e", "f", "g")
 
 PROCESSED_DIR = Path(os.environ.get("BORG_PROCESSED_DIR", DEFAULT_PROCESSED_DIR)).expanduser()
 DATASET_DIR = Path(os.environ.get("BORG_DATASET_DIR", DEFAULT_DATASET_DIR)).expanduser()

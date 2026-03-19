@@ -75,7 +75,7 @@ if __name__ == "__main__":
     print(f"Reading raw Borg data from: {RAW_DIR}")
     print(f"Writing flattened data to: {OUT_DIR}")
 
-    clusters = ["a", "b", "c", "d", "e", "f", "g", "h"]
+    clusters = ["b", "c", "d", "e", "f", "g"]
 
     for c in clusters:
         try:
