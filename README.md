@@ -62,6 +62,15 @@ python scripts/make_forecaster_dataset.py
 The forecaster builder labels a row as positive when the task's final terminal event is in the default failure set `2,3,6` and occurs within the next 15 minutes after the usage window ends.
 It also writes task-history temporal features such as one-step lags, one-step deltas, and 3-window rolling means for CPU and memory usage/utilization.
 
+To export those datasets into a platform-agnostic canonical schema that a local-cloud adapter can also target:
+
+```bash
+python scripts/export_common_forecaster_dataset.py
+```
+
+That exporter writes cluster parquet files under `~/Documents/borg_processed/datasets/forecaster/common_forecaster` by default.
+The canonical schema keeps stable fields such as workload ID, node ID, window timing, observed/requested CPU and memory, temporal features, and failure labels without depending on Borg-specific column names.
+
 To train and evaluate the first Polars-only forecasting baseline:
 
 ```bash

@@ -30,6 +30,7 @@ Completed stages:
 5. First Polars-only forecaster baseline trainer
 6. Forecaster inspection artifact export
 7. Forecaster temporal feature generation and profile evaluation
+8. Canonical forecaster schema export for non-Borg adapters
 
 Implemented scripts:
 
@@ -37,6 +38,7 @@ Implemented scripts:
 - `scripts/data_flattener.py`
 - `scripts/make_dataset.py`
 - `scripts/make_forecaster_dataset.py`
+- `scripts/export_common_forecaster_dataset.py`
 - `scripts/train_forecaster_baseline.py`
 
 Supporting docs:
@@ -56,6 +58,12 @@ Forecaster datasets:
 
 - Built successfully for clusters `b` through `g`
 - Location: `~/Documents/borg_processed/datasets/forecaster`
+
+Canonical forecaster datasets:
+
+- Built successfully for clusters `b` through `g`
+- Location: `~/Documents/borg_processed/datasets/forecaster/common_forecaster`
+- Purpose: stable workload/node/time-window schema for future local-cloud adapters
 
 Baseline artifacts:
 
@@ -106,19 +114,21 @@ Recommended next sequence:
 
 1. Keep `base` as the default forecaster profile for general ranking quality.
 2. Use `base_plus_roll` only when evaluating top-alert triage behavior.
-3. Add a stronger forecaster baseline such as regularized logistic regression or gradient boosting using the existing feature profiles.
-4. Compare the new model against `base` and `base_plus_roll` with the existing per-cluster metrics.
-5. Start the placement/scheduler dataset stage once a better forecaster baseline is established or if forecasting work is paused.
+3. Build a local-cloud adapter that maps local telemetry/events into the canonical forecaster schema.
+4. Add a stronger forecaster baseline such as regularized logistic regression or gradient boosting using the canonical schema and existing feature profiles.
+5. Compare the new model against `base` and `base_plus_roll` with the existing per-cluster metrics.
+6. Start the placement/scheduler dataset stage once a better forecaster baseline is established or if forecasting work is paused.
 
 ## Suggested Commit Shards For Next Session
 
 If continuing the forecaster improvements, split work into commits like:
 
 1. Add the next forecaster model implementation
-2. Persist model comparison artifacts
-3. Compare cluster-level calibration and ranking behavior
-4. Document the winning forecaster profile/model
-5. Start scheduler dataset construction
+2. Add the local-cloud ingestion adapter for the canonical schema
+3. Persist model comparison artifacts
+4. Compare cluster-level calibration and ranking behavior
+5. Document the winning forecaster profile/model
+6. Start scheduler dataset construction
 
 ## Recent Commit Landmarks
 
