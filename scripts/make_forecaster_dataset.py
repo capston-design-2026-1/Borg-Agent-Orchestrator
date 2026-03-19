@@ -43,6 +43,69 @@ def output_file(cluster_id: str) -> Path:
     return OUTPUT_DIR / f"{cluster_id}_forecaster.parquet"
 
 
+def build_forecaster_frame(cluster_id: str) -> pl.DataFrame:
+    failure_event_types = parse_failure_event_types()
+    horizon_us = prediction_horizon()
+
+    dataset = pl.scan_parquet(dataset_file(cluster_id))
+
+    return (
+        dataset
+        .with_columns(
+            [
+                (pl.col("last_event_time") - pl.col("end_time")).alias("time_to_terminal_event_us"),
+                pl.col("final_event_type").is_in(failure_event_types).alias("is_failure_terminal_event"),
+            ]
+        )
+        .with_columns(
+            [
+                (
+                    pl.col("is_failure_terminal_event") &
+                    pl.col("time_to_terminal_event_us").is_not_null() &
+                    (pl.col("time_to_terminal_event_us") >= 0) &
+                    (pl.col("time_to_terminal_event_us") <= horizon_us)
+                ).alias("failure_within_horizon"),
+                (
+                    pl.col("final_event_type").is_not_null() &
+                    (pl.col("last_event_time") < pl.col("end_time"))
+                ).alias("terminal_event_before_window_end"),
+            ]
+        )
+        .select(
+            [
+                pl.col("cluster_id"),
+                pl.col("collection_id"),
+                pl.col("instance_index"),
+                pl.col("machine_id"),
+                pl.col("start_time"),
+                pl.col("end_time"),
+                pl.col("usage_window"),
+                pl.col("avg_cpu"),
+                pl.col("max_cpu"),
+                pl.col("avg_mem"),
+                pl.col("max_mem"),
+                pl.col("avg_cpu_utilization"),
+                pl.col("max_cpu_utilization"),
+                pl.col("avg_mem_utilization"),
+                pl.col("max_mem_utilization"),
+                pl.col("req_cpu"),
+                pl.col("req_mem"),
+                pl.col("priority"),
+                pl.col("scheduling_class"),
+                pl.col("event_count"),
+                pl.col("first_event_time"),
+                pl.col("last_event_time"),
+                pl.col("final_event_type"),
+                pl.col("time_to_terminal_event_us"),
+                pl.col("is_failure_terminal_event"),
+                pl.col("failure_within_horizon").alias("target_failure_15m"),
+                pl.col("terminal_event_before_window_end"),
+            ]
+        )
+        .collect(engine="streaming")
+    )
+
+
 def main() -> None:
     print(f"Reading joined datasets from: {DATASET_DIR}")
     print(f"Writing forecaster datasets to: {OUTPUT_DIR}")
