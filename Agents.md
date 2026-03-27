@@ -37,6 +37,8 @@ These instructions apply to work performed in this repository.
 - Prefer keeping large Borg data outside the repository under `~/Documents`.
 - Treat `~/Documents/borg_data` as the default raw data location.
 - Treat `~/Documents/borg_processed` as the default processed data location.
+- Treat `~/Documents/borg_xgboost_workspace` as the dedicated root for the advanced XGBoost track, with its own `raw`, `processed`, `models`, `reports`, `runtime`, and `config` subtrees.
+- Do not mix advanced-model raw data or artifacts into `~/Documents/borg_data` or `~/Documents/borg_processed`; the first baseline task and the advanced task must stay isolated at the directory-root level.
 - Do not commit generated datasets or large external data files into git.
 - When a new parquet type or artifact directory is created under the external processed-data tree, add a schema or artifact explanation file in that same directory describing what the files mean and what the important columns represent.
 - Do not rely only on repository docs for parquet meanings; keep a local README-style explanation beside the actual generated outputs.

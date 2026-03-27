@@ -16,6 +16,7 @@ Read Agents.md, NEXT_STEPS.md, MAS_ARCHITECTURE.md, and README.md, inspect the l
 - Primary branch: `main`
 - Raw data location: `~/Documents/borg_data`
 - Processed data location: `~/Documents/borg_processed`
+- Advanced XGBoost workspace: `~/Documents/borg_xgboost_workspace`
 - Default working clusters: `b`, `c`, `d`, `e`, `f`, `g`
 - Excluded by default: `a`, `h`
 
@@ -117,6 +118,7 @@ Alternate rolling-profile run summary:
 - Split commits aggressively by concern and file class; do not bundle code, docs, handoff, config, and policy changes together when they can be committed separately.
 - Do not ask for permission before git commits and pushes.
 - Keep large data outside the repository.
+- Keep the first baseline ML task under `~/Documents/borg_data` and `~/Documents/borg_processed`, but keep the new advanced/XGBoost task fully isolated under `~/Documents/borg_xgboost_workspace`.
 - Keep `a` and `h` excluded by default because their usage schemas differ from the main group.
 - Prefer continuing to the next implementation step without waiting for explicit user prompts.
 - Use KST timestamp-prefixed filenames in `reports/` with format `YYYYMMDDHHMM_*`.
@@ -157,6 +159,7 @@ Current raw-data expansion note:
 - A `100 GB` raw target can be reached from the current `6.91 GB` baseline by downloading additional upstream shards.
 - For cluster `b` alone, upstream contains `49` `instance_events` shards and `1,463` `instance_usage` shards.
 - Downloading through cluster `b` usage shard `000000000170` would project the raw starting set to about `100.46 GB`.
+- The advanced-track directory root is now `~/Documents/borg_xgboost_workspace`, and the XGBoost/raw-expansion work should use that root rather than the original baseline directories.
 
 ## Suggested Commit Shards For Next Session
 

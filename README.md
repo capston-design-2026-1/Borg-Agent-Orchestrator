@@ -29,6 +29,7 @@ Raw Borg data should stay outside the repository by default.
 
 - Default raw data path: `~/Documents/borg_data`
 - Default processed data path: `~/Documents/borg_processed`
+- Advanced XGBoost workspace root: `~/Documents/borg_xgboost_workspace`
 
 Both scripts can be overridden with environment variables:
 
@@ -37,6 +38,21 @@ export BORG_RAW_DIR=~/Documents/borg_data
 export BORG_PROCESSED_DIR=~/Documents/borg_processed
 python scripts/data_flattener.py
 ```
+
+For the advanced-model track, create and use a fully separate workspace:
+
+```bash
+./scripts/setup_advanced_xgboost_workspace.sh
+cp config/advanced_xgboost.env.example ~/Documents/borg_xgboost_workspace/config/advanced_xgboost.env
+source ~/Documents/borg_xgboost_workspace/config/advanced_xgboost.env
+```
+
+That workspace keeps the second ML task isolated from the first baseline task:
+
+- Raw downloads go to `~/Documents/borg_xgboost_workspace/raw`
+- Flattened and derived parquet go to `~/Documents/borg_xgboost_workspace/processed`
+- XGBoost models go to `~/Documents/borg_xgboost_workspace/models/xgboost`
+- Experiment reports go to `~/Documents/borg_xgboost_workspace/reports`
 
 By default, the project processes clusters `b` through `g`.
 Clusters `a` and `h` are excluded because their flattened usage schemas differ from the main dataset group.
@@ -55,6 +71,8 @@ BORG_TARGET_RAW_BYTES=100000000000 \
 ./scripts/download_shards.sh
 ```
 
+If you are running the advanced track, source the advanced env file first so this download lands in `~/Documents/borg_xgboost_workspace/raw` instead of the baseline sample directories.
+
 Download behavior notes:
 
 - Default clusters are `b` through `g`
@@ -70,6 +88,8 @@ python scripts/make_dataset.py
 ```
 
 When multi-shard raw downloads are present, the flattener now writes shard parquet files under `~/Documents/borg_processed/flat_shards/<kind>/<cluster>/`, and the dataset builder reads those shard directories directly.
+
+In the advanced workspace, the equivalent path is `~/Documents/borg_xgboost_workspace/processed/flat_shards/<kind>/<cluster>/`.
 
 To build forecaster training datasets from the joined datasets:
 
