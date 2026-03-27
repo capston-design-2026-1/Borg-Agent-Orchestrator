@@ -19,7 +19,6 @@ ADVANCED_FEATURE_COLUMNS = (
     "scheduling_class",
     "event_count",
     "task_age_us",
-    "time_since_last_event_us",
     "machine_cpu",
     "machine_mem",
     "cpu_request_ratio",
@@ -32,6 +31,23 @@ ADVANCED_FEATURE_COLUMNS = (
     "mem_headroom",
     "cpu_spike_gap",
     "mem_spike_gap",
+    "machine_task_count_window",
+    "collection_task_count_window",
+    "machine_window_avg_cpu_sum",
+    "machine_window_avg_mem_sum",
+    "machine_window_avg_cpu_load_ratio",
+    "machine_window_avg_mem_load_ratio",
+    "collection_window_avg_cpu_sum",
+    "collection_window_avg_mem_sum",
+    "avg_cpu_roll6_std",
+    "avg_mem_roll6_std",
+    "avg_cpu_utilization_roll6_std",
+    "avg_mem_utilization_roll6_std",
+    "observed_failure_by_window",
+    "machine_recent_failure_count_12",
+    "collection_recent_failure_count_12",
+    "machine_recent_terminal_count_12",
+    "collection_recent_terminal_count_12",
     "avg_cpu_lag_1",
     "avg_cpu_delta_1",
     "avg_cpu_roll3_mean",
@@ -71,9 +87,7 @@ MISSINGNESS_BASE_COLUMNS = (
     "req_mem",
     "priority",
     "scheduling_class",
-    "event_count",
     "task_age_us",
-    "time_since_last_event_us",
     "machine_cpu",
     "machine_mem",
     "cpu_request_ratio",
@@ -86,6 +100,22 @@ MISSINGNESS_BASE_COLUMNS = (
     "mem_headroom",
     "cpu_spike_gap",
     "mem_spike_gap",
+    "machine_task_count_window",
+    "collection_task_count_window",
+    "machine_window_avg_cpu_sum",
+    "machine_window_avg_mem_sum",
+    "machine_window_avg_cpu_load_ratio",
+    "machine_window_avg_mem_load_ratio",
+    "collection_window_avg_cpu_sum",
+    "collection_window_avg_mem_sum",
+    "avg_cpu_roll6_std",
+    "avg_mem_roll6_std",
+    "avg_cpu_utilization_roll6_std",
+    "avg_mem_utilization_roll6_std",
+    "machine_recent_failure_count_12",
+    "collection_recent_failure_count_12",
+    "machine_recent_terminal_count_12",
+    "collection_recent_terminal_count_12",
 )
 
 MISSINGNESS_FLAG_COLUMNS = tuple(f"{column}_is_missing" for column in MISSINGNESS_BASE_COLUMNS)
@@ -128,19 +158,25 @@ def add_temporal_features(frame: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def build_feature_frame(dataset: pl.LazyFrame, failure_event_types: list[int], horizon_us: int) -> pl.LazyFrame:
+    task_keys = ["collection_id", "instance_index"]
     enriched = (
         dataset
-        .sort(["collection_id", "instance_index", "end_time"])
+        .sort(["machine_id", "collection_id", "instance_index", "end_time"])
         .with_columns(
             [
                 (pl.col("end_time") - pl.col("first_event_time")).alias("task_age_us"),
-                (pl.col("end_time") - pl.col("last_event_time")).alias("time_since_last_event_us"),
                 (pl.col("last_event_time") - pl.col("end_time")).alias("time_to_terminal_event_us"),
                 pl.col("final_event_type").is_in(failure_event_types).alias("is_failure_terminal_event"),
                 (pl.col("machine_cpu") - pl.col("avg_cpu")).alias("cpu_headroom"),
                 (pl.col("machine_mem") - pl.col("avg_mem")).alias("mem_headroom"),
                 (pl.col("max_cpu") - pl.col("avg_cpu")).alias("cpu_spike_gap"),
                 (pl.col("max_mem") - pl.col("avg_mem")).alias("mem_spike_gap"),
+                pl.len().over(["machine_id", "end_time"]).alias("machine_task_count_window"),
+                pl.len().over(["collection_id", "end_time"]).alias("collection_task_count_window"),
+                pl.col("avg_cpu").sum().over(["machine_id", "end_time"]).alias("machine_window_avg_cpu_sum"),
+                pl.col("avg_mem").sum().over(["machine_id", "end_time"]).alias("machine_window_avg_mem_sum"),
+                pl.col("avg_cpu").sum().over(["collection_id", "end_time"]).alias("collection_window_avg_cpu_sum"),
+                pl.col("avg_mem").sum().over(["collection_id", "end_time"]).alias("collection_window_avg_mem_sum"),
             ]
         )
         .with_columns(
@@ -151,11 +187,17 @@ def build_feature_frame(dataset: pl.LazyFrame, failure_event_types: list[int], h
                 safe_ratio("avg_mem", "req_mem", "avg_mem_to_request_ratio"),
                 safe_ratio("max_cpu", "req_cpu", "max_cpu_to_request_ratio"),
                 safe_ratio("max_mem", "req_mem", "max_mem_to_request_ratio"),
+                safe_ratio("machine_window_avg_cpu_sum", "machine_cpu", "machine_window_avg_cpu_load_ratio"),
+                safe_ratio("machine_window_avg_mem_sum", "machine_mem", "machine_window_avg_mem_load_ratio"),
             ]
         )
         .pipe(add_temporal_features)
         .with_columns(
             [
+                pl.col("avg_cpu").rolling_std(window_size=6, min_samples=2).over(task_keys).alias("avg_cpu_roll6_std"),
+                pl.col("avg_mem").rolling_std(window_size=6, min_samples=2).over(task_keys).alias("avg_mem_roll6_std"),
+                pl.col("avg_cpu_utilization").rolling_std(window_size=6, min_samples=2).over(task_keys).alias("avg_cpu_utilization_roll6_std"),
+                pl.col("avg_mem_utilization").rolling_std(window_size=6, min_samples=2).over(task_keys).alias("avg_mem_utilization_roll6_std"),
                 (
                     pl.col("is_failure_terminal_event") &
                     pl.col("time_to_terminal_event_us").is_not_null() &
@@ -164,8 +206,52 @@ def build_feature_frame(dataset: pl.LazyFrame, failure_event_types: list[int], h
                 ).alias("target_failure_15m"),
                 (
                     pl.col("final_event_type").is_not_null() &
-                    (pl.col("last_event_time") < pl.col("end_time"))
+                    (pl.col("last_event_time") <= pl.col("end_time"))
                 ).alias("terminal_event_before_window_end"),
+            ]
+        )
+        .with_columns(
+            [
+                (
+                    pl.col("is_failure_terminal_event") &
+                    pl.col("terminal_event_before_window_end")
+                ).cast(pl.Int8).alias("observed_failure_by_window"),
+                (
+                    pl.col("final_event_type").is_not_null() &
+                    pl.col("terminal_event_before_window_end")
+                ).cast(pl.Int8).alias("observed_terminal_by_window"),
+            ]
+        )
+        .with_columns(
+            [
+                (
+                    pl.col("observed_failure_by_window")
+                    .shift(1)
+                    .fill_null(0)
+                    .rolling_sum(window_size=12, min_samples=1)
+                    .over("machine_id")
+                ).alias("machine_recent_failure_count_12"),
+                (
+                    pl.col("observed_failure_by_window")
+                    .shift(1)
+                    .fill_null(0)
+                    .rolling_sum(window_size=12, min_samples=1)
+                    .over("collection_id")
+                ).alias("collection_recent_failure_count_12"),
+                (
+                    pl.col("observed_terminal_by_window")
+                    .shift(1)
+                    .fill_null(0)
+                    .rolling_sum(window_size=12, min_samples=1)
+                    .over("machine_id")
+                ).alias("machine_recent_terminal_count_12"),
+                (
+                    pl.col("observed_terminal_by_window")
+                    .shift(1)
+                    .fill_null(0)
+                    .rolling_sum(window_size=12, min_samples=1)
+                    .over("collection_id")
+                ).alias("collection_recent_terminal_count_12"),
             ]
         )
         .with_columns(
@@ -192,6 +278,7 @@ def build_feature_frame(dataset: pl.LazyFrame, failure_event_types: list[int], h
             pl.col("final_event_type"),
             pl.col("time_to_terminal_event_us"),
             pl.col("is_failure_terminal_event"),
+            pl.col("observed_terminal_by_window"),
             pl.col("terminal_event_before_window_end"),
             pl.col("target_failure_15m"),
         ]

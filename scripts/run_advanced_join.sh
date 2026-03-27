@@ -15,7 +15,4 @@ set -a
 source "${ENV_FILE}"
 set +a
 
-python3 "${REPO_ROOT}/scripts/data_flattener.py"
 python3 "${REPO_ROOT}/scripts/make_dataset.py"
-python3 "${REPO_ROOT}/scripts/build_advanced_xgboost_dataset.py"
-python3 "${REPO_ROOT}/scripts/train_advanced_xgboost.py"
