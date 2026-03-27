@@ -111,6 +111,15 @@ That pipeline is intentionally separate from the baseline forecaster flow:
 - It keeps the same high-level target family: risk scoring for failures/errors within the configured prediction horizon
 - It keeps label-valid rows with missing features, adds explicit `*_is_missing` indicators for key features, and lets XGBoost consume numeric nulls as missing values instead of dropping whole joined rows
 
+You can also run the advanced stages separately:
+
+```bash
+./scripts/run_advanced_flatten.sh
+./scripts/run_advanced_join.sh
+./scripts/run_advanced_feature_build.sh
+./scripts/run_advanced_train.sh
+```
+
 Download behavior notes:
 
 - Default clusters are `b` through `g`

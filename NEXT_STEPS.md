@@ -165,6 +165,7 @@ Current raw-data expansion note:
 - `scripts/run_advanced_download.sh` now provides a one-command entrypoint that auto-loads the advanced env file and runs the coherent downloader into the isolated advanced workspace.
 - The advanced-model source tree is now separated under `src/advanced_xgboost` with dedicated scripts `scripts/build_advanced_xgboost_dataset.py`, `scripts/train_advanced_xgboost.py`, and `scripts/run_advanced_xgboost_pipeline.sh`.
 - The advanced XGBoost missing-data policy is now: keep label-valid rows, preserve numeric nulls into XGBoost, and add explicit missingness indicator features rather than dropping whole joined rows.
+- Step wrappers now exist for the isolated advanced pipeline: `scripts/run_advanced_flatten.sh`, `scripts/run_advanced_join.sh`, `scripts/run_advanced_feature_build.sh`, `scripts/run_advanced_train.sh`, and the full-chain `scripts/run_advanced_xgboost_pipeline.sh`.
 
 ## Suggested Commit Shards For Next Session
 
