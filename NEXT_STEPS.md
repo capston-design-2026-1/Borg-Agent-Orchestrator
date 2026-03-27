@@ -164,6 +164,7 @@ Current raw-data expansion note:
 - The advanced-track directory root is now `~/Documents/borg_xgboost_workspace`, and the XGBoost/raw-expansion work should use that root rather than the original baseline directories.
 - `scripts/run_advanced_download.sh` now provides a one-command entrypoint that auto-loads the advanced env file and runs the coherent downloader into the isolated advanced workspace.
 - The advanced-model source tree is now separated under `src/advanced_xgboost` with dedicated scripts `scripts/build_advanced_xgboost_dataset.py`, `scripts/train_advanced_xgboost.py`, and `scripts/run_advanced_xgboost_pipeline.sh`.
+- The advanced XGBoost missing-data policy is now: keep label-valid rows, preserve numeric nulls into XGBoost, and add explicit missingness indicator features rather than dropping whole joined rows.
 
 ## Suggested Commit Shards For Next Session
 

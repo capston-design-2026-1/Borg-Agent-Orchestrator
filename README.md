@@ -109,6 +109,7 @@ That pipeline is intentionally separate from the baseline forecaster flow:
 - It writes advanced feature parquet under `~/Documents/borg_xgboost_workspace/processed/feature_store`
 - It writes XGBoost models and metrics under `~/Documents/borg_xgboost_workspace/models/xgboost`
 - It keeps the same high-level target family: risk scoring for failures/errors within the configured prediction horizon
+- It keeps label-valid rows with missing features, adds explicit `*_is_missing` indicators for key features, and lets XGBoost consume numeric nulls as missing values instead of dropping whole joined rows
 
 Download behavior notes:
 
