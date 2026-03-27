@@ -1,6 +1,7 @@
 import polars as pl
 
-from src.advanced_xgboost.settings import feature_store_dir, parse_clusters
+from src.advanced_xgboost.features import target_column_name
+from src.advanced_xgboost.settings import feature_store_dir, parse_clusters, parse_prediction_horizon_minutes
 from src.advanced_xgboost.train import train_and_evaluate
 
 
@@ -27,9 +28,14 @@ def main() -> None:
     clusters = parse_clusters()
     print(f"Reading advanced feature datasets from: {feature_store_dir()}")
     print(f"Clusters: {clusters}")
+    print(f"Prediction horizons (minutes): {parse_prediction_horizon_minutes()}")
     feature_frame = load_feature_data(clusters)
-    metrics = train_and_evaluate(feature_frame)
-    print(f"✅ XGBoost training complete: {metrics}")
+    all_metrics = []
+    for minutes in parse_prediction_horizon_minutes():
+        target = target_column_name(minutes)
+        metrics = train_and_evaluate(feature_frame, target)
+        all_metrics.append(metrics)
+        print(f"✅ XGBoost training complete for {target}: {metrics}")
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ from src.advanced_xgboost.settings import (
     joined_dataset_dir,
     parse_clusters,
     parse_failure_event_types,
-    prediction_horizon_us,
+    parse_prediction_horizon_minutes,
 )
 
 
@@ -23,15 +23,19 @@ def write_cluster_features(cluster_id: str) -> None:
     frame = build_feature_frame(
         pl.scan_parquet(dataset_file(cluster_id)),
         failure_event_types=parse_failure_event_types(),
-        horizon_us=prediction_horizon_us(),
+        horizon_minutes=parse_prediction_horizon_minutes(),
     ).collect(engine="streaming")
 
     path = feature_file(cluster_id)
     frame.write_parquet(path)
-    positives = frame.filter(pl.col("target_failure_15m")).height
+    target_columns = [f"target_failure_{minutes}m" for minutes in parse_prediction_horizon_minutes()]
+    positive_counts = {
+        column: frame.filter(pl.col(column)).height
+        for column in target_columns
+    }
     print(
         f"✅ {cluster_id}: wrote {frame.height} rows to {path} "
-        f"(positive labels: {positives})"
+        f"(positive labels: {positive_counts})"
     )
 
 
@@ -41,7 +45,7 @@ def main() -> None:
     print(f"Writing advanced feature datasets to: {feature_store_dir()}")
     print(f"Clusters: {clusters}")
     print(f"Failure event types: {parse_failure_event_types()}")
-    print(f"Prediction horizon (us): {prediction_horizon_us()}")
+    print(f"Prediction horizons (minutes): {parse_prediction_horizon_minutes()}")
 
     for cluster_id in clusters:
         path = dataset_file(cluster_id)

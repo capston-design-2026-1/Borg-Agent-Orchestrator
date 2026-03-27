@@ -121,6 +121,10 @@ MISSINGNESS_BASE_COLUMNS = (
 MISSINGNESS_FLAG_COLUMNS = tuple(f"{column}_is_missing" for column in MISSINGNESS_BASE_COLUMNS)
 
 
+def target_column_name(horizon_minutes: int) -> str:
+    return f"target_failure_{horizon_minutes}m"
+
+
 def safe_ratio(numerator: str, denominator: str, alias: str) -> pl.Expr:
     return (
         pl.when(pl.col(denominator).is_not_null() & (pl.col(denominator) != 0))
@@ -157,8 +161,24 @@ def add_temporal_features(frame: pl.LazyFrame) -> pl.LazyFrame:
     return frame.with_columns(expressions)
 
 
-def build_feature_frame(dataset: pl.LazyFrame, failure_event_types: list[int], horizon_us: int) -> pl.LazyFrame:
+def build_feature_frame(
+    dataset: pl.LazyFrame,
+    failure_event_types: list[int],
+    horizon_minutes: list[int],
+) -> pl.LazyFrame:
     task_keys = ["collection_id", "instance_index"]
+    horizon_exprs = []
+    for minutes in horizon_minutes:
+        horizon_us = minutes * 60 * 1_000_000
+        horizon_exprs.append(
+            (
+                pl.col("is_failure_terminal_event") &
+                pl.col("time_to_terminal_event_us").is_not_null() &
+                (pl.col("time_to_terminal_event_us") >= 0) &
+                (pl.col("time_to_terminal_event_us") <= horizon_us)
+            ).alias(target_column_name(minutes))
+        )
+
     enriched = (
         dataset
         .sort(["machine_id", "collection_id", "instance_index", "end_time"])
@@ -199,15 +219,10 @@ def build_feature_frame(dataset: pl.LazyFrame, failure_event_types: list[int], h
                 pl.col("avg_cpu_utilization").rolling_std(window_size=6, min_samples=2).over(task_keys).alias("avg_cpu_utilization_roll6_std"),
                 pl.col("avg_mem_utilization").rolling_std(window_size=6, min_samples=2).over(task_keys).alias("avg_mem_utilization_roll6_std"),
                 (
-                    pl.col("is_failure_terminal_event") &
-                    pl.col("time_to_terminal_event_us").is_not_null() &
-                    (pl.col("time_to_terminal_event_us") >= 0) &
-                    (pl.col("time_to_terminal_event_us") <= horizon_us)
-                ).alias("target_failure_15m"),
-                (
                     pl.col("final_event_type").is_not_null() &
                     (pl.col("last_event_time") <= pl.col("end_time"))
                 ).alias("terminal_event_before_window_end"),
+                *horizon_exprs,
             ]
         )
         .with_columns(
@@ -280,6 +295,6 @@ def build_feature_frame(dataset: pl.LazyFrame, failure_event_types: list[int], h
             pl.col("is_failure_terminal_event"),
             pl.col("observed_terminal_by_window"),
             pl.col("terminal_event_before_window_end"),
-            pl.col("target_failure_15m"),
+            *[pl.col(target_column_name(minutes)) for minutes in horizon_minutes],
         ]
     )

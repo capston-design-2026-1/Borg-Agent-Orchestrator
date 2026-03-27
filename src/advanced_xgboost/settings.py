@@ -11,6 +11,7 @@ DEFAULT_REPORT_DIR = DEFAULT_ADVANCED_ROOT / "reports"
 DEFAULT_CLUSTERS = ("b", "c", "d", "e", "f", "g")
 DEFAULT_FAILURE_EVENT_TYPES = (2, 3, 6)
 DEFAULT_PREDICTION_HORIZON_US = 15 * 60 * 1_000_000
+DEFAULT_PREDICTION_HORIZON_MINUTES = (15, 30, 45, 60)
 
 
 def env_path(name: str, default: Path) -> Path:
@@ -61,3 +62,9 @@ def prediction_horizon_us() -> int:
         return DEFAULT_PREDICTION_HORIZON_US
     return int(raw)
 
+
+def parse_prediction_horizon_minutes() -> list[int]:
+    raw = os.environ.get("BORG_PREDICTION_HORIZON_MINUTES")
+    if not raw:
+        return list(DEFAULT_PREDICTION_HORIZON_MINUTES)
+    return [int(value.strip()) for value in raw.split(",") if value.strip()]
