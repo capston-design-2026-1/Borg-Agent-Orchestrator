@@ -52,6 +52,7 @@ That workspace keeps the second ML task isolated from the first baseline task:
 - Flattened and derived parquet go to `~/Documents/borg_xgboost_workspace/processed`
 - XGBoost models go to `~/Documents/borg_xgboost_workspace/models/xgboost`
 - Experiment reports go to `~/Documents/borg_xgboost_workspace/reports`
+- Advanced source code lives under `src/advanced_xgboost/` and dedicated entry scripts such as `scripts/build_advanced_xgboost_dataset.py` and `scripts/train_advanced_xgboost.py`
 
 By default, the project processes clusters `b` through `g`.
 Clusters `a` and `h` are excluded because their flattened usage schemas differ from the main dataset group.
@@ -80,6 +81,19 @@ If you want a one-command advanced download, just run:
 ```
 
 That wrapper creates the advanced workspace if needed, creates `~/Documents/borg_xgboost_workspace/config/advanced_xgboost.env` if missing, loads it, and then starts the coherent target-based download.
+
+To build the separated advanced feature set and train the XGBoost failure-risk model, run:
+
+```bash
+./scripts/run_advanced_xgboost_pipeline.sh
+```
+
+That pipeline is intentionally separate from the baseline forecaster flow:
+
+- It reads joined datasets from the advanced workspace
+- It writes advanced feature parquet under `~/Documents/borg_xgboost_workspace/processed/feature_store`
+- It writes XGBoost models and metrics under `~/Documents/borg_xgboost_workspace/models/xgboost`
+- It keeps the same high-level target family: risk scoring for failures/errors within the configured prediction horizon
 
 Download behavior notes:
 
