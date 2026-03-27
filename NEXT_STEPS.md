@@ -122,6 +122,7 @@ Alternate rolling-profile run summary:
 - Use KST timestamp-prefixed filenames in `reports/` with format `YYYYMMDDHHMM_*`.
 - If the user types `milestone`, update the repository memory files for the completed work before ending the session.
 - When a new parquet type or artifact directory is created under `~/Documents/borg_processed`, place a schema or artifact explanation file in that same directory.
+- Multi-shard raw Borg downloads should be processed through `~/Documents/borg_processed/flat_shards` rather than merged eagerly into one raw parquet file per cluster.
 
 ## Repository Memory
 
@@ -149,6 +150,13 @@ Recommended next sequence:
 4. Add a stronger forecaster baseline such as regularized logistic regression or gradient boosting using the canonical schema and existing feature profiles.
 5. Compare the new model against `base` and `base_plus_roll` with the existing per-cluster metrics.
 6. Define local eviction/placement outcome labels and begin the scheduler dataset stage once the local forecaster dataset is stable.
+
+Current raw-data expansion note:
+
+- The downloader supports `sample`, `target_bytes`, and `all` modes.
+- A `100 GB` raw target can be reached from the current `6.91 GB` baseline by downloading additional upstream shards.
+- For cluster `b` alone, upstream contains `49` `instance_events` shards and `1,463` `instance_usage` shards.
+- Downloading through cluster `b` usage shard `000000000170` would project the raw starting set to about `100.46 GB`.
 
 ## Suggested Commit Shards For Next Session
 

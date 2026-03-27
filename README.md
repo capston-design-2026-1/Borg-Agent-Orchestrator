@@ -41,17 +41,35 @@ python scripts/data_flattener.py
 By default, the project processes clusters `b` through `g`.
 Clusters `a` and `h` are excluded because their flattened usage schemas differ from the main dataset group.
 
-To download shards into the default external location:
+To download the original single-shard sample into the default external location:
 
 ```bash
 ./scripts/download_shards.sh
 ```
+
+To expand the raw starting set toward a bounded target size such as `100 GB`, use the byte-target mode:
+
+```bash
+BORG_DOWNLOAD_MODE=target_bytes \
+BORG_TARGET_RAW_BYTES=100000000000 \
+./scripts/download_shards.sh
+```
+
+Download behavior notes:
+
+- Default clusters are `b` through `g`
+- `sample` mode downloads shard `000000000000` for each of `events`, `usage`, and `machines`
+- `target_bytes` mode keeps downloading additional raw shards until the local raw-data directory reaches the requested byte target
+- `all` mode downloads every matching raw shard for the selected clusters
+- New multi-shard files are stored as `cluster_type-<shard>.json.gz`, for example `b_usage-000000000170.json.gz`
 
 To build joined per-window datasets for clusters `b` through `g`:
 
 ```bash
 python scripts/make_dataset.py
 ```
+
+When multi-shard raw downloads are present, the flattener now writes shard parquet files under `~/Documents/borg_processed/flat_shards/<kind>/<cluster>/`, and the dataset builder reads those shard directories directly.
 
 To build forecaster training datasets from the joined datasets:
 
