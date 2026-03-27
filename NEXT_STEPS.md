@@ -17,6 +17,7 @@ Read Agents.md, NEXT_STEPS.md, MAS_ARCHITECTURE.md, and README.md, inspect the l
 - Raw data location: `~/Documents/borg_data`
 - Processed data location: `~/Documents/borg_processed`
 - Advanced XGBoost workspace: `~/Documents/borg_xgboost_workspace`
+- Advanced runtime: repo-local `.venv` is prepared and verified with `polars 1.39.3` and `xgboost 2.1.4`
 - Default working clusters: `b`, `c`, `d`, `e`, `f`, `g`
 - Excluded by default: `a`, `h`
 
@@ -137,21 +138,21 @@ These files should be kept current so a new Codex session behaves consistently:
 
 Latest milestone checkpoint:
 
-- `reports/202603191933_milestone.md`
+- `reports/202603271632_milestone.md`
 - Use it together with `Agents.md` and this file when resuming in a new Codex context
 
 ## Immediate Next Steps
 
-The next logical engineering work is now to either improve the forecaster model class beyond the weighted risk-score baseline or begin the scheduler data stage with the current baseline outputs.
+The immediate next engineering work is now to finish the advanced raw download and then run the isolated advanced XGBoost pipeline end to end.
 
 Recommended next sequence:
 
-1. Keep `base` as the default forecaster profile for general ranking quality.
-2. Use `base_plus_roll` only when evaluating top-alert triage behavior.
-3. Replace the example local-cloud mapping with your actual telemetry column mapping and generate a first real canonical local dataset.
-4. Add a stronger forecaster baseline such as regularized logistic regression or gradient boosting using the canonical schema and existing feature profiles.
-5. Compare the new model against `base` and `base_plus_roll` with the existing per-cluster metrics.
-6. Define local eviction/placement outcome labels and begin the scheduler dataset stage once the local forecaster dataset is stable.
+1. Let `./scripts/run_advanced_download.sh` finish the fixed-shard download plan for clusters `b` through `g`.
+2. Run `./scripts/run_advanced_flatten.sh`.
+3. Run `./scripts/run_advanced_join.sh`.
+4. Run `./scripts/run_advanced_feature_build.sh`.
+5. Run `./scripts/run_advanced_train.sh`.
+6. Review per-horizon model artifacts for `5m`, `15m`, `30m`, `45m`, and `60m`.
 
 Current raw-data expansion note:
 
@@ -168,6 +169,7 @@ Current raw-data expansion note:
 - Step wrappers now exist for the isolated advanced pipeline: `scripts/run_advanced_flatten.sh`, `scripts/run_advanced_join.sh`, `scripts/run_advanced_feature_build.sh`, `scripts/run_advanced_train.sh`, and the full-chain `scripts/run_advanced_xgboost_pipeline.sh`.
 - The advanced feature parquet now carries multiple target columns for default horizons `5m`, `15m`, `30m`, `45m`, and `60m`, and the trainer fits one XGBoost model per target column without requiring separate joined datasets.
 - `scripts/setup_advanced_runtime.sh` now prepares a repo-local `.venv`, and the advanced wrappers use that interpreter plus `PYTHONPATH` so the isolated pipeline can run immediately after downloads finish.
+- The advanced runtime dependency issue on macOS is resolved by installing `libomp`, and `xgboost` now imports successfully from the repo-local `.venv`.
 
 ## Suggested Commit Shards For Next Session
 
