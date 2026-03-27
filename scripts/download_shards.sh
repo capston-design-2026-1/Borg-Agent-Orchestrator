@@ -6,6 +6,7 @@ RAW_DIR="${BORG_RAW_DIR:-$HOME/Documents/borg_data}"
 CLUSTERS_RAW="${BORG_CLUSTERS:-b,c,d,e,f,g}"
 DOWNLOAD_MODE="${BORG_DOWNLOAD_MODE:-sample}"
 TARGET_RAW_BYTES="${BORG_TARGET_RAW_BYTES:-100000000000}"
+BORG_TARGET_TOLERANCE_BYTES="${BORG_TARGET_TOLERANCE_BYTES:-50000000000}"
 GSUTIL_OPTS=(-o "GSUtil:parallel_process_count=1")
 
 typeset -a CLUSTERS
@@ -85,6 +86,7 @@ download_until_target() {
   current_bytes="$(current_raw_bytes)"
   echo "Current raw bytes: ${current_bytes}"
   echo "Target raw bytes: ${TARGET_RAW_BYTES}"
+  echo "Tolerance bytes: ${BORG_TARGET_TOLERANCE_BYTES}"
 
   if (( current_bytes >= TARGET_RAW_BYTES )); then
     echo "Target already satisfied. Nothing to download."
@@ -93,36 +95,42 @@ download_until_target() {
 
   local cluster
   local remote_name
+  local soft_cap=$(( TARGET_RAW_BYTES + BORG_TARGET_TOLERANCE_BYTES ))
+
+  echo "Building coherent cluster slices:"
+  echo "- download all machine shards for a cluster"
+  echo "- download all event shards for that same cluster"
+  echo "- then add usage shards for that cluster"
+  echo "- stop only after finishing a usage shard once size is within the acceptable window"
 
   for cluster in "${CLUSTERS[@]}"; do
+    echo "-----------------------------------------------"
+    echo "Preparing cluster ${cluster}..."
     while IFS= read -r remote_path; do
       [[ -z "${remote_path}" ]] && continue
       remote_name="${remote_path:t}"
       download_object "${cluster}" "${remote_name}" "machines" "machines"
     done < <(gsutil ls "gs://clusterdata_2019_${cluster}/machine_events-*.json.gz" | sort)
-  done
 
-  for cluster in "${CLUSTERS[@]}"; do
     while IFS= read -r remote_path; do
       [[ -z "${remote_path}" ]] && continue
       remote_name="${remote_path:t}"
       download_object "${cluster}" "${remote_name}" "events" "events"
-      current_bytes="$(current_raw_bytes)"
-      if (( current_bytes >= TARGET_RAW_BYTES )); then
-        echo "Reached target after events download."
-        return 0
-      fi
     done < <(gsutil ls "gs://clusterdata_2019_${cluster}/instance_events-*.json.gz" | sort)
-  done
 
-  for cluster in "${CLUSTERS[@]}"; do
     while IFS= read -r remote_path; do
       [[ -z "${remote_path}" ]] && continue
       remote_name="${remote_path:t}"
       download_object "${cluster}" "${remote_name}" "usage" "usage"
       current_bytes="$(current_raw_bytes)"
-      if (( current_bytes >= TARGET_RAW_BYTES )); then
-        echo "Reached target after usage download."
+      if (( current_bytes >= TARGET_RAW_BYTES && current_bytes <= soft_cap )); then
+        echo "Reached acceptable target window after usage download."
+        echo "Current raw bytes: ${current_bytes}"
+        return 0
+      fi
+      if (( current_bytes > soft_cap )); then
+        echo "Exceeded soft cap after completing a coherent usage shard."
+        echo "Current raw bytes: ${current_bytes}"
         return 0
       fi
     done < <(gsutil ls "gs://clusterdata_2019_${cluster}/instance_usage-*.json.gz" | sort)
