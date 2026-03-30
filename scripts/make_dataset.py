@@ -67,31 +67,50 @@ def cluster_source(cluster_id: str, suffix: str) -> str:
     return str(cluster_file(cluster_id, suffix))
 
 
+def cluster_source_paths(cluster_id: str, suffix: str) -> list[Path]:
+    shard_dir = FLAT_SHARD_DIR / suffix / cluster_id
+    if shard_dir.exists():
+        shard_paths = sorted(shard_dir.glob("*.parquet"))
+        if shard_paths:
+            return shard_paths
+    return [cluster_file(cluster_id, suffix)]
+
+
+def concat_normalized_sources(source_paths: list[Path], builder) -> pl.LazyFrame:
+    normalized_frames = [builder(path) for path in source_paths]
+    if len(normalized_frames) == 1:
+        return normalized_frames[0]
+    return pl.concat(normalized_frames, how="vertical_relaxed")
+
+
 def dataset_file(cluster_id: str) -> Path:
     return DATASET_DIR / f"{cluster_id}_dataset.parquet"
 
 
 def load_event_features(cluster_id: str) -> pl.LazyFrame:
-    events = pl.scan_parquet(cluster_source(cluster_id, "events"))
+    def build_normalized_event_frame(path: Path) -> pl.LazyFrame:
+        return (
+            pl.scan_parquet(str(path))
+            .select(
+                [
+                    int_col("time").alias("event_time"),
+                    int_col("collection_id").alias("collection_id"),
+                    int_col("instance_index").alias("instance_index"),
+                    int_col("machine_id").alias("event_machine_id"),
+                    int_col("alloc_collection_id").alias("alloc_collection_id"),
+                    int_col("alloc_instance_index").alias("alloc_instance_index"),
+                    int_col("type").alias("event_type"),
+                    int_col("scheduling_class").alias("scheduling_class"),
+                    int_col("priority").alias("priority"),
+                    str_col("missing_type").alias("missing_type"),
+                    float_col("req_cpu").alias("req_cpu"),
+                    float_col("req_mem").alias("req_mem"),
+                ]
+            )
+        )
 
     return (
-        events
-        .select(
-            [
-                int_col("time").alias("event_time"),
-                int_col("collection_id").alias("collection_id"),
-                int_col("instance_index").alias("instance_index"),
-                int_col("machine_id").alias("event_machine_id"),
-                int_col("alloc_collection_id").alias("alloc_collection_id"),
-                int_col("alloc_instance_index").alias("alloc_instance_index"),
-                int_col("type").alias("event_type"),
-                int_col("scheduling_class").alias("scheduling_class"),
-                int_col("priority").alias("priority"),
-                str_col("missing_type").alias("missing_type"),
-                float_col("req_cpu").alias("req_cpu"),
-                float_col("req_mem").alias("req_mem"),
-            ]
-        )
+        concat_normalized_sources(cluster_source_paths(cluster_id, "events"), build_normalized_event_frame)
         .filter(pl.col("collection_id").is_not_null() & pl.col("instance_index").is_not_null())
         .sort(["collection_id", "instance_index", "event_time"])
         .group_by(["collection_id", "instance_index"])
@@ -115,21 +134,24 @@ def load_event_features(cluster_id: str) -> pl.LazyFrame:
 
 
 def load_machine_features(cluster_id: str) -> pl.LazyFrame:
-    machines = pl.scan_parquet(cluster_source(cluster_id, "machines"))
+    def build_normalized_machine_frame(path: Path) -> pl.LazyFrame:
+        return (
+            pl.scan_parquet(str(path))
+            .select(
+                [
+                    int_col("time").alias("machine_event_time"),
+                    int_col("machine_id").alias("machine_id"),
+                    float_col("machine_cpu").alias("machine_cpu"),
+                    float_col("machine_mem").alias("machine_mem"),
+                    int_col("type").alias("machine_event_type"),
+                    str_col("switch_id").alias("switch_id"),
+                    str_col("platform_id").alias("platform_id"),
+                ]
+            )
+        )
 
     return (
-        machines
-        .select(
-            [
-                int_col("time").alias("machine_event_time"),
-                int_col("machine_id").alias("machine_id"),
-                float_col("machine_cpu").alias("machine_cpu"),
-                float_col("machine_mem").alias("machine_mem"),
-                int_col("type").alias("machine_event_type"),
-                str_col("switch_id").alias("switch_id"),
-                str_col("platform_id").alias("platform_id"),
-            ]
-        )
+        concat_normalized_sources(cluster_source_paths(cluster_id, "machines"), build_normalized_machine_frame)
         .filter(pl.col("machine_id").is_not_null())
         .sort(["machine_id", "machine_event_time"])
         .group_by("machine_id")
@@ -147,12 +169,10 @@ def load_machine_features(cluster_id: str) -> pl.LazyFrame:
 
 
 def load_usage_features(cluster_id: str) -> pl.LazyFrame:
-    usage = pl.scan_parquet(cluster_source(cluster_id, "usage"))
-    schema_names = set(usage.collect_schema().names())
-
-    return (
-        usage
-        .select(
+    def build_normalized_usage_frame(path: Path) -> pl.LazyFrame:
+        usage = pl.scan_parquet(str(path))
+        schema_names = set(usage.collect_schema().names())
+        return usage.select(
             [
                 str_col("cluster_id").alias("cluster_id"),
                 int_col("start_time").alias("start_time"),
@@ -172,6 +192,9 @@ def load_usage_features(cluster_id: str) -> pl.LazyFrame:
                 optional_float_col(schema_names, "memory_accesses_per_instruction"),
             ]
         )
+
+    return (
+        concat_normalized_sources(cluster_source_paths(cluster_id, "usage"), build_normalized_usage_frame)
         .filter(pl.col("collection_id").is_not_null() & pl.col("instance_index").is_not_null())
     )
 

@@ -90,35 +90,16 @@ def scan_ndjson_permissive(path: Path, kind: str) -> pl.LazyFrame:
             "assigned_memory": pl.Float64,
             "page_cache_memory": pl.Float64,
             "sample_rate": pl.Float64,
-            "start_time": pl.Int64,
-            "end_time": pl.Int64,
-            "collection_id": pl.Int64,
-            "instance_index": pl.Int64,
-            "machine_id": pl.Int64,
-            "alloc_collection_id": pl.Int64,
-            "alloc_instance_index": pl.Int64,
             "average_usage": CPU_MEM_STRUCT,
             "maximum_usage": CPU_MEM_STRUCT,
         }
     elif kind == "events":
         schema_overrides = {
-            "time": pl.Int64,
-            "collection_id": pl.Int64,
-            "instance_index": pl.Int64,
-            "machine_id": pl.Int64,
-            "alloc_collection_id": pl.Int64,
-            "alloc_instance_index": pl.Int64,
-            "type": pl.Int64,
-            "priority": pl.Int64,
-            "scheduling_class": pl.Int64,
             "resource_request": CPU_MEM_STRUCT,
             "constraint": pl.Object,
         }
     elif kind == "machines":
         schema_overrides = {
-            "time": pl.Int64,
-            "machine_id": pl.Int64,
-            "type": pl.Int64,
             "capacity": CPU_MEM_STRUCT,
         }
     return pl.scan_ndjson(
@@ -144,6 +125,9 @@ def process_shard(cluster_id: str, kind: str, raw_path_str: str) -> str:
             return f"skip-empty {kind} {cluster_id} {raw_path.name}"
         lf = (
             lf.with_columns([
+                pl.col("time").cast(pl.Int64, strict=False).alias("time"),
+                pl.col("machine_id").cast(pl.Int64, strict=False).alias("machine_id"),
+                pl.col("type").cast(pl.Int64, strict=False).alias("type"),
                 pl.col("capacity").struct.field("cpus").cast(pl.Float64, strict=False).alias("machine_cpu"),
                 pl.col("capacity").struct.field("memory").cast(pl.Float64, strict=False).alias("machine_mem"),
             ])
@@ -152,6 +136,15 @@ def process_shard(cluster_id: str, kind: str, raw_path_str: str) -> str:
         )
     elif kind == "events":
         lf = lf.with_columns([
+            pl.col("time").cast(pl.Int64, strict=False).alias("time"),
+            pl.col("collection_id").cast(pl.Int64, strict=False).alias("collection_id"),
+            pl.col("instance_index").cast(pl.Int64, strict=False).alias("instance_index"),
+            pl.col("machine_id").cast(pl.Int64, strict=False).alias("machine_id"),
+            pl.col("alloc_collection_id").cast(pl.Int64, strict=False).alias("alloc_collection_id"),
+            pl.col("alloc_instance_index").cast(pl.Int64, strict=False).alias("alloc_instance_index"),
+            pl.col("type").cast(pl.Int64, strict=False).alias("type"),
+            pl.col("priority").cast(pl.Int64, strict=False).alias("priority"),
+            pl.col("scheduling_class").cast(pl.Int64, strict=False).alias("scheduling_class"),
             pl.col("resource_request").struct.field("cpus").cast(pl.Float64, strict=False).alias("req_cpu"),
             pl.col("resource_request").struct.field("memory").cast(pl.Float64, strict=False).alias("req_mem"),
         ])
@@ -159,6 +152,13 @@ def process_shard(cluster_id: str, kind: str, raw_path_str: str) -> str:
         lf = lf.drop(cols_to_drop)
     elif kind == "usage":
         lf = lf.with_columns([
+            pl.col("start_time").cast(pl.Int64, strict=False).alias("start_time"),
+            pl.col("end_time").cast(pl.Int64, strict=False).alias("end_time"),
+            pl.col("collection_id").cast(pl.Int64, strict=False).alias("collection_id"),
+            pl.col("instance_index").cast(pl.Int64, strict=False).alias("instance_index"),
+            pl.col("machine_id").cast(pl.Int64, strict=False).alias("machine_id"),
+            pl.col("alloc_collection_id").cast(pl.Int64, strict=False).alias("alloc_collection_id"),
+            pl.col("alloc_instance_index").cast(pl.Int64, strict=False).alias("alloc_instance_index"),
             pl.col("average_usage").struct.field("cpus").cast(pl.Float64, strict=False).alias("avg_cpu"),
             pl.col("average_usage").struct.field("memory").cast(pl.Float64, strict=False).alias("avg_mem"),
             pl.col("maximum_usage").struct.field("cpus").cast(pl.Float64, strict=False).alias("max_cpu"),
