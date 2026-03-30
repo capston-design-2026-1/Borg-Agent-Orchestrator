@@ -90,7 +90,6 @@ def scan_ndjson_permissive(path: Path, kind: str) -> pl.LazyFrame:
             "assigned_memory": pl.Float64,
             "page_cache_memory": pl.Float64,
             "sample_rate": pl.Float64,
-            "memory_accesses_per_instruction": pl.Float64,
             "start_time": pl.Int64,
             "end_time": pl.Int64,
             "collection_id": pl.Int64,
