@@ -23,6 +23,18 @@ Read Agents.md, NEXT_STEPS.md, MAS_ARCHITECTURE.md, and README.md, inspect the l
 
 ## Pipeline Status
 
+Advanced XGBoost track status:
+
+- Advanced workspace root: `~/Documents/borg_xgboost_workspace`
+- Advanced runtime wrappers now write timestamped stage logs under `~/Documents/borg_xgboost_workspace/runtime/logs`
+- Current live flatten log: `~/Documents/borg_xgboost_workspace/runtime/logs/20260331021002_advanced_flatten.log`
+- Current live pipeline log: `~/Documents/borg_xgboost_workspace/runtime/logs/20260331021002_advanced_pipeline.log`
+- Advanced flattening is currently in progress against the fixed-shard advanced download set
+- Current flattened advanced shard count: `56` non-`.DS_Store` parquet files
+- Current advanced flatten config: `BORG_FLATTEN_WORKERS=20`, `BORG_FLATTEN_HEARTBEAT_SECONDS=10`
+- Current advanced flatten behavior logs `started ...`, `done ...`, and `heartbeat completed=...` lines so active work is visible even when large event shards have not finished yet
+- Current observed bottleneck: large `events` shards remain slow because nested `resource_request` extraction still flows through `pl.Object` plus `map_elements(...)`
+
 Completed stages:
 
 1. Raw Borg shard download script
@@ -140,19 +152,18 @@ Latest milestone checkpoint:
 
 - `reports/202603271632_milestone.md`
 - Use it together with `Agents.md` and this file when resuming in a new Codex context
+- Latest advanced handoff snapshot: `reports/202603310236_advanced_flatten_handoff.md`
 
 ## Immediate Next Steps
 
-The immediate next engineering work is now to finish the advanced raw download and then run the isolated advanced XGBoost pipeline end to end.
+The immediate next engineering work is now to let the advanced flatten run complete or tune it further if completions remain too slow, then continue the isolated advanced XGBoost pipeline end to end.
 
 Recommended next sequence:
 
-1. Let `./scripts/run_advanced_download.sh` finish the fixed-shard download plan for clusters `b` through `g`.
-2. Run `./scripts/run_advanced_flatten.sh`.
-3. Run `./scripts/run_advanced_join.sh`.
-4. Run `./scripts/run_advanced_feature_build.sh`.
-5. Run `./scripts/run_advanced_train.sh`.
-6. Review per-horizon model artifacts for `5m`, `15m`, `30m`, `45m`, and `60m`.
+1. Let `./scripts/run_advanced_xgboost_pipeline.sh` continue the current flatten run from `~/Documents/borg_xgboost_workspace/runtime/logs/20260331021002_advanced_flatten.log`.
+2. If advanced flatten remains throughput-limited, optimize event flattening by replacing the current `pl.Object` plus `map_elements(...)` path for `resource_request` with a more native extraction path.
+3. When flatten completes, let the queued pipeline continue into `./scripts/run_advanced_join.sh`, `./scripts/run_advanced_feature_build.sh`, and `./scripts/run_advanced_train.sh`.
+4. Review per-horizon model artifacts for `5m`, `15m`, `30m`, `45m`, and `60m`.
 
 Current raw-data expansion note:
 
