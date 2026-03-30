@@ -16,6 +16,7 @@ FLAT_SHARD_DIR = OUT_DIR / "flat_shards"
 FLAT_SHARD_DIR.mkdir(parents=True, exist_ok=True)
 DEFAULT_FLATTEN_WORKERS = max(1, os.cpu_count() or 1)
 DEFAULT_HEARTBEAT_SECONDS = 30
+CPU_MEM_STRUCT = pl.Struct({"cpus": pl.Float64, "memory": pl.Float64})
 
 
 def parse_clusters() -> list[str]:
@@ -73,16 +74,6 @@ def safe_extract_expr(schema: dict[str, pl.DataType], root_col: str, field_name:
 
     root_dtype = schema[root_col]
 
-    if root_dtype == pl.Object:
-        return (
-            pl.col(root_col)
-            .map_elements(
-                lambda value: float(value[field_name]) if isinstance(value, dict) and value.get(field_name) is not None else None,
-                return_dtype=pl.Float64,
-            )
-            .alias(new_name)
-        )
-
     if isinstance(root_dtype, pl.Struct):
         field_names = {field.name for field in root_dtype.fields}
         if field_name in field_names:
@@ -107,6 +98,8 @@ def read_ndjson_permissive(path: Path, kind: str) -> pl.DataFrame:
             "machine_id": pl.Int64,
             "alloc_collection_id": pl.Int64,
             "alloc_instance_index": pl.Int64,
+            "average_usage": CPU_MEM_STRUCT,
+            "maximum_usage": CPU_MEM_STRUCT,
         }
     elif kind == "events":
         schema_overrides = {
@@ -119,7 +112,7 @@ def read_ndjson_permissive(path: Path, kind: str) -> pl.DataFrame:
             "type": pl.Int64,
             "priority": pl.Int64,
             "scheduling_class": pl.Int64,
-            "resource_request": pl.Object,
+            "resource_request": CPU_MEM_STRUCT,
             "constraint": pl.Object,
         }
     elif kind == "machines":
@@ -127,15 +120,14 @@ def read_ndjson_permissive(path: Path, kind: str) -> pl.DataFrame:
             "time": pl.Int64,
             "machine_id": pl.Int64,
             "type": pl.Int64,
-            "capacity": pl.Object,
+            "capacity": CPU_MEM_STRUCT,
         }
-
     return pl.read_ndjson(
         path,
         infer_schema_length=10000,
         schema_overrides=schema_overrides,
         ignore_errors=True,
-        low_memory=True,
+        low_memory=False,
     )
 
 
