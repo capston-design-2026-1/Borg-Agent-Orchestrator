@@ -112,22 +112,45 @@ def load_event_features(cluster_id: str) -> pl.LazyFrame:
     return (
         concat_normalized_sources(cluster_source_paths(cluster_id, "events"), build_normalized_event_frame)
         .filter(pl.col("collection_id").is_not_null() & pl.col("instance_index").is_not_null())
-        .sort(["collection_id", "instance_index", "event_time"])
         .group_by(["collection_id", "instance_index"])
         .agg(
             [
                 pl.col("event_time").min().alias("first_event_time"),
                 pl.col("event_time").max().alias("last_event_time"),
                 pl.len().alias("event_count"),
-                pl.col("event_type").last().alias("final_event_type"),
-                pl.col("scheduling_class").drop_nulls().last().alias("scheduling_class"),
-                pl.col("priority").drop_nulls().last().alias("priority"),
+                pl.col("event_type").sort_by("event_time").last().alias("final_event_type"),
+                pl.col("scheduling_class")
+                .sort_by("event_time")
+                .drop_nulls()
+                .last()
+                .alias("scheduling_class"),
+                pl.col("priority")
+                .sort_by("event_time")
+                .drop_nulls()
+                .last()
+                .alias("priority"),
                 pl.col("req_cpu").max().alias("req_cpu"),
                 pl.col("req_mem").max().alias("req_mem"),
-                pl.col("event_machine_id").drop_nulls().last().alias("last_event_machine_id"),
-                pl.col("alloc_collection_id").drop_nulls().last().alias("alloc_collection_id"),
-                pl.col("alloc_instance_index").drop_nulls().last().alias("alloc_instance_index"),
-                pl.col("missing_type").drop_nulls().last().alias("missing_type"),
+                pl.col("event_machine_id")
+                .sort_by("event_time")
+                .drop_nulls()
+                .last()
+                .alias("last_event_machine_id"),
+                pl.col("alloc_collection_id")
+                .sort_by("event_time")
+                .drop_nulls()
+                .last()
+                .alias("alloc_collection_id"),
+                pl.col("alloc_instance_index")
+                .sort_by("event_time")
+                .drop_nulls()
+                .last()
+                .alias("alloc_instance_index"),
+                pl.col("missing_type")
+                .sort_by("event_time")
+                .drop_nulls()
+                .last()
+                .alias("missing_type"),
             ]
         )
     )
@@ -153,16 +176,35 @@ def load_machine_features(cluster_id: str) -> pl.LazyFrame:
     return (
         concat_normalized_sources(cluster_source_paths(cluster_id, "machines"), build_normalized_machine_frame)
         .filter(pl.col("machine_id").is_not_null())
-        .sort(["machine_id", "machine_event_time"])
         .group_by("machine_id")
         .agg(
             [
                 pl.col("machine_event_time").max().alias("last_machine_event_time"),
-                pl.col("machine_cpu").drop_nulls().last().alias("machine_cpu"),
-                pl.col("machine_mem").drop_nulls().last().alias("machine_mem"),
-                pl.col("machine_event_type").drop_nulls().last().alias("machine_event_type"),
-                pl.col("switch_id").drop_nulls().last().alias("switch_id"),
-                pl.col("platform_id").drop_nulls().last().alias("platform_id"),
+                pl.col("machine_cpu")
+                .sort_by("machine_event_time")
+                .drop_nulls()
+                .last()
+                .alias("machine_cpu"),
+                pl.col("machine_mem")
+                .sort_by("machine_event_time")
+                .drop_nulls()
+                .last()
+                .alias("machine_mem"),
+                pl.col("machine_event_type")
+                .sort_by("machine_event_time")
+                .drop_nulls()
+                .last()
+                .alias("machine_event_type"),
+                pl.col("switch_id")
+                .sort_by("machine_event_time")
+                .drop_nulls()
+                .last()
+                .alias("switch_id"),
+                pl.col("platform_id")
+                .sort_by("machine_event_time")
+                .drop_nulls()
+                .last()
+                .alias("platform_id"),
             ]
         )
     )
