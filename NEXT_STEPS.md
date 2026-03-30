@@ -39,7 +39,7 @@ Advanced XGBoost track status:
 - Advanced usage flattening bug is fixed in `scripts/data_flattener.py` by casting quoted numeric NDJSON fields after scan instead of relying on `schema_overrides` for string-backed IDs/timestamps
 - Advanced join rerun is now complete for clusters `b` through `g`
 - Advanced feature build is now complete for clusters `b` through `g`
-- Advanced training is now in progress under the resumable target-by-target runner
+- Advanced training is now complete for all configured horizons under the resumable target-by-target runner
 - Latest joined row counts:
   - `b`: `62,116,886`
   - `c`: `66,758,768`
@@ -54,9 +54,12 @@ Advanced XGBoost track status:
   - `e`: zero positives for `5m`, `15m`, `30m`, `45m`, and `60m`
   - `f`: zero positives for `5m`, `15m`, `30m`, `45m`, and `60m`
   - `g`: zero positives for `5m`, `15m`, `30m`, `45m`, and `60m`
-- Current training progress:
-  - `target_failure_5m` completed successfully
-  - `target_failure_15m` is currently running
+- Final training summary:
+  - `target_failure_5m`: average precision `0.9810528429`, precision@1% `0.9940523790`, recall@1% `0.3911846272`
+  - `target_failure_15m`: average precision `0.9726464046`, precision@1% `0.9951022040`, recall@1% `0.3226700374`
+  - `target_failure_30m`: average precision `0.9720370948`, precision@1% `0.9954522739`, recall@1% `0.2821028481`
+  - `target_failure_45m`: average precision `0.9659209812`, precision@1% `0.9960021988`, recall@1% `0.2523550266`
+  - `target_failure_60m`: average precision `0.9595348583`, precision@1% `0.9960519740`, recall@1% `0.2326268120`
 
 Completed stages:
 
@@ -184,9 +187,9 @@ The immediate next engineering work is now to let the advanced flatten run compl
 Recommended next sequence:
 
 1. Let `./scripts/run_advanced_xgboost_pipeline.sh` continue the current flatten run from `~/Documents/borg_xgboost_workspace/runtime/logs/20260331021002_advanced_flatten.log`.
-2. Let `./scripts/run_advanced_train_resumable.sh` finish the remaining horizons `15m`, `30m`, `45m`, and `60m`.
-3. Review per-horizon model artifacts for `5m`, `15m`, `30m`, `45m`, and `60m`.
-4. Investigate why clusters `e`, `f`, and `g` contain zero positives in the current fixed-shard advanced slice.
+2. Review per-horizon model artifacts for `5m`, `15m`, `30m`, `45m`, and `60m`.
+3. Investigate why clusters `e`, `f`, and `g` contain zero positives in the current fixed-shard advanced slice.
+4. Decide whether to increase the advanced raw shard depth so later clusters contribute positive labels to the training corpus.
 
 Current raw-data expansion note:
 
