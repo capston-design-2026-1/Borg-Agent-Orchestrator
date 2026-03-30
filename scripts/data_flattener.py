@@ -1,6 +1,7 @@
 import concurrent.futures
 import os
 from pathlib import Path
+import time
 
 import polars as pl
 
@@ -14,6 +15,7 @@ OUT_DIR.mkdir(parents=True, exist_ok=True)
 FLAT_SHARD_DIR = OUT_DIR / "flat_shards"
 FLAT_SHARD_DIR.mkdir(parents=True, exist_ok=True)
 DEFAULT_FLATTEN_WORKERS = max(1, os.cpu_count() or 1)
+DEFAULT_HEARTBEAT_SECONDS = 30
 
 
 def parse_clusters() -> list[str]:
@@ -28,6 +30,13 @@ def flatten_workers() -> int:
     if raw:
         return max(1, int(raw))
     return DEFAULT_FLATTEN_WORKERS
+
+
+def heartbeat_seconds() -> int:
+    raw = os.environ.get("BORG_FLATTEN_HEARTBEAT_SECONDS")
+    if raw:
+        return max(1, int(raw))
+    return DEFAULT_HEARTBEAT_SECONDS
 
 
 def raw_shard_paths(cluster_id: str, kind: str) -> list[Path]:
@@ -206,16 +215,56 @@ if __name__ == "__main__":
     if not tasks:
         print("\n🚀 All done! No pending shard work.")
     else:
+        heartbeat = heartbeat_seconds()
+        total = len(tasks)
+        completed = 0
+        next_heartbeat = time.monotonic() + heartbeat
+
         with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as executor:
-            future_to_task = {
-                executor.submit(process_shard, cluster_id, kind, raw_path): (cluster_id, kind, raw_path)
-                for cluster_id, kind, raw_path in tasks
-            }
-            for future in concurrent.futures.as_completed(future_to_task):
-                cluster_id, kind, raw_path = future_to_task[future]
+            task_iter = iter(tasks)
+            future_to_task: dict[concurrent.futures.Future[str], tuple[str, str, str]] = {}
+
+            def submit_next() -> bool:
                 try:
-                    print(future.result(), flush=True)
-                except Exception as e:
-                    print(f"❌ Error in {kind} shard {Path(raw_path).name} for cluster {cluster_id}: {e}", flush=True)
+                    cluster_id, kind, raw_path = next(task_iter)
+                except StopIteration:
+                    return False
+
+                raw_name = Path(raw_path).name
+                print(f"started {kind} {cluster_id} {raw_name}", flush=True)
+                future = executor.submit(process_shard, cluster_id, kind, raw_path)
+                future_to_task[future] = (cluster_id, kind, raw_path)
+                return True
+
+            for _ in range(min(workers, total)):
+                submit_next()
+
+            while future_to_task:
+                done, _ = concurrent.futures.wait(
+                    future_to_task,
+                    timeout=1,
+                    return_when=concurrent.futures.FIRST_COMPLETED,
+                )
+
+                if not done:
+                    now = time.monotonic()
+                    if now >= next_heartbeat:
+                        running = len(future_to_task)
+                        pending = total - completed - running
+                        print(
+                            f"heartbeat completed={completed}/{total} running={running} pending={pending}",
+                            flush=True,
+                        )
+                        next_heartbeat = now + heartbeat
+                    continue
+
+                for future in done:
+                    cluster_id, kind, raw_path = future_to_task.pop(future)
+                    completed += 1
+                    try:
+                        print(future.result(), flush=True)
+                    except Exception as e:
+                        print(f"❌ Error in {kind} shard {Path(raw_path).name} for cluster {cluster_id}: {e}", flush=True)
+                    submit_next()
 
     print("\n🚀 All done! Raw data can stay outside the repository.")
