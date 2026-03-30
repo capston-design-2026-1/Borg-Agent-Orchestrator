@@ -15,7 +15,8 @@ exec > >(tee -a "${LOG_FILE}") 2>&1
 echo "[advanced_train_resumable] started_at=${STAMP}"
 echo "[advanced_train_resumable] log=${LOG_FILE}"
 
-horizons=("${(@s:,:)BORG_PREDICTION_HORIZON_MINUTES}")
+raw_horizons="${BORG_PREDICTION_HORIZON_MINUTES:-5,15,30,45,60}"
+horizons=("${(@s:,:)raw_horizons}")
 model_name="${BORG_XGB_MODEL_NAME:-${BORG_XGBOOST_MODEL_NAME:-xgboost_failure_risk}}"
 
 for minutes in "${horizons[@]}"; do
