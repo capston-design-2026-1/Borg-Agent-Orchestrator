@@ -62,6 +62,15 @@ def model_params() -> dict[str, float | int | str]:
     return params
 
 
+def verbose_eval() -> int | bool:
+    raw = os.environ.get("BORG_XGB_VERBOSE_EVAL")
+    if not raw:
+        return False
+    if raw.lower() in {"true", "yes", "on"}:
+        return True
+    return max(1, int(raw))
+
+
 def model_output_dir(target_column: str) -> Path:
     path = model_dir() / model_name_for_target(target_column)
     path.mkdir(parents=True, exist_ok=True)
@@ -280,7 +289,7 @@ def train_and_evaluate(feature_scan: pl.LazyFrame, target_column: str) -> dict[s
     fit_kwargs: dict[str, object] = {}
     if "early_stopping_rounds" in params:
         fit_kwargs["eval_set"] = [(valid_x, valid_y)]
-        fit_kwargs["verbose"] = False
+        fit_kwargs["verbose"] = verbose_eval()
     model.fit(train_x, train_y, **fit_kwargs)
     model.get_booster().save_model(model_path(target_column))
     valid_scores = model.predict_proba(valid_x)[:, 1].tolist()
