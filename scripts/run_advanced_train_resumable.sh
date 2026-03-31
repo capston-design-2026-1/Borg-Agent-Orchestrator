@@ -17,7 +17,7 @@ echo "[advanced_train_resumable] log=${LOG_FILE}"
 
 raw_horizons="${BORG_PREDICTION_HORIZON_MINUTES:-5,15,30,45,60}"
 horizons=("${(@s:,:)raw_horizons}")
-model_name="${BORG_XGB_MODEL_NAME:-${BORG_XGBOOST_MODEL_NAME:-xgboost_failure_risk}}"
+model_name="${BORG_XGBOOST_MODEL_NAME:-${BORG_XGB_MODEL_NAME:-xgboost_failure_risk}}"
 
 for minutes in "${horizons[@]}"; do
   target="target_failure_${minutes}m"

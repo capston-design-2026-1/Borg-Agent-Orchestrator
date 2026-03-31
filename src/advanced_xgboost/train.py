@@ -30,8 +30,8 @@ def validation_fraction() -> float:
 
 def model_name() -> str:
     return (
-        os.environ.get("BORG_XGB_MODEL_NAME")
-        or os.environ.get("BORG_XGBOOST_MODEL_NAME")
+        os.environ.get("BORG_XGBOOST_MODEL_NAME")
+        or os.environ.get("BORG_XGB_MODEL_NAME")
         or DEFAULT_MODEL_NAME
     ).strip()
 
