@@ -2,7 +2,11 @@
 
 set -euo pipefail
 
+OVERRIDE_BORG_CLUSTERS="${BORG_CLUSTERS-}"
 source "$(cd "$(dirname "$0")" && pwd)/advanced_env.sh"
+if [[ -n "${OVERRIDE_BORG_CLUSTERS}" ]]; then
+  export BORG_CLUSTERS="${OVERRIDE_BORG_CLUSTERS}"
+fi
 
 LOG_DIR="${HOME}/Documents/borg_xgboost_workspace/runtime/logs"
 mkdir -p "${LOG_DIR}"
