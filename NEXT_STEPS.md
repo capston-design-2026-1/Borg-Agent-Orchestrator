@@ -32,7 +32,10 @@ Advanced XGBoost track status:
 - Latest advanced feature-build log: `~/Documents/borg_xgboost_workspace/runtime/logs/20260331040043_advanced_feature_build.log`
 - Latest advanced train log: `~/Documents/borg_xgboost_workspace/runtime/logs/20260331041159_advanced_train_resumable.log`
 - Latest tuning report: `~/Documents/borg_xgboost_workspace/reports/202603311104_advanced_xgboost_tuning.json`
-- Current tuned retrain log: `~/Documents/borg_xgboost_workspace/runtime/logs/20260331111307_advanced_train_resumable.log`
+- Detailed event-repair log: `~/Documents/borg_xgboost_workspace/runtime/logs/20260331151302_advanced_event_repair_detailed.log`
+- Detailed join-rerun log for repaired clusters: `~/Documents/borg_xgboost_workspace/runtime/logs/20260331152055_advanced_join_resumable_detailed.log`
+- Detailed feature-rerun log for repaired clusters: `~/Documents/borg_xgboost_workspace/runtime/logs/20260331152830_advanced_feature_build_resumable_detailed.log`
+- Current tuned retrain log: `~/Documents/borg_xgboost_workspace/runtime/logs/20260331153419_advanced_train_resumable_detailed.log`
 - Advanced flatten currently completed for the fixed-shard advanced set after regenerating corrupt and failed usage parquet shards
 - Current flattened advanced shard count: `186` non-`.DS_Store` parquet files
 - Current advanced flatten config: `BORG_FLATTEN_WORKERS=8`, `BORG_FLATTEN_HEARTBEAT_SECONDS=10`
@@ -53,9 +56,9 @@ Advanced XGBoost track status:
   - `b`: non-zero positives for all configured horizons
   - `c`: non-zero positives for all configured horizons
   - `d`: non-zero positives for all configured horizons
-  - `e`: zero positives for `5m`, `15m`, `30m`, `45m`, and `60m`
-  - `f`: zero positives for `5m`, `15m`, `30m`, `45m`, and `60m`
-  - `g`: zero positives for `5m`, `15m`, `30m`, `45m`, and `60m`
+  - `e`: `5m=129,553`, `15m=175,699`, `30m=200,677`, `45m=220,331`, `60m=233,409`
+  - `f`: `5m=48,677`, `15m=93,644`, `30m=148,814`, `45m=194,633`, `60m=240,144`
+  - `g`: `5m=39,509`, `15m=60,618`, `30m=81,189`, `45m=97,625`, `60m=111,570`
 - Final training summary:
   - `target_failure_5m`: average precision `0.9810528429`, precision@1% `0.9940523790`, recall@1% `0.3911846272`
   - `target_failure_15m`: average precision `0.9726464046`, precision@1% `0.9951022040`, recall@1% `0.3226700374`
@@ -65,9 +68,11 @@ Advanced XGBoost track status:
 - Tuning status:
   - Pilot sweep winner: `regularized_balanced`
   - Winner parameters: `max_depth=6`, `learning_rate=0.03`, `n_estimators=1600`, `subsample=0.9`, `colsample_bytree=0.7`, `min_child_weight=8`, `reg_alpha=0.2`, `reg_lambda=2.0`, `early_stopping_rounds=80`
-  - Full tuned retrain is currently running under model name `xgboost_failure_risk_tuned_v1`
-  - As of milestone time, the tuned retrain is still on `target_failure_5m`; no tuned metrics or model files have been emitted yet
-  - Live process at checkpoint: `./scripts/run_advanced_train_resumable.sh` plus `scripts/train_advanced_xgboost.py`, running for about `2h 25m` with CPU still active
+  - The earlier `xgboost_failure_risk_tuned_v1` run is obsolete because it started before the `e/f/g` event-key repair and does not reflect repaired labels
+  - The current repaired-label tuned retrain is running under model name `xgboost_failure_risk_tuned_v2_repaired_labels`
+  - The current live process is `./scripts/run_advanced_train_resumable_detailed.sh` plus `scripts/train_advanced_xgboost.py`
+  - The detailed training wrapper now preserves explicit CLI hyperparameter overrides and echoes them at the start of each target
+  - The detailed training log currently starts on `target_failure_5m` and should emit XGBoost verbose-eval lines during fit once preprocessing completes
 
 Completed stages:
 
@@ -195,11 +200,11 @@ The immediate next engineering work is now to let the advanced flatten run compl
 Recommended next sequence:
 
 1. Let `./scripts/run_advanced_xgboost_pipeline.sh` continue the current flatten run from `~/Documents/borg_xgboost_workspace/runtime/logs/20260331021002_advanced_flatten.log`.
-2. Let the active `xgboost_failure_risk_tuned_v1` retrain finish and compare tuned-vs-baseline metrics horizon by horizon.
-3. If the tuned `5m` run remains stuck unusually long without emitting artifacts, reduce the tuned retrain row caps or the estimator budget and restart from the tuned model name.
-4. Regenerate the bilingual evaluation reports from the winning tuned model if it beats the current baseline.
-5. Investigate why clusters `e`, `f`, and `g` contain zero positives in the current fixed-shard advanced slice.
-6. Decide whether to increase the advanced raw shard depth so later clusters contribute positive labels to the training corpus.
+2. Let the active `xgboost_failure_risk_tuned_v2_repaired_labels` retrain finish and compare repaired-label tuned metrics against the baseline production model horizon by horizon.
+3. If the repaired-label tuned `5m` run remains stuck unusually long without emitting artifacts or verbose-eval lines, inspect preprocessing memory pressure, then reduce row caps or estimator budget and restart from the same model name.
+4. Regenerate the bilingual evaluation reports from the winning repaired-label tuned model if it beats the current baseline.
+5. Add explicit ROC-AUC beside average precision / PR-AUC in the trainer outputs and refresh the English/Korean reports so the metrics are labeled consistently for non-ML readers.
+6. Decide whether to increase the advanced raw shard depth now that `e/f/g` contribute positives again, to improve calibration and rare-event coverage further.
 
 Current raw-data expansion note:
 
@@ -222,6 +227,8 @@ Current raw-data expansion note:
 - The advanced joiner now has a resumable cluster-at-a-time wrapper `scripts/run_advanced_join_resumable.sh`, and removing the global pre-group sorts from event/machine aggregation reduced join wall time enough for the full advanced join to complete successfully.
 - The advanced feature and training stages now also have resumable wrappers: `scripts/run_advanced_feature_build_resumable.sh` and `scripts/run_advanced_train_resumable.sh`.
 - The advanced trainer no longer concatenates the entire feature store eagerly in memory; it now scans parquet lazily, keeps all positives, and deterministically downsamples negatives to bounded train/validation row caps so multi-cluster training fits on the local machine.
+- New additive stage wrappers now exist for detailed reruns without replacing earlier scripts: `scripts/data_flattener_detailed.py`, `scripts/run_advanced_event_repair_detailed.sh`, `scripts/run_advanced_join_resumable_detailed.sh`, `scripts/run_advanced_feature_build_resumable_detailed.sh`, and `scripts/run_advanced_train_resumable_detailed.sh`.
+- The detailed wrappers are intended for long-running repair and retrain work because they emit per-cluster audit lines, preserve explicit runtime overrides, and write dedicated timestamped logs beside the earlier baseline wrappers.
 
 ## Suggested Commit Shards For Next Session
 
