@@ -102,6 +102,7 @@ Supporting docs:
 - `AGENT_REWARD_SYSTEM.md` for a non-ML explanation of post-training agents, actions, and rewards
 - `README.md` for the user-facing workflow
 - `reports/202603191933_milestone.md` for the latest milestone checkpoint
+- `reports/202604011550_milestone.md` for the latest capstone-architecture milestone
 
 ## Latest Verified Outputs
 
@@ -190,7 +191,7 @@ These files should be kept current so a new Codex session behaves consistently:
 
 Latest milestone checkpoint:
 
-- `reports/202603271632_milestone.md`
+- `reports/202604011550_milestone.md`
 - Use it together with `Agents.md` and this file when resuming in a new Codex context
 - Latest advanced handoff snapshot: `reports/202603310315_advanced_pipeline_handoff.md`
 
@@ -200,12 +201,12 @@ The immediate next engineering work is now to let the advanced flatten run compl
 
 Recommended next sequence:
 
-1. Let `./scripts/run_advanced_xgboost_pipeline.sh` continue the current flatten run from `~/Documents/borg_xgboost_workspace/runtime/logs/20260331021002_advanced_flatten.log`.
-2. Let the active `xgboost_failure_risk_tuned_v2_repaired_labels` retrain finish and compare repaired-label tuned metrics against the baseline production model horizon by horizon.
-3. If the repaired-label tuned `5m` run remains stuck unusually long without emitting artifacts or verbose-eval lines, inspect preprocessing memory pressure, then reduce row caps or estimator budget and restart from the same model name.
-4. Regenerate the bilingual evaluation reports from the winning repaired-label tuned model if it beats the current baseline.
-5. Add explicit ROC-AUC beside average precision / PR-AUC in the trainer outputs and refresh the English/Korean reports so the metrics are labeled consistently for non-ML readers.
-6. Decide whether to increase the advanced raw shard depth now that `e/f/g` contribute positives again, to improve calibration and rare-event coverage further.
+1. Use `AGENT_REWARD_SYSTEM.md` as the shared reference for explaining the post-training agent layer to non-ML teammates and reviewers.
+2. Refine the capstone top-line structure into a concrete predictor -> action -> reward architecture with a small explicit action space.
+3. Define one primary object clearly, such as preventing near-term workload failure while minimizing intervention cost.
+4. Translate the reward explanation into measurable replay or simulation metrics using existing Borg features and failure labels.
+5. Then continue the advanced XGBoost comparison work: compare repaired-label tuned metrics against the baseline production model horizon by horizon.
+6. Add explicit ROC-AUC beside average precision / PR-AUC in the trainer outputs and refresh the English/Korean reports so the metrics are labeled consistently for non-ML readers.
 
 Current raw-data expansion note:
 
