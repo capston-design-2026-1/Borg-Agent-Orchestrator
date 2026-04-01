@@ -99,6 +99,7 @@ Supporting docs:
 
 - `Agents.md` for repository workflow instructions
 - `MAS_ARCHITECTURE.md` for the MAS design
+- `AGENT_REWARD_SYSTEM.md` for a non-ML explanation of post-training agents, actions, and rewards
 - `README.md` for the user-facing workflow
 - `reports/202603191933_milestone.md` for the latest milestone checkpoint
 
