@@ -25,6 +25,7 @@ class AgentBEfficiencyOptimizer:
     def act(self, obs: Observation) -> AgentAction:
         if not obs.demand_projection:
             return AgentAction("AgentB", ActionKind.NOOP, score=0.0, priority=self.priority)
+
         node_id, demand = min(obs.demand_projection.items(), key=lambda kv: kv[1])
         if demand < 0.3:
             return AgentAction(
@@ -44,11 +45,19 @@ class AgentCGatekeeper:
 
     def act(self, obs: Observation) -> AgentAction:
         overloaded = sum(1 for n in obs.nodes if n.cpu_util > 0.85 or n.mem_util > 0.85)
-        if obs.queue_length > 100 or overloaded > max(1, len(obs.nodes) // 2):
+        if obs.queue_length > 120 or overloaded > max(1, len(obs.nodes) // 2):
             return AgentAction(
                 "AgentC",
                 ActionKind.ADMISSION,
                 payload={"decision": "queue"},
+                score=1.0,
+                priority=self.priority,
+            )
+        if obs.queue_length < 20 and overloaded == 0:
+            return AgentAction(
+                "AgentC",
+                ActionKind.ADMISSION,
+                payload={"decision": "admit"},
                 score=1.0,
                 priority=self.priority,
             )
