@@ -36,8 +36,10 @@ def run_health_checks(config: ManagerConfig) -> list[str]:
                 task_id=task_id,
                 title="Heal lint failures",
                 prompt=f"Fix lint failures.\nCommand: {config.health.lint_command}\nOutput:\n{output}",
+                task_type="bug",
                 priority=10,
                 done_when_commands=[config.health.lint_command],
+                metadata={"skip_auto_issue": not config.github.auto_issue_on_health},
             ),
         )
         created.append(task_id)
@@ -51,8 +53,10 @@ def run_health_checks(config: ManagerConfig) -> list[str]:
                 task_id=task_id,
                 title="Heal test failures",
                 prompt=f"Fix test failures.\nCommand: {config.health.test_command}\nOutput:\n{output}",
+                task_type="bug",
                 priority=5,
                 done_when_commands=[config.health.test_command],
+                metadata={"skip_auto_issue": not config.github.auto_issue_on_health},
             ),
         )
         created.append(task_id)
@@ -66,8 +70,10 @@ def run_health_checks(config: ManagerConfig) -> list[str]:
                 task_id=task_id,
                 title="Upgrade dependencies from scanner output",
                 prompt=f"Process dependency upgrade candidates and apply safe upgrades.\nOutput:\n{output}",
+                task_type="upgrade",
                 priority=30,
                 done_when_commands=[],
+                metadata={"skip_auto_issue": not config.github.auto_issue_on_health},
             ),
         )
         created.append(task_id)
