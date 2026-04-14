@@ -24,6 +24,14 @@ sed -i '' 's/^  enabled: false$/  enabled: true/' codex_autonomy/config/autonomy
 sed -i '' 's|^  repo: "owner/repo"$|  repo: "capston-design-2026-1/Borg-Agent-Orchestrator"|' codex_autonomy/config/autonomy.local.yaml
 ```
 
+## 3.1) Set cooldown for Codex limit windows (optional)
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+grep -q "rate_limit_cooldown_seconds" codex_autonomy/config/autonomy.local.yaml || sed -i '' '/^  max_session_minutes:/a\
+  rate_limit_cooldown_seconds: 1800' codex_autonomy/config/autonomy.local.yaml
+```
+
 ## 4) Verify config
 
 ```bash
