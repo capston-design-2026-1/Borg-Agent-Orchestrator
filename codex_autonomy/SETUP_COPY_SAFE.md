@@ -2,6 +2,13 @@
 
 Use these commands by copying directly from this file.
 
+## 0) Pull latest repository changes
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+git pull origin main
+```
+
 ## 1) Install dependencies
 
 ```bash
@@ -200,16 +207,54 @@ cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 
 Run these sections in order:
 
-1. `1) Install dependencies`
-2. `2) Create local config safely (recommended: copy example)`
-3. `3) Set Codex command template (required)`
-4. `4) Enable GitHub flow and set repository`
-5. `5) Set cooldown for Codex limit windows (optional)`
-6. `7) Verify GitHub CLI auth`
-7. `15) Cleanup duplicate task files with same task_id`
-8. `17) Start full orchestrator-finish task (recommended)`
-9. `18) Cleanup duplicate GitHub issues for this task (keep #19)`
-10. `8) Start autonomy manager`
-11. `12) Track processes continuously (copy-safe)`
-12. `14) Track GitHub issue/PR flow`
-13. If you see rapid `rc=2`, run `20) Recover from rc=2 loop (--prompt-file error)`
+1. `0) Pull latest repository changes`
+2. `1) Install dependencies`
+3. `2) Create local config safely (recommended: copy example)`
+4. `3) Set Codex command template (required)`
+5. `4) Enable GitHub flow and set repository`
+6. `5) Set cooldown for Codex limit windows (optional)`
+7. `7) Verify GitHub CLI auth`
+8. `15) Cleanup duplicate task files with same task_id`
+9. `17) Start full orchestrator-finish task (recommended)`
+10. `18) Cleanup duplicate GitHub issues for this task (keep #19)`
+11. `8) Start autonomy manager`
+12. `12) Track processes continuously (copy-safe)`
+13. `14) Track GitHub issue/PR flow`
+14. If you see rapid `rc=2`, run `20) Recover from rc=2 loop (--prompt-file error)`
+
+## 23) Recover from rc=1 loop (missing modules/worktree runtime mismatch)
+
+1) Stop manager process:
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+pkill -f "codex_autonomy/scripts/run_daemon.py run" || true
+```
+
+2) Pull latest fixes:
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+git pull origin main
+```
+
+3) Remove stale task worktree:
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+git worktree remove --force codex_autonomy/runtime/worktrees/full-orchestrator-e2e-finish 2>/dev/null || true
+```
+
+4) Re-enqueue canonical task:
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+cp -f codex_autonomy/tasks/templates/full_orchestrator_finish.yaml codex_autonomy/tasks/queue/full-orchestrator-e2e-finish.yaml
+```
+
+5) Start manager:
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+./.venv/bin/python codex_autonomy/scripts/run_daemon.py run --config codex_autonomy/config/autonomy.local.yaml
+```
