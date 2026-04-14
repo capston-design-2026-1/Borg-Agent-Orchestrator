@@ -29,6 +29,10 @@ def tune_reward_weights(
     if optuna is None:
         raise RuntimeError("optuna is not installed. Install optional dependency to run tuning.")
 
+    if storage and storage.startswith("sqlite:///"):
+        sqlite_path = Path(storage.removeprefix("sqlite:///"))
+        sqlite_path.parent.mkdir(parents=True, exist_ok=True)
+
     study = optuna.create_study(
         direction="maximize",
         storage=storage,
