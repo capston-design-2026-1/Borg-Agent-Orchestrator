@@ -23,6 +23,16 @@ An independent end-to-end orchestrator workspace now exists at `orchestrator_sta
 - Mermaid architecture source is tracked at `orchestrator_stack/ARCHITECTURE.md`
 - Repo `.venv` has verified Ray PPO + Optuna runtime support for orchestrator smoke runs
 
+## New Isolated Track: Codex Autonomy Runner
+
+An independent local agentic supervisor now exists at `codex_autonomy/`.
+
+- Endless manager loop for Codex session orchestration
+- YAML task queue + archive tracking
+- Parallel task execution via isolated git worktrees
+- Session rollover for context-budget continuation
+- SQLite state/event tracking and status inspection
+
 ## Structure
 
 ```text
