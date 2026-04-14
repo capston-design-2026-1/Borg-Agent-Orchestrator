@@ -20,3 +20,18 @@ health:
   test_command: ""
   upgrade_scan_command: ""
   interval_seconds: 900
+
+github:
+  enabled: false
+  repo: "owner/repo"
+  auto_create_issue: true
+  auto_create_pr: true
+  auto_merge: false
+  merge_method: "squash"
+  draft_pr: true
+  auto_issue_on_health: true
+  reviewers: []
+  assignees: []
+  label_feature: "enhancement"
+  label_bug: "bug"
+  label_upgrade: "dependencies"
