@@ -3,18 +3,21 @@ from __future__ import annotations
 from typing import Any
 
 try:
+    from gymnasium.spaces import Box, Discrete
     from ray.rllib.env.multi_agent_env import MultiAgentEnv
 except Exception:  # pragma: no cover
+    Box = None  # type: ignore[assignment]
+    Discrete = None  # type: ignore[assignment]
     MultiAgentEnv = object  # type: ignore[misc,assignment]
 
-from orchestrator.layer4.agents import AgentARiskMitigator, AgentBEfficiencyOptimizer, AgentCGatekeeper
+from orchestrator.layer4.policy import POLICY_SPACES, decode_agent_action, default_policy_actions
 from orchestrator.layer4.referee import resolve
 from orchestrator.layer6.scoreboard import Scoreboard
 from orchestrator.types import Observation, StepResult
 
 
 class OrchestratorMultiAgentEnv(MultiAgentEnv):  # type: ignore[misc]
-    """RLlib-compatible environment wrapper for the orchestrator loop."""
+    """RLlib-compatible multi-agent environment for orchestrator training."""
 
     def __init__(self, env_config: dict[str, Any]):
         self.backend = env_config["backend"]
@@ -23,12 +26,15 @@ class OrchestratorMultiAgentEnv(MultiAgentEnv):  # type: ignore[misc]
             beta=float(env_config.get("beta", 0.6)),
             gamma=float(env_config.get("gamma", 0.8)),
         )
-        self.agents = {
-            "AgentA": AgentARiskMitigator(),
-            "AgentB": AgentBEfficiencyOptimizer(),
-            "AgentC": AgentCGatekeeper(),
-        }
         self._obs: Observation | None = None
+
+        if Box is not None and Discrete is not None:
+            self.observation_space = Box(low=0.0, high=1.0, shape=(6,), dtype=float)
+            self.action_space = {
+                "AgentA": Discrete(POLICY_SPACES["AgentA"].action_count),
+                "AgentB": Discrete(POLICY_SPACES["AgentB"].action_count),
+                "AgentC": Discrete(POLICY_SPACES["AgentC"].action_count),
+            }
 
     def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None):
         self._obs = self.backend.reset()
@@ -37,27 +43,37 @@ class OrchestratorMultiAgentEnv(MultiAgentEnv):  # type: ignore[misc]
 
     def step(self, action_dict):
         assert self._obs is not None
+        action_ids = default_policy_actions(self._obs)
+        for agent_name in ("AgentA", "AgentB", "AgentC"):
+            if agent_name in action_dict:
+                action_ids[agent_name] = int(action_dict[agent_name])
+
         proposals = [
-            self.agents["AgentA"].act(self._obs),
-            self.agents["AgentB"].act(self._obs),
-            self.agents["AgentC"].act(self._obs),
+            decode_agent_action("AgentA", action_ids["AgentA"], self._obs),
+            decode_agent_action("AgentB", action_ids["AgentB"], self._obs),
+            decode_agent_action("AgentC", action_ids["AgentC"], self._obs),
         ]
-        action = resolve(proposals)
-        result: StepResult = self.backend.step(action)
+        validated = resolve(proposals)
+        result: StepResult = self.backend.step(validated)
         self._obs = result.next_observation
 
         score = self.scoreboard.update(result.reward_by_agent)
-        rewards = {"AgentA": score.raw_rewards.get("AgentA", 0.0), "AgentB": score.raw_rewards.get("AgentB", 0.0), "AgentC": score.raw_rewards.get("AgentC", 0.0)}
+        rewards = {
+            "AgentA": score.raw_rewards.get("AgentA", 0.0),
+            "AgentB": score.raw_rewards.get("AgentB", 0.0),
+            "AgentC": score.raw_rewards.get("AgentC", 0.0),
+        }
         terminated = {"__all__": result.done, "AgentA": result.done, "AgentB": result.done, "AgentC": result.done}
         truncated = {"__all__": False, "AgentA": False, "AgentB": False, "AgentC": False}
-
-        obs = self._pack_obs(self._obs)
         infos = {"AgentA": result.info, "AgentB": result.info, "AgentC": result.info}
-        return obs, rewards, terminated, truncated, infos
+        return self._pack_obs(self._obs), rewards, terminated, truncated, infos
 
     def _pack_obs(self, obs: Observation) -> dict[str, list[float]]:
         max_risk = max(obs.p_fail_scores.values(), default=0.0)
         max_demand = max(obs.demand_projection.values(), default=0.0)
-        util = [sum(n.cpu_util for n in obs.nodes) / max(1, len(obs.nodes)), sum(n.mem_util for n in obs.nodes) / max(1, len(obs.nodes))]
-        base = [float(obs.queue_length), float(obs.energy_price), float(max_risk), float(max_demand), util[0], util[1]]
-        return {"AgentA": base, "AgentB": base, "AgentC": base}
+        cpu_avg = sum(n.cpu_util for n in obs.nodes) / max(1, len(obs.nodes))
+        mem_avg = sum(n.mem_util for n in obs.nodes) / max(1, len(obs.nodes))
+        queue_norm = min(1.0, obs.queue_length / max(1, len(obs.tasks) + 1))
+        energy_norm = min(1.0, obs.energy_price / 0.2)
+        vector = [queue_norm, energy_norm, float(max_risk), float(max_demand), float(cpu_avg), float(mem_avg)]
+        return {"AgentA": vector, "AgentB": vector, "AgentC": vector}
