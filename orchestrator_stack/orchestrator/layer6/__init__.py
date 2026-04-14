@@ -1,1 +1,5 @@
-"""Layer 6: scoring and feedback loop."""
+"""Layer 6: scoreboard and feedback utilities."""
+
+from orchestrator.layer6.scoreboard import Scoreboard
+
+__all__ = ["Scoreboard"]
