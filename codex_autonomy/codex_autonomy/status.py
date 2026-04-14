@@ -3,6 +3,8 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+from codex_autonomy.task_store import load_tasks
+
 
 def recent_events(db_path: Path, limit: int = 20) -> list[tuple]:
     if not db_path.exists():
@@ -26,3 +28,9 @@ def recent_sessions(db_path: Path, limit: int = 20) -> list[tuple]:
     ).fetchall()
     conn.close()
     return rows
+
+
+def queue_snapshot(queue_dir: Path) -> list[tuple[str, str, int | None, int | None]]:
+    tasks = load_tasks(queue_dir)
+    tasks.sort(key=lambda t: (t.priority, t.created_at))
+    return [(t.task_id, t.status.value, t.issue_number, t.pr_number) for t in tasks]
