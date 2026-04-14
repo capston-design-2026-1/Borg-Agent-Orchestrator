@@ -9,6 +9,7 @@
 ## Task Discipline
 
 - One task file per unit of work.
+- One `task_id` must map to exactly one queue YAML file (canonical filename `<task_id>.yaml`).
 - Use dependencies to serialize tasks when needed.
 - Keep task prompts concrete and outcome-based.
 
