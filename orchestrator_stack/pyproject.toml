@@ -1,0 +1,18 @@
+[project]
+name = "borg-full-orchestrator"
+version = "0.1.0"
+description = "Six-layer Borg-style orchestrator with XGBoost, MARL, and Optuna"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=2.0,<3.0",
+  "xgboost>=2.0,<4.0",
+  "optuna>=4.0,<5.0",
+  "ray[rllib]>=2.54.1,<3.0",
+]
+
+[project.scripts]
+borg-orchestrator = "orchestrator.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

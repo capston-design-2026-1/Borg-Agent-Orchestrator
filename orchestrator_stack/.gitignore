@@ -1,0 +1,5 @@
+examples/*.npz
+examples/models/*.json
+__pycache__/
+**/__pycache__/
+*.pyc
