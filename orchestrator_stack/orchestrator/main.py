@@ -52,6 +52,9 @@ def train_brain_models(config: OrchestratorConfig) -> dict[str, str]:
     return {"risk_model": str(risk), "demand_model": str(demand)}
 
 
+from datetime import datetime, timedelta, timezone
+
+
 def run_episode(config: OrchestratorConfig, verbose: bool = True) -> RunSummary:
     trace_path = ensure_trace_exists(config)
     rows = load_trace_rows(trace_path)
@@ -68,6 +71,13 @@ def run_episode(config: OrchestratorConfig, verbose: bool = True) -> RunSummary:
     obs = backend.reset()
     total_steps = min(config.episode_steps, len(rows))
 
+    # Setup persistent trace logging
+    kst = timezone(timedelta(hours=9))
+    ts = datetime.now(kst).strftime("%Y%m%d%H%M")
+    log_path = Path(f"reports/{ts}_episode_trace.log")
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_buffer = [f"--- Episode Start: {total_steps} steps ---\n"]
+
     if verbose:
         print(f"\n--- Episode Start: {total_steps} steps ---")
 
@@ -81,18 +91,25 @@ def run_episode(config: OrchestratorConfig, verbose: bool = True) -> RunSummary:
         result = backend.step(validated_action)
         scoreboard.update(result.reward_by_agent)
 
+        p_str = ", ".join([f"{p.agent_name}:{p.kind.value}" for p in proposals if p.kind.value != "noop"])
+        ref_str = f"{validated_action.agent_name}:{validated_action.kind.value}"
+        rew_str = ", ".join([f"{k}:{v:+.1f}" for k, v in result.reward_by_agent.items()])
+        
+        line = f"Step {step:03d} | Proposals: [{p_str}] | Referee: {ref_str} | Rewards: [{rew_str}]"
+        log_buffer.append(line + "\n")
+        
         if verbose:
-            p_str = ", ".join([f"{p.agent_name}:{p.kind.value}" for p in proposals if p.kind.value != "noop"])
-            ref_str = f"{validated_action.agent_name}:{validated_action.kind.value}"
-            rew_str = ", ".join([f"{k}:{v:+.1f}" for k, v in result.reward_by_agent.items()])
-            print(f"Step {step:03d} | Proposals: [{p_str}] | Referee: {ref_str} | Rewards: [{rew_str}]")
+            print(line)
 
         obs = result.next_observation
         if result.done:
             break
 
+    log_buffer.append("--- Episode End ---\n")
+    log_path.write_text("".join(log_buffer), encoding="utf-8")
+    
     if verbose:
-        print("--- Episode End ---\n")
+        print(f"--- Episode Trace stored at: {log_path} ---\n")
 
     snap = scoreboard.snapshot()
     return RunSummary(
