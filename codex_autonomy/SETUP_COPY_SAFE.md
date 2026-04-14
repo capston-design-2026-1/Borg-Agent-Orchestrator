@@ -51,6 +51,18 @@ cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 ./.venv/bin/python codex_autonomy/scripts/run_daemon.py run --config codex_autonomy/config/autonomy.local.yaml
 ```
 
+## One-line command: enqueue full finish task + check status
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator && cp -f codex_autonomy/tasks/templates/full_orchestrator_finish.yaml codex_autonomy/tasks/queue/full_orchestrator_finish.yaml && ./.venv/bin/python codex_autonomy/scripts/run_daemon.py status --config codex_autonomy/config/autonomy.local.yaml
+```
+
+## One-line command: enqueue full finish task + start manager
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator && cp -f codex_autonomy/tasks/templates/full_orchestrator_finish.yaml codex_autonomy/tasks/queue/full_orchestrator_finish.yaml && ./.venv/bin/python codex_autonomy/scripts/run_daemon.py run --config codex_autonomy/config/autonomy.local.yaml
+```
+
 ## 7) In another terminal, check status
 
 ```bash
