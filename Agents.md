@@ -59,3 +59,8 @@ These instructions apply to work performed in this repository.
 
 - Keep full 6-layer orchestrator implementation work under `orchestrator_stack/` so it does not mix with baseline or advanced XGBoost tracks.
 - Use `orchestrator_stack/AGENTS.md` and `orchestrator_stack/NEXT_STEPS.md` as the first continuity references when resuming orchestrator-specific tasks.
+
+## Isolated Autonomy Track
+
+- Keep autonomous Codex supervisor work under `codex_autonomy/` so it does not mix with model-training tracks.
+- Use `codex_autonomy/README.md`, `codex_autonomy/AGENTS.md`, and `codex_autonomy/NEXT_STEPS.md` when resuming autonomy-daemon work.
