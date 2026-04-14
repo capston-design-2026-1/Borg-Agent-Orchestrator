@@ -18,6 +18,7 @@ Read Agents.md, NEXT_STEPS.md, MAS_ARCHITECTURE.md, and README.md, inspect the l
 - Processed data location: `~/Documents/borg_processed`
 - Advanced XGBoost workspace: `~/Documents/borg_xgboost_workspace`
 - Advanced runtime: repo-local `.venv` is prepared and verified with `polars 1.39.3` and `xgboost 2.1.4`
+- Isolated full orchestrator track: `orchestrator_stack/` (new, dedicated)
 - Default working clusters: `b`, `c`, `d`, `e`, `f`, `g`
 - Excluded by default: `a`, `h`
 
@@ -198,6 +199,12 @@ Latest milestone checkpoint:
 ## Immediate Next Steps
 
 The immediate next engineering work is now to let the advanced flatten run complete or tune it further if completions remain too slow, then continue the isolated advanced XGBoost pipeline end to end.
+
+Parallel immediate track:
+
+1. Continue `orchestrator_stack/` from `orchestrator_stack/NEXT_STEPS.md` by replacing adapter shells with full AIOpsLab API integration.
+2. Wire RLlib PPO policies into `orchestrator_stack/orchestrator/layer4/rllib_env.py` (replace current heuristic action source).
+3. Add timestamped orchestrator evaluation reports in `reports/` as Optuna studies begin.
 
 Recommended next sequence:
 

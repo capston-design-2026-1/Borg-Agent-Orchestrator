@@ -52,3 +52,8 @@ These instructions apply to work performed in this repository.
 
 - Do not ask the user for approval for routine repository workflow actions such as commits and pushes.
 - If the runtime or sandbox requires an approval flow outside repository policy, comply with the runtime requirement, but do not ask for git workflow approval on your own initiative.
+
+## Isolated Orchestrator Track
+
+- Keep full 6-layer orchestrator implementation work under `orchestrator_stack/` so it does not mix with baseline or advanced XGBoost tracks.
+- Use `orchestrator_stack/AGENTS.md` and `orchestrator_stack/NEXT_STEPS.md` as the first continuity references when resuming orchestrator-specific tasks.
