@@ -112,6 +112,13 @@ sqlite3 codex_autonomy/runtime/state.db "SELECT task_id,event_type,message,ts FR
 sqlite3 codex_autonomy/runtime/state.db "SELECT task_id,branch_name,return_code,duration_seconds,ts FROM sessions ORDER BY id DESC LIMIT 30;"
 ```
 
+## 13.1) Live append-only event stream (new events at bottom)
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+./.venv/bin/python codex_autonomy/scripts/stream_events.py --db codex_autonomy/runtime/state.db
+```
+
 ## 14) Track GitHub issue/PR flow
 
 ```bash
@@ -220,7 +227,8 @@ Run these sections in order:
 11. `8) Start autonomy manager`
 12. `12) Track processes continuously (copy-safe)`
 13. `14) Track GitHub issue/PR flow`
-14. If you see rapid `rc=2`, run `20) Recover from rc=2 loop (--prompt-file error)`
+14. If you want new events appended at bottom, run `13.1) Live append-only event stream (new events at bottom)`
+15. If you see rapid `rc=2`, run `20) Recover from rc=2 loop (--prompt-file error)`
 
 ## 23) Recover from rc=1 loop (missing modules/worktree runtime mismatch)
 
