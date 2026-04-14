@@ -50,30 +50,29 @@ orchestrator_stack/
 You can test the full 6-layer orchestrator stack using the provided CLI:
 
 ### 1. Build and Train Everything (Full Process)
-This runs Layer 1 through Layer 6 in one go, including trace generation, XGBoost training, PPO smoke-training, and Optuna tuning:
+This runs Layer 1 through Layer 6 in one go using the project virtual environment:
 ```bash
-python orchestrator_stack/run.py full-process \
+./.venv/bin/python orchestrator_stack/run.py full-process \
   --config orchestrator_stack/config/orchestrator.example.json \
   --trials 3
 ```
 After completion, check `reports/` for a KST-timestamped Optuna report (e.g., `202604142115_optuna_*.md`).
 
 ### 2. Run a Manual Episode (Sim Loop)
-This runs the Layers 2-4-6 loop with heuristic agents to verify the simulator and reward feedback:
 ```bash
-python orchestrator_stack/run.py run --config orchestrator_stack/config/orchestrator.example.json
+./.venv/bin/python orchestrator_stack/run.py run --config orchestrator_stack/config/orchestrator.example.json
 ```
 
 ### 3. Run Optuna Tuning Only
 ```bash
-python orchestrator_stack/run.py tune \
+./.venv/bin/python orchestrator_stack/run.py tune \
   --config orchestrator_stack/config/orchestrator.example.json \
   --trials 20
 ```
 
 ### 4. Unit Tests
 ```bash
-pytest orchestrator_stack/tests/
+./.venv/bin/pytest orchestrator_stack/tests/
 ```
 
 ## Notes
