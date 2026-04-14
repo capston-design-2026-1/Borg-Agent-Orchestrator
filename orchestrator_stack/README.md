@@ -50,7 +50,7 @@ orchestrator_stack/
 Follow these steps to initialize the environment and run the full orchestrator stack.
 
 ### 1. Prerequisites
-- **Python 3.10+**
+- **Python 3.10 to 3.13** (Note: Ray does not yet support 3.14+)
 - **Git**
 
 ### 2. Initialize Virtual Environment
