@@ -12,6 +12,7 @@ Local supervisor to run Codex sessions continuously with task queueing, session 
 - Persistent event/session logs in SQLite (`codex_autonomy/runtime/state.db`)
 - Auto-generated healing/upgrade tasks from lint/test/upgrade scanners
 - Automatic archive of completed/failed task specs
+- GitHub issue/PR automation with optional auto-merge (`gh` CLI)
 
 ## Architecture
 
@@ -30,6 +31,12 @@ cp codex_autonomy/config/autonomy.example.yaml codex_autonomy/config/autonomy.lo
 ```
 
 2. Edit `command_template` for your Codex CLI form.
+3. Configure GitHub flow in `github:` block (`repo`, auto issue/PR/merge policy).
+4. If using GitHub automation, install/authenticate GitHub CLI:
+
+```bash
+gh auth status
+```
 
 3. Install dependencies:
 
@@ -67,6 +74,14 @@ Inspect runtime status:
 - Each task has `max_sessions`
 - If not done after one session, task is re-queued (`pending`) and resumed in next session
 - If retries exceed `max_retries`, task is marked failed and archived
+
+## GitHub Flow
+
+- Task starts: issue can be auto-created and linked (`issue_number`, `issue_url`)
+- Completion on branch: PR can be auto-created and linked (`pr_number`, `pr_url`)
+- If `auto_merge=false`: task status becomes `review`
+- If `auto_merge=true`: manager attempts merge and marks task completed when successful
+- Branch naming: `auto/<task-id>`
 
 ## Parallel Rules
 
