@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -14,6 +15,8 @@ from orchestrator.layer4.ppo_trainer import evaluate_heuristic_policy, train_mul
 from orchestrator.layer4.referee import resolve
 from orchestrator.layer5.optuna_tuner import tune_policy_and_rewards, tune_reward_weights
 from orchestrator.layer6.scoreboard import Scoreboard
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -49,7 +52,7 @@ def train_brain_models(config: OrchestratorConfig) -> dict[str, str]:
     return {"risk_model": str(risk), "demand_model": str(demand)}
 
 
-def run_episode(config: OrchestratorConfig) -> RunSummary:
+def run_episode(config: OrchestratorConfig, verbose: bool = True) -> RunSummary:
     trace_path = ensure_trace_exists(config)
     rows = load_trace_rows(trace_path)
     backend = _build_backend(rows, config)
@@ -65,7 +68,10 @@ def run_episode(config: OrchestratorConfig) -> RunSummary:
     obs = backend.reset()
     total_steps = min(config.episode_steps, len(rows))
 
-    for _ in range(total_steps):
+    if verbose:
+        print(f"\n--- Episode Start: {total_steps} steps ---")
+
+    for step in range(total_steps):
         obs.p_fail_scores = risk_model.predict(obs)
         obs.demand_projection = demand_model.predict(obs)
 
@@ -74,9 +80,19 @@ def run_episode(config: OrchestratorConfig) -> RunSummary:
 
         result = backend.step(validated_action)
         scoreboard.update(result.reward_by_agent)
+
+        if verbose:
+            p_str = ", ".join([f"{p.agent_name}:{p.kind.value}" for p in proposals if p.kind.value != "noop"])
+            ref_str = f"{validated_action.agent_name}:{validated_action.kind.value}"
+            rew_str = ", ".join([f"{k}:{v:+.1f}" for k, v in result.reward_by_agent.items()])
+            print(f"Step {step:03d} | Proposals: [{p_str}] | Referee: {ref_str} | Rewards: [{rew_str}]")
+
         obs = result.next_observation
         if result.done:
             break
+
+    if verbose:
+        print("--- Episode End ---\n")
 
     snap = scoreboard.snapshot()
     return RunSummary(
@@ -111,6 +127,8 @@ def tune_reward_layer(config: OrchestratorConfig, *, trials: int) -> dict[str, A
             demand_model_path=config.demand_model_path,
             raw_metrics_path=config.raw_metrics_path,
             use_aiopslab_backend=config.use_aiopslab_backend,
+            aiopslab_problem_id=config.aiopslab_problem_id,
+            aiopslab_max_steps=config.aiopslab_max_steps,
             episode_steps=config.episode_steps,
             alpha=alpha,
             beta=beta,
@@ -119,7 +137,7 @@ def tune_reward_layer(config: OrchestratorConfig, *, trials: int) -> dict[str, A
             ppo_learning_rate=config.ppo_learning_rate,
             optuna_storage_path=config.optuna_storage_path,
         )
-        return run_episode(trial_cfg).total_score
+        return run_episode(trial_cfg, verbose=False).total_score
 
     config.optuna_storage_path.parent.mkdir(parents=True, exist_ok=True)
     storage = f"sqlite:///{config.optuna_storage_path.resolve()}"
