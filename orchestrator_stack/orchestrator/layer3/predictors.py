@@ -5,14 +5,8 @@ from pathlib import Path
 import numpy as np
 import xgboost as xgb
 
+from orchestrator.layer2.feature_extractor import observation_matrix, trace_rows_to_training_matrices
 from orchestrator.types import Observation
-
-
-def _obs_to_matrix(obs: Observation) -> np.ndarray:
-    rows = [[node.cpu_util, node.mem_util, node.disk_util, node.net_util] for node in obs.nodes]
-    if not rows:
-        rows = [[0.0, 0.0, 0.0, 0.0]]
-    return np.asarray(rows, dtype=np.float32)
 
 
 class SafetyRiskForecast:
@@ -26,10 +20,10 @@ class SafetyRiskForecast:
         return cls(booster)
 
     def predict(self, obs: Observation) -> dict[str, float]:
-        x = _obs_to_matrix(obs)
+        x, node_ids = observation_matrix(obs)
         dmat = xgb.DMatrix(x)
         preds = self.booster.predict(dmat)
-        return {node.node_id: float(pred) for node, pred in zip(obs.nodes, preds, strict=False)}
+        return {node_id: float(pred) for node_id, pred in zip(node_ids, preds, strict=False)}
 
 
 class ResourceDemandForecast:
@@ -43,13 +37,13 @@ class ResourceDemandForecast:
         return cls(booster)
 
     def predict(self, obs: Observation) -> dict[str, float]:
-        x = _obs_to_matrix(obs)
+        x, node_ids = observation_matrix(obs)
         dmat = xgb.DMatrix(x)
         preds = self.booster.predict(dmat)
-        return {node.node_id: max(0.0, float(pred)) for node, pred in zip(obs.nodes, preds, strict=False)}
+        return {node_id: max(0.0, float(pred)) for node_id, pred in zip(node_ids, preds, strict=False)}
 
 
-def train_safety_model(x: np.ndarray, y: np.ndarray, out_path: str | Path) -> None:
+def train_safety_model(x: np.ndarray, y: np.ndarray, out_path: str | Path) -> Path:
     dtrain = xgb.DMatrix(x, label=y)
     params = {
         "max_depth": 6,
@@ -61,10 +55,13 @@ def train_safety_model(x: np.ndarray, y: np.ndarray, out_path: str | Path) -> No
         "tree_method": "hist",
     }
     booster = xgb.train(params=params, dtrain=dtrain, num_boost_round=300)
-    booster.save_model(str(out_path))
+    out = Path(out_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    booster.save_model(str(out))
+    return out
 
 
-def train_demand_model(x: np.ndarray, y: np.ndarray, out_path: str | Path) -> None:
+def train_demand_model(x: np.ndarray, y: np.ndarray, out_path: str | Path) -> Path:
     dtrain = xgb.DMatrix(x, label=y)
     params = {
         "max_depth": 6,
@@ -75,4 +72,14 @@ def train_demand_model(x: np.ndarray, y: np.ndarray, out_path: str | Path) -> No
         "tree_method": "hist",
     }
     booster = xgb.train(params=params, dtrain=dtrain, num_boost_round=300)
-    booster.save_model(str(out_path))
+    out = Path(out_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    booster.save_model(str(out))
+    return out
+
+
+def train_models_from_trace(rows: list[dict], risk_out: str | Path, demand_out: str | Path) -> tuple[Path, Path]:
+    matrices = trace_rows_to_training_matrices(rows)
+    risk_path = train_safety_model(matrices.x, matrices.y_risk, risk_out)
+    demand_path = train_demand_model(matrices.x, matrices.y_demand, demand_out)
+    return risk_path, demand_path
