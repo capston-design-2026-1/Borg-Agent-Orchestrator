@@ -1,38 +1,40 @@
 # Full Orchestrator Stack (Isolated Workspace)
 
-This directory implements the full architecture you specified as a clean, independent track:
+This directory implements the full 6-layer orchestrator process end-to-end:
 
-1. Local source ingestion (Prometheus/JSON trace)
-2. Digital twin simulator backend (trace twin + AIOpsLab adapter shell)
-3. Dual XGBoost models (safety risk + resource demand)
-4. Multi-agent decision layer (A/B/C + safety-first referee)
-5. Optuna meta-optimizer for reward weights
-6. Global scoreboard and feedback loop
+1. Local source ingestion (`Prometheus/JSON` -> trace file)
+2. AIOpsLab-style simulator backend + feature extraction
+3. XGBoost safety-risk and demand predictors
+4. MARL policy layer (PPO-compatible action interface) + referee
+5. Optuna trial manager for reward and policy hyperparameters
+6. Scoreboard feedback loop into policy/trial evaluation
+
+Architecture diagram: [ARCHITECTURE.md](/Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator/orchestrator_stack/ARCHITECTURE.md)
 
 ## Directory Layout
 
 ```text
 orchestrator_stack/
 ├── AGENTS.md
+├── ARCHITECTURE.md
 ├── NEXT_STEPS.md
 ├── README.md
 ├── config/
 │   └── orchestrator.example.json
 ├── examples/
-│   └── ... synthetic assets
+│   ├── sample_metrics.json
+│   ├── sample_trace.json
+│   └── generate_synthetic_assets.py
 ├── orchestrator/
 │   ├── cli.py
-│   ├── config.py
 │   ├── main.py
-│   ├── types.py
-│   ├── layer1/
-│   ├── layer2/
-│   ├── layer3/
-│   ├── layer4/
-│   ├── layer5/
-│   └── layer6/
-├── requirements.txt
-└── tests/
+│   ├── layer1/  # collector + trace ingestion
+│   ├── layer2/  # twin backend + feature extraction
+│   ├── layer3/  # XGBoost training/inference
+│   ├── layer4/  # policy spaces + referee + RLlib env/trainer
+│   ├── layer5/  # Optuna tuners
+│   └── layer6/  # scoreboard
+└── run.py
 ```
 
 ## Open-Source Upstream Snapshot (checked on 2026-04-14)
@@ -43,8 +45,6 @@ orchestrator_stack/
 - Prometheus latest release tag: `v3.11.2`
 - Microsoft AIOpsLab: active repository, no formal GitHub release tags
 
-Use these as version anchors when wiring production dependencies.
-
 ## Quick Start
 
 1. Install requirements:
@@ -53,32 +53,44 @@ Use these as version anchors when wiring production dependencies.
 python3 -m pip install -r orchestrator_stack/requirements.txt
 ```
 
-2. Train sample risk/demand models from synthetic datasets:
+2. Generate synthetic example assets:
 
 ```bash
 ./.venv/bin/python orchestrator_stack/examples/generate_synthetic_assets.py
-
-./.venv/bin/python orchestrator_stack/run.py train-risk \
-  --dataset orchestrator_stack/examples/risk_train.npz \
-  --out orchestrator_stack/examples/models/risk_model.json
-
-./.venv/bin/python orchestrator_stack/run.py train-demand \
-  --dataset orchestrator_stack/examples/demand_train.npz \
-  --out orchestrator_stack/examples/models/demand_model.json
 ```
 
-3. Run one end-to-end episode:
+3. Layer 1 build (metrics -> trace):
+
+```bash
+./.venv/bin/python orchestrator_stack/run.py build-trace \
+  --metrics orchestrator_stack/examples/sample_metrics.json \
+  --out orchestrator_stack/examples/sample_trace.json
+```
+
+4. Layer 3 train predictors from trace features:
+
+```bash
+./.venv/bin/python orchestrator_stack/run.py train-brains \
+  --trace orchestrator_stack/examples/sample_trace.json \
+  --risk-out orchestrator_stack/examples/models/risk_model.json \
+  --demand-out orchestrator_stack/examples/models/demand_model.json
+```
+
+5. Run orchestrator episode (Layers 2-4-6 loop):
 
 ```bash
 ./.venv/bin/python orchestrator_stack/run.py run --config orchestrator_stack/config/orchestrator.example.json
 ```
 
-4. Tune reward weights (`alpha`, `beta`, `gamma`):
+6. Run full process (Layers 1-6 with Optuna tuning + PPO training hook):
 
 ```bash
-./.venv/bin/python orchestrator_stack/run.py tune --config orchestrator_stack/config/orchestrator.example.json --trials 20
+./.venv/bin/python orchestrator_stack/run.py full-process \
+  --config orchestrator_stack/config/orchestrator.example.json \
+  --trials 3
 ```
 
-## Milestone Journey
+## Notes
 
-See [`orchestrator_stack/MILESTONE_JOURNEY.md`](/Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator/orchestrator_stack/MILESTONE_JOURNEY.md) for staged delivery from adapter integration to production-grade training.
+- `train-policy` uses RLlib when installed; otherwise it returns a structured `skipped` status.
+- `full-process` is still executable without RLlib; tuning and evaluation paths remain active.
