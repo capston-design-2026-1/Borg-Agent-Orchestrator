@@ -153,6 +153,44 @@ cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 gh issue list -R capston-design-2026-1/Borg-Agent-Orchestrator --state open --limit 200 --search '"task_id: `full-orchestrator-e2e-finish`" in:body'
 ```
 
+## Recover from rc=2 loop (`--prompt-file` error)
+
+1) Stop old manager process:
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+pkill -f "codex_autonomy/scripts/run_daemon.py run" || true
+```
+
+2) Fix local command template:
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+sed -i '' 's|^  command_template:.*$|  command_template: "codex exec - < {prompt_file}"|' codex_autonomy/config/autonomy.local.yaml
+```
+
+3) Re-enqueue canonical task file:
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+rm -f codex_autonomy/tasks/queue/full_orchestrator_finish.yaml
+cp -f codex_autonomy/tasks/templates/full_orchestrator_finish.yaml codex_autonomy/tasks/queue/full-orchestrator-e2e-finish.yaml
+```
+
+4) Start manager again:
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+./.venv/bin/python codex_autonomy/scripts/run_daemon.py run --config codex_autonomy/config/autonomy.local.yaml
+```
+
+5) Verify active progress in another terminal:
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+./.venv/bin/python codex_autonomy/scripts/run_daemon.py status --config codex_autonomy/config/autonomy.local.yaml
+```
+
 ## If you still must use heredoc
 
 - The closing marker (`PY`, `EOF`, `YAML`) must be at column 1 (no spaces).
@@ -174,3 +212,4 @@ Run these sections in order:
 10. `6) Start autonomy manager`
 11. `Track processes continuously (copy-safe)`
 12. `Track GitHub issue/PR flow`
+13. If you see rapid `rc=2`, run `Recover from rc=2 loop (--prompt-file error)`
