@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+import time
 from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
@@ -23,6 +24,22 @@ def _check_done(task: TaskSpec, worktree_path: Path) -> bool:
     if not task.done_when_commands:
         return True
     return all(_run(cmd, worktree_path) == 0 for cmd in task.done_when_commands)
+
+
+def _is_limit_error(stdout: str, stderr: str) -> bool:
+    text = f"{stdout}\n{stderr}".lower()
+    patterns = (
+        "rate limit",
+        "too many requests",
+        "quota",
+        "usage limit",
+        "limit exceeded",
+        "weekly limit",
+        "daily limit",
+        "5 hour",
+        "try again later",
+    )
+    return any(p in text for p in patterns)
 
 
 def _auto_commit_and_push(config: ManagerConfig, worktree_path: Path, branch_name: str, task: TaskSpec) -> None:
@@ -102,6 +119,29 @@ def run_task(config: ManagerConfig, task: TaskSpec) -> WorkerResult:
             )
 
             if result.return_code != 0:
+                if _is_limit_error(result.stdout, result.stderr):
+                    now_epoch = int(time.time())
+                    cooldown = max(60, int(config.session.rate_limit_cooldown_seconds))
+                    not_before = now_epoch + cooldown
+                    metadata = dict(task.metadata)
+                    metadata["not_before_epoch"] = not_before
+                    metadata["wait_reason"] = "codex_limit_cooldown"
+                    task = replace(task, status=TaskStatus.PENDING, metadata=metadata)
+                    save_task(config.queue_dir, task)
+                    log_event(
+                        config.state_db_path,
+                        ts=now,
+                        task_id=task.task_id,
+                        event_type="session_rate_limited",
+                        message=f"cooldown {cooldown}s until {not_before}",
+                    )
+                    return WorkerResult(
+                        task_id=task.task_id,
+                        branch_name=branch_name,
+                        status=TaskStatus.PENDING,
+                        message=f"codex limit detected; cooling down {cooldown}s",
+                        sessions_used=sessions_used,
+                    )
                 log_event(
                     config.state_db_path,
                     ts=now,
