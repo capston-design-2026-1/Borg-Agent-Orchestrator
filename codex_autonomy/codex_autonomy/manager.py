@@ -21,10 +21,14 @@ class AutonomyManager:
         self.last_health_check = 0.0
 
     def _select_runnable_tasks(self, tasks: list[TaskSpec]) -> list[TaskSpec]:
+        now_ts = int(time.time())
         by_id = {t.task_id: t for t in tasks}
         runnable: list[TaskSpec] = []
         for task in tasks:
             if task.status != TaskStatus.PENDING:
+                continue
+            not_before = int(task.metadata.get("not_before_epoch", 0) or 0)
+            if not_before > now_ts:
                 continue
             if task.task_id in self.inflight:
                 continue
