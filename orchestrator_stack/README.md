@@ -82,7 +82,7 @@ python3 -m pip install -r orchestrator_stack/requirements.txt
 ./.venv/bin/python orchestrator_stack/run.py run --config orchestrator_stack/config/orchestrator.example.json
 ```
 
-6. Run full process (Layers 1-6 with Optuna tuning + PPO training hook):
+6. Run full process (Layers 1-6 with real Ray PPO + Optuna):
 
 ```bash
 ./.venv/bin/python orchestrator_stack/run.py full-process \
@@ -92,5 +92,6 @@ python3 -m pip install -r orchestrator_stack/requirements.txt
 
 ## Notes
 
-- `train-policy` uses RLlib when installed; otherwise it returns a structured `skipped` status.
-- `full-process` is still executable without RLlib; tuning and evaluation paths remain active.
+- The default config uses `rllib_train_iters=1` for fast local smoke tests.
+- Optuna studies are persisted at `orchestrator_stack/runtime/optuna/orchestrator.db`.
+- PPO checkpoints are written under `orchestrator_stack/runtime/rllib`.
