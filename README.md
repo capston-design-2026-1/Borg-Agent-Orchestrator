@@ -13,6 +13,14 @@ Repository-level companion documents now live under:
 
 The original Markdown files remain the canonical working documents, and the language directories provide organized English/Korean companion access.
 
+## New Isolated Track: Full Orchestrator
+
+An independent end-to-end orchestrator workspace now exists at `orchestrator_stack/`.
+
+- Includes a 6-layer implementation matching the architecture (source -> twin -> XGBoost -> MARL/referee -> Optuna -> scoreboard)
+- Keeps this work isolated from the existing baseline and advanced XGBoost tracks
+- Has dedicated handoff files: `orchestrator_stack/README.md`, `orchestrator_stack/AGENTS.md`, `orchestrator_stack/NEXT_STEPS.md`
+
 ## Structure
 
 ```text
