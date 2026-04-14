@@ -101,8 +101,8 @@ done
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
-sqlite3 codex_autonomy/runtime/state.db "SELECT task_id,event,status,datetime(ts,'unixepoch','localtime') FROM task_events ORDER BY id DESC LIMIT 30;"
-sqlite3 codex_autonomy/runtime/state.db "SELECT task_id,session_index,return_code,duration_sec,datetime(ts,'unixepoch','localtime') FROM sessions ORDER BY id DESC LIMIT 30;"
+sqlite3 codex_autonomy/runtime/state.db "SELECT task_id,event_type,message,ts FROM task_events ORDER BY id DESC LIMIT 30;"
+sqlite3 codex_autonomy/runtime/state.db "SELECT task_id,branch_name,return_code,duration_seconds,ts FROM sessions ORDER BY id DESC LIMIT 30;"
 ```
 
 ## Track GitHub issue/PR flow
