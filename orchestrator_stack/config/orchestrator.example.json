@@ -1,4 +1,5 @@
 {
+  "raw_metrics_path": "orchestrator_stack/examples/sample_metrics.json",
   "trace_path": "orchestrator_stack/examples/sample_trace.json",
   "risk_model_path": "orchestrator_stack/examples/models/risk_model.json",
   "demand_model_path": "orchestrator_stack/examples/models/demand_model.json",
@@ -6,5 +7,8 @@
   "episode_steps": 120,
   "alpha": 1.0,
   "beta": 0.6,
-  "gamma": 0.8
+  "gamma": 0.8,
+  "rllib_train_iters": 2,
+  "ppo_learning_rate": 0.0003,
+  "optuna_storage_path": "orchestrator_stack/runtime/optuna/orchestrator.db"
 }
