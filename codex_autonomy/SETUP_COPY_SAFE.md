@@ -70,6 +70,34 @@ cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 ./.venv/bin/python codex_autonomy/scripts/run_daemon.py status --config codex_autonomy/config/autonomy.local.yaml
 ```
 
+## Track processes continuously (copy-safe)
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+while true; do
+  clear
+  date
+  ./.venv/bin/python codex_autonomy/scripts/run_daemon.py status --config codex_autonomy/config/autonomy.local.yaml
+  sleep 5
+done
+```
+
+## Track recent runtime events from SQLite
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+sqlite3 codex_autonomy/runtime/state.db "SELECT task_id,event,status,datetime(ts,'unixepoch','localtime') FROM task_events ORDER BY id DESC LIMIT 30;"
+sqlite3 codex_autonomy/runtime/state.db "SELECT task_id,session_index,return_code,duration_sec,datetime(ts,'unixepoch','localtime') FROM sessions ORDER BY id DESC LIMIT 30;"
+```
+
+## Track GitHub issue/PR flow
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+gh issue list -R capston-design-2026-1/Borg-Agent-Orchestrator --limit 20
+gh pr list -R capston-design-2026-1/Borg-Agent-Orchestrator --limit 20
+```
+
 ## Optional: enqueue a task
 
 ```bash
