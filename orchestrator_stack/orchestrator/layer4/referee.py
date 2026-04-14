@@ -10,15 +10,13 @@ def resolve(actions: list[AgentAction]) -> AgentAction:
     if not actions:
         return AgentAction("Referee", ActionKind.NOOP, score=0.0)
 
-    indexed = sorted(actions, key=lambda a: (PRIORITY_ORDER.get(a.agent_name, 99), -a.score))
-    top = indexed[0]
+    sorted_actions = sorted(actions, key=lambda a: (PRIORITY_ORDER.get(a.agent_name, 99), -a.score))
+    agent_a = next((a for a in sorted_actions if a.agent_name == "AgentA"), None)
 
-    # Safety guard: if AgentA proposes migration on a high-risk node, suppress
-    # conflicting power-off actions from AgentB in the same step.
-    if top.agent_name == "AgentA" and top.kind == ActionKind.MIGRATE:
-        return top
+    if agent_a and agent_a.kind == ActionKind.MIGRATE:
+        return agent_a
 
-    for action in indexed:
+    for action in sorted_actions:
         if action.kind != ActionKind.NOOP:
             return action
-    return indexed[0]
+    return sorted_actions[0]
