@@ -23,6 +23,23 @@ class SessionConfig:
 
 
 @dataclass(slots=True)
+class GitHubFlowConfig:
+    enabled: bool = False
+    repo: str = ""
+    auto_create_issue: bool = True
+    auto_create_pr: bool = True
+    auto_merge: bool = False
+    merge_method: str = "squash"
+    draft_pr: bool = True
+    auto_issue_on_health: bool = True
+    reviewers: list[str] = field(default_factory=list)
+    assignees: list[str] = field(default_factory=list)
+    label_feature: str = "enhancement"
+    label_bug: str = "bug"
+    label_upgrade: str = "dependencies"
+
+
+@dataclass(slots=True)
 class ManagerConfig:
     repo_root: Path
     queue_dir: Path
@@ -36,6 +53,7 @@ class ManagerConfig:
     enable_health_loop: bool = True
     session: SessionConfig = field(default_factory=SessionConfig)
     health: HealthCheckConfig = field(default_factory=HealthCheckConfig)
+    github: GitHubFlowConfig = field(default_factory=GitHubFlowConfig)
 
 
 def _path(base: Path, value: str) -> Path:
@@ -56,6 +74,7 @@ def load_config(path: str | Path) -> ManagerConfig:
 
     session_raw = raw.get("session", {})
     health_raw = raw.get("health", {})
+    github_raw = raw.get("github", {})
 
     return ManagerConfig(
         repo_root=repo_root,
@@ -78,5 +97,20 @@ def load_config(path: str | Path) -> ManagerConfig:
             test_command=str(health_raw.get("test_command", "")),
             upgrade_scan_command=str(health_raw.get("upgrade_scan_command", "")),
             interval_seconds=int(health_raw.get("interval_seconds", 900)),
+        ),
+        github=GitHubFlowConfig(
+            enabled=bool(github_raw.get("enabled", False)),
+            repo=str(github_raw.get("repo", "")),
+            auto_create_issue=bool(github_raw.get("auto_create_issue", True)),
+            auto_create_pr=bool(github_raw.get("auto_create_pr", True)),
+            auto_merge=bool(github_raw.get("auto_merge", False)),
+            merge_method=str(github_raw.get("merge_method", "squash")),
+            draft_pr=bool(github_raw.get("draft_pr", True)),
+            auto_issue_on_health=bool(github_raw.get("auto_issue_on_health", True)),
+            reviewers=list(github_raw.get("reviewers", [])),
+            assignees=list(github_raw.get("assignees", [])),
+            label_feature=str(github_raw.get("label_feature", "enhancement")),
+            label_bug=str(github_raw.get("label_bug", "bug")),
+            label_upgrade=str(github_raw.get("label_upgrade", "dependencies")),
         ),
     )
