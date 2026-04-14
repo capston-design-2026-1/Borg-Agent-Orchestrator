@@ -45,49 +45,35 @@ orchestrator_stack/
 - Prometheus latest release tag: `v3.11.2`
 - Microsoft AIOpsLab: active repository, no formal GitHub release tags
 
-## Quick Start
+## Testing the Architecture
 
-1. Install requirements:
+You can test the full 6-layer orchestrator stack using the provided CLI:
 
+### 1. Build and Train Everything (Full Process)
+This runs Layer 1 through Layer 6 in one go, including trace generation, XGBoost training, PPO smoke-training, and Optuna tuning:
 ```bash
-python3 -m pip install -r orchestrator_stack/requirements.txt
-```
-
-2. Generate synthetic example assets:
-
-```bash
-./.venv/bin/python orchestrator_stack/examples/generate_synthetic_assets.py
-```
-
-3. Layer 1 build (metrics -> trace):
-
-```bash
-./.venv/bin/python orchestrator_stack/run.py build-trace \
-  --metrics orchestrator_stack/examples/sample_metrics.json \
-  --out orchestrator_stack/examples/sample_trace.json
-```
-
-4. Layer 3 train predictors from trace features:
-
-```bash
-./.venv/bin/python orchestrator_stack/run.py train-brains \
-  --trace orchestrator_stack/examples/sample_trace.json \
-  --risk-out orchestrator_stack/examples/models/risk_model.json \
-  --demand-out orchestrator_stack/examples/models/demand_model.json
-```
-
-5. Run orchestrator episode (Layers 2-4-6 loop):
-
-```bash
-./.venv/bin/python orchestrator_stack/run.py run --config orchestrator_stack/config/orchestrator.example.json
-```
-
-6. Run full process (Layers 1-6 with real Ray PPO + Optuna):
-
-```bash
-./.venv/bin/python orchestrator_stack/run.py full-process \
+python orchestrator_stack/run.py full-process \
   --config orchestrator_stack/config/orchestrator.example.json \
   --trials 3
+```
+After completion, check `reports/` for a KST-timestamped Optuna report (e.g., `202604142115_optuna_*.md`).
+
+### 2. Run a Manual Episode (Sim Loop)
+This runs the Layers 2-4-6 loop with heuristic agents to verify the simulator and reward feedback:
+```bash
+python orchestrator_stack/run.py run --config orchestrator_stack/config/orchestrator.example.json
+```
+
+### 3. Run Optuna Tuning Only
+```bash
+python orchestrator_stack/run.py tune \
+  --config orchestrator_stack/config/orchestrator.example.json \
+  --trials 20
+```
+
+### 4. Unit Tests
+```bash
+pytest orchestrator_stack/tests/
 ```
 
 ## Notes
