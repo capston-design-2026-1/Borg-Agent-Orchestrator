@@ -45,6 +45,43 @@ orchestrator_stack/
 - Prometheus latest release tag: `v3.11.2`
 - Microsoft AIOpsLab: active repository, no formal GitHub release tags
 
+## Getting Started from Scratch
+
+Follow these steps to initialize the environment and run the full orchestrator stack.
+
+### 1. Prerequisites
+- **Python 3.10+**
+- **Git**
+
+### 2. Initialize Virtual Environment
+From the repository root, create and activate the virtual environment:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+```
+
+### 3. Install Dependencies
+```bash
+pip install --upgrade pip
+pip install -r orchestrator_stack/requirements.txt
+```
+
+### 4. Generate Initial Assets (Synthetic Data & Models)
+Before running the orchestrator, you must generate the synthetic trace and training datasets:
+```bash
+# Generate metrics, traces, and datasets
+./.venv/bin/python orchestrator_stack/examples/generate_synthetic_assets.py
+```
+
+### 5. Train the Predictor Models (Layer 3)
+Train the XGBoost safety-risk and resource-demand models from the generated trace:
+```bash
+./.venv/bin/python orchestrator_stack/run.py train-brains \
+  --trace orchestrator_stack/examples/sample_trace.json \
+  --risk-out orchestrator_stack/examples/models/risk_model.json \
+  --demand-out orchestrator_stack/examples/models/demand_model.json
+```
+
 ## Testing the Architecture
 
 You can test the full 6-layer orchestrator stack using the provided CLI:
