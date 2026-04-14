@@ -1,0 +1,18 @@
+task_id: bootstrap-self-heal
+status: pending
+title: Bootstrap self-healing improvements
+priority: 20
+dependencies: []
+scope_paths:
+  - src/
+  - scripts/
+prompt: |
+  Improve repository reliability by adding stronger tests, runtime checks, and repair scripts.
+  Update NEXT_STEPS.md and report files. Commit and push changes.
+done_when_commands:
+  - "git status --porcelain"
+max_sessions: 10
+max_retries: 5
+review_prompt: |
+  Review all branch changes for regressions, missing tests, and style issues.
+metadata: {}
