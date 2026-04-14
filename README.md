@@ -20,6 +20,7 @@ An independent end-to-end orchestrator workspace now exists at `orchestrator_sta
 - Includes a 6-layer implementation matching the architecture (source -> twin -> XGBoost -> MARL/referee -> Optuna -> scoreboard)
 - Keeps this work isolated from the existing baseline and advanced XGBoost tracks
 - Has dedicated handoff files: `orchestrator_stack/README.md`, `orchestrator_stack/AGENTS.md`, `orchestrator_stack/NEXT_STEPS.md`
+- Mermaid architecture source is tracked at `orchestrator_stack/ARCHITECTURE.md`
 
 ## Structure
 
