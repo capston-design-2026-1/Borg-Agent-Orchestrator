@@ -9,7 +9,7 @@ This directory implements the full 6-layer orchestrator process end-to-end:
 5. Optuna trial manager for reward and policy hyperparameters
 6. Scoreboard feedback loop into policy/trial evaluation
 
-Architecture diagram: [ARCHITECTURE.md](/Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator/orchestrator_stack/ARCHITECTURE.md)
+Architecture diagrams: [ARCHITECTURE.md](ARCHITECTURE.md) | [Visual (mmd)](architecture.mmd)
 
 ## Directory Layout
 

@@ -1,5 +1,7 @@
 # Full Orchestrator Architecture
 
+[Visualize in IDE: architecture.mmd](architecture.mmd)
+
 ```mermaid
 graph TD
     %% Layer 1: Data Source

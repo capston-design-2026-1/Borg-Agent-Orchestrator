@@ -45,6 +45,8 @@ The result of every action is measured:
 
 ## 2. Technical Flow Summary
 
+[Visualize in IDE: process_flow.mmd](process_flow.mmd)
+
 ```mermaid
 sequenceDiagram
     participant L1 as Layer 1: Collector
