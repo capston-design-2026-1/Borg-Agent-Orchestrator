@@ -16,6 +16,13 @@ cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 cp codex_autonomy/config/autonomy.example.yaml codex_autonomy/config/autonomy.local.yaml
 ```
 
+## 2.1) Set Codex command template (required)
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+sed -i '' 's|^  command_template:.*$|  command_template: "codex exec - < {prompt_file}"|' codex_autonomy/config/autonomy.local.yaml
+```
+
 ## 3) Enable GitHub flow and set repository
 
 ```bash
