@@ -274,3 +274,21 @@ cp -f codex_autonomy/tasks/templates/full_orchestrator_finish.yaml codex_autonom
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 ./.venv/bin/python codex_autonomy/scripts/run_daemon.py run --config codex_autonomy/config/autonomy.local.yaml
 ```
+
+## 24) Verify manager process is alive
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+pgrep -af "codex_autonomy/scripts/run_daemon.py run"
+```
+
+## 25) Tail active task session logs live
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+LATEST_STDERR=$(ls -1t codex_autonomy/runtime/logs/full-orchestrator-e2e-finish/*.stderr.log | head -n 1)
+LATEST_STDOUT=$(ls -1t codex_autonomy/runtime/logs/full-orchestrator-e2e-finish/*.stdout.log | head -n 1)
+echo "stderr: $LATEST_STDERR"
+echo "stdout: $LATEST_STDOUT"
+tail -f "$LATEST_STDERR" "$LATEST_STDOUT"
+```
