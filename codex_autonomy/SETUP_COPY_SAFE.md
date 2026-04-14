@@ -48,21 +48,21 @@ gh auth login --web
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
-./.venv/bin/python -m codex_autonomy.cli run --config codex_autonomy/config/autonomy.local.yaml
+./.venv/bin/python codex_autonomy/scripts/run_daemon.py run --config codex_autonomy/config/autonomy.local.yaml
 ```
 
 ## 7) In another terminal, check status
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
-./.venv/bin/python -m codex_autonomy.cli status --config codex_autonomy/config/autonomy.local.yaml
+./.venv/bin/python codex_autonomy/scripts/run_daemon.py status --config codex_autonomy/config/autonomy.local.yaml
 ```
 
 ## Optional: enqueue a task
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
-./.venv/bin/python -m codex_autonomy.cli enqueue \
+./.venv/bin/python codex_autonomy/scripts/run_daemon.py enqueue \
   --config codex_autonomy/config/autonomy.local.yaml \
   --task-id feature-health-dashboard \
   --title "Build health dashboard" \
