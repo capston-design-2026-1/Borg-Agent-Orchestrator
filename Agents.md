@@ -16,6 +16,8 @@ These instructions apply to work performed in this repository.
 - Do not ask the user for permission before committing or pushing.
 - Split changes into small, specific, logically separated commits.
 - Split commits more aggressively than usual: when practical, separate Python code, documentation, handoff files, config/examples, and workflow-policy changes into different commits.
+- For orchestrator implementation work, default to near per-file-per-commit granularity (for example: simulator, predictor, referee, each in separate commits).
+- Only group files in one commit when they are truly minor and tightly coupled (e.g., `__init__.py` plus a tiny companion change).
 - Do not bundle unrelated file classes together in one commit just because they were edited in the same session.
 - If one session touches multiple concerns, stage and commit each concern independently in the order they were validated.
 - Prefer the smallest defensible commit that leaves the repository in a coherent state.
