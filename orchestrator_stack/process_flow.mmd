@@ -1,0 +1,19 @@
+sequenceDiagram
+    participant L1 as Layer 1: Collector
+    participant L2 as Layer 2: Simulator
+    participant L3 as Layer 3: XGBoost Brains
+    participant L4 as Layer 4: Agents & Referee
+    participant L6 as Layer 6: Scoreboard
+    participant L5 as Layer 5: Optuna (Meta)
+
+    L1->>L2: Standardized Trace
+    loop Every Time Step
+        L2->>L3: Current Observation
+        L3->>L4: Observation + Forecasts
+        L4->>L4: Proposals (A, B, C)
+        L4->>L2: Resolved Action (Referee)
+        L2->>L6: Resulting State & Reward
+        L6->>L4: Feedback (PPO Update)
+    end
+    L6->>L5: Total Episode Score
+    L5->>L4: Adjust Strategy/Weights
