@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from codex_autonomy.config import ManagerConfig
+from codex_autonomy.github_flow import ensure_issue, ensure_pr, try_merge_pr
 from codex_autonomy.models import TaskSpec, TaskStatus, WorkerResult
 from codex_autonomy.session_adapter import SessionAdapter
 from codex_autonomy.state_db import log_event, log_session
@@ -67,7 +68,11 @@ def run_task(config: ManagerConfig, task: TaskSpec) -> WorkerResult:
         timeout_seconds=config.session.timeout_seconds,
     )
 
-    task = replace(task, status=TaskStatus.RUNNING)
+    if task.metadata.get("skip_auto_issue", False):
+        issue_number, issue_url = task.issue_number, task.issue_url
+    else:
+        issue_number, issue_url = ensure_issue(config, task)
+    task = replace(task, status=TaskStatus.RUNNING, issue_number=issue_number, issue_url=issue_url)
     save_task(config.queue_dir, task)
 
     sessions_used = 0
@@ -108,13 +113,25 @@ def run_task(config: ManagerConfig, task: TaskSpec) -> WorkerResult:
 
             if _check_done(task, worktree_path):
                 _auto_commit_and_push(config, worktree_path, branch_name, task)
-                task = replace(task, status=TaskStatus.COMPLETED)
+                pr_number, pr_url = ensure_pr(config, task, branch_name)
+                task = replace(task, pr_number=pr_number, pr_url=pr_url)
+
+                merged = False
+                if pr_number is not None:
+                    merged = try_merge_pr(config, pr_number)
+
+                final_status = TaskStatus.COMPLETED if merged or not pr_number else TaskStatus.REVIEW
+                task = replace(task, status=final_status)
                 save_task(config.queue_dir, task)
                 return WorkerResult(
                     task_id=task.task_id,
                     branch_name=branch_name,
-                    status=TaskStatus.COMPLETED,
-                    message="completed",
+                    status=final_status,
+                    message=(
+                        "completed and merged"
+                        if merged
+                        else ("completed" if final_status == TaskStatus.COMPLETED else "awaiting PR review/merge")
+                    ),
                     sessions_used=sessions_used,
                 )
 
