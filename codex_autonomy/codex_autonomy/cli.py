@@ -6,7 +6,7 @@ from pathlib import Path
 from codex_autonomy.config import load_config
 from codex_autonomy.manager import AutonomyManager
 from codex_autonomy.models import TaskSpec
-from codex_autonomy.status import recent_events, recent_sessions
+from codex_autonomy.status import queue_snapshot, recent_events, recent_sessions
 from codex_autonomy.task_store import save_task
 
 
@@ -22,6 +22,7 @@ def cmd_enqueue(args: argparse.Namespace) -> None:
         task_id=args.task_id,
         title=args.title,
         prompt=args.prompt,
+        task_type=args.task_type,
         priority=args.priority,
         scope_paths=args.scope_paths or [],
         done_when_commands=args.done_when_commands or [],
@@ -32,8 +33,13 @@ def cmd_enqueue(args: argparse.Namespace) -> None:
 
 def cmd_status(args: argparse.Namespace) -> None:
     config = load_config(args.config)
+    queue = queue_snapshot(config.queue_dir)
     events = recent_events(config.state_db_path, limit=args.limit)
     sessions = recent_sessions(config.state_db_path, limit=args.limit)
+
+    print("Queue Snapshot:")
+    for row in queue:
+        print(f"- {row[0]} | status={row[1]} | issue={row[2]} | pr={row[3]}")
 
     print("Recent Task Events:")
     for row in events:
@@ -57,6 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_enqueue.add_argument("--task-id", required=True)
     p_enqueue.add_argument("--title", required=True)
     p_enqueue.add_argument("--prompt", required=True)
+    p_enqueue.add_argument("--task-type", default="feature", choices=["feature", "bug", "upgrade", "chore"])
     p_enqueue.add_argument("--priority", type=int, default=100)
     p_enqueue.add_argument("--scope-paths", nargs="*")
     p_enqueue.add_argument("--done-when-commands", nargs="*")
