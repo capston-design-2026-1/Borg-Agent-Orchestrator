@@ -37,6 +37,34 @@ def _extract_number(url: str) -> int | None:
     return int(m.group(1)) if m else None
 
 
+def _find_existing_issue(config: ManagerConfig, task: TaskSpec) -> tuple[int | None, str | None]:
+    query = f'"task_id: `{task.task_id}`" in:body'
+    code, stdout, _ = _run(
+        [
+            "gh",
+            "issue",
+            "list",
+            "--repo",
+            config.github.repo,
+            "--search",
+            query,
+            "--state",
+            "all",
+            "--json",
+            "number,url",
+            "--limit",
+            "1",
+        ],
+        config.repo_root,
+    )
+    if code != 0 or not stdout:
+        return None, None
+    rows = json.loads(stdout)
+    if not rows:
+        return None, None
+    return int(rows[0]["number"]), str(rows[0]["url"])
+
+
 def ensure_issue(config: ManagerConfig, task: TaskSpec) -> tuple[int | None, str | None]:
     if not github_enabled(config):
         return task.issue_number, task.issue_url
@@ -44,6 +72,9 @@ def ensure_issue(config: ManagerConfig, task: TaskSpec) -> tuple[int | None, str
         return task.issue_number, task.issue_url
     if task.issue_number is not None and task.issue_url:
         return task.issue_number, task.issue_url
+    found_number, found_url = _find_existing_issue(config, task)
+    if found_number is not None and found_url:
+        return found_number, found_url
 
     body = (
         f"## Task\n{task.prompt}\n\n"
