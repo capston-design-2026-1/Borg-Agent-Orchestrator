@@ -20,6 +20,7 @@ class SessionConfig:
     command_template: str = "codex --prompt-file {prompt_file}"
     timeout_seconds: int = 1800
     max_session_minutes: int = 25
+    rate_limit_cooldown_seconds: int = 1800
 
 
 @dataclass(slots=True)
@@ -91,6 +92,7 @@ def load_config(path: str | Path) -> ManagerConfig:
             command_template=str(session_raw.get("command_template", "codex --prompt-file {prompt_file}")),
             timeout_seconds=int(session_raw.get("timeout_seconds", 1800)),
             max_session_minutes=int(session_raw.get("max_session_minutes", 25)),
+            rate_limit_cooldown_seconds=int(session_raw.get("rate_limit_cooldown_seconds", 1800)),
         ),
         health=HealthCheckConfig(
             lint_command=str(health_raw.get("lint_command", "")),
