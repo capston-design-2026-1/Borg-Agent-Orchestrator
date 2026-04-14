@@ -46,6 +46,11 @@ def ensure_worktree(repo_root: Path, branch_name: str, worktree_path: Path) -> N
         _run(["git", "worktree", "remove", "--force", str(worktree_path)], cwd=repo_root)
     worktree_path.parent.mkdir(parents=True, exist_ok=True)
     _run(["git", "worktree", "add", "--force", str(worktree_path), branch_name], cwd=repo_root)
+    # Make repo-root virtualenv available inside worktree for relative commands like ./.venv/bin/python.
+    root_venv = repo_root / ".venv"
+    worktree_venv = worktree_path / ".venv"
+    if root_venv.exists() and not worktree_venv.exists():
+        worktree_venv.symlink_to(root_venv, target_is_directory=True)
 
 
 def cleanup_worktree(repo_root: Path, worktree_path: Path) -> None:
