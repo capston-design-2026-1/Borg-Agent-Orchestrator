@@ -19,6 +19,7 @@ class TaskSpec:
     task_id: str
     title: str
     prompt: str
+    task_type: str = "feature"
     priority: int = 100
     dependencies: list[str] = field(default_factory=list)
     scope_paths: list[str] = field(default_factory=list)
@@ -28,6 +29,10 @@ class TaskSpec:
     retries: int = 0
     status: TaskStatus = TaskStatus.PENDING
     review_prompt: str = "Review branch changes for correctness and regressions."
+    issue_number: int | None = None
+    issue_url: str | None = None
+    pr_number: int | None = None
+    pr_url: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
     created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
     updated_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
