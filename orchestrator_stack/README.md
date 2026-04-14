@@ -54,9 +54,12 @@ Follow these steps to initialize the environment and run the full orchestrator s
 - **Git**
 
 ### 2. Initialize Virtual Environment
-From the repository root, create and activate the virtual environment:
+From the repository root, create and activate the virtual environment. **Note:** Use Python 3.10-3.13 (e.g., `python3.13`) as Ray does not yet support 3.14.
 ```bash
-python3 -m venv .venv
+python3.13 -m venv .venv  # Recommended
+# OR
+python3.12 -m venv .venv
+# THEN
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
