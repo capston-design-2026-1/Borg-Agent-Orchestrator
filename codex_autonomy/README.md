@@ -31,6 +31,7 @@ cp codex_autonomy/config/autonomy.example.yaml codex_autonomy/config/autonomy.lo
 ```
 
 2. Edit `command_template` for your Codex CLI form.
+   For current Codex CLI, use: `codex exec - < {prompt_file}`
    Optional: set `session.rate_limit_cooldown_seconds` to control automatic wait time after Codex quota/rate-limit failures.
 3. Configure GitHub flow in `github:` block (`repo`, auto issue/PR/merge policy).
 4. If using GitHub automation, install/authenticate GitHub CLI:
