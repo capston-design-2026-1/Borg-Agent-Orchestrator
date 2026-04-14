@@ -42,6 +42,16 @@ def _is_limit_error(stdout: str, stderr: str) -> bool:
     return any(p in text for p in patterns)
 
 
+def _is_command_template_error(stdout: str, stderr: str) -> bool:
+    text = f"{stdout}\n{stderr}".lower()
+    patterns = (
+        "unexpected argument '--prompt-file'",
+        "usage: codex",
+        "for more information, try '--help'",
+    )
+    return all(p in text for p in patterns)
+
+
 def _auto_commit_and_push(config: ManagerConfig, worktree_path: Path, branch_name: str, task: TaskSpec) -> None:
     subprocess.run(["git", "add", "-A"], cwd=str(worktree_path), check=False)
     diff = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=str(worktree_path), check=False)
@@ -119,6 +129,23 @@ def run_task(config: ManagerConfig, task: TaskSpec) -> WorkerResult:
             )
 
             if result.return_code != 0:
+                if _is_command_template_error(result.stdout, result.stderr):
+                    task = replace(task, status=TaskStatus.FAILED)
+                    save_task(config.queue_dir, task)
+                    log_event(
+                        config.state_db_path,
+                        ts=now,
+                        task_id=task.task_id,
+                        event_type="session_config_error",
+                        message="invalid command_template for installed codex CLI",
+                    )
+                    return WorkerResult(
+                        task_id=task.task_id,
+                        branch_name=branch_name,
+                        status=TaskStatus.FAILED,
+                        message="invalid command_template; update config to codex exec mode",
+                        sessions_used=sessions_used,
+                    )
                 if _is_limit_error(result.stdout, result.stderr):
                     now_epoch = int(time.time())
                     cooldown = max(60, int(config.session.rate_limit_cooldown_seconds))
