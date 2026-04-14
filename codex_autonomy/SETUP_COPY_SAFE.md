@@ -66,8 +66,15 @@ cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
   --config codex_autonomy/config/autonomy.local.yaml \
   --task-id feature-health-dashboard \
   --title "Build health dashboard" \
-  --goal "Add dashboard summarizing lint/test/upgrade outcomes and task queue status" \
+  --prompt "Add dashboard summarizing lint/test/upgrade outcomes and task queue status" \
   --task-type feature
+```
+
+## Start full orchestrator-finish task (recommended)
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+cp codex_autonomy/tasks/templates/full_orchestrator_finish.yaml codex_autonomy/tasks/queue/full_orchestrator_finish.yaml
 ```
 
 ## If you still must use heredoc
