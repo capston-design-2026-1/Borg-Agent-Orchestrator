@@ -24,3 +24,10 @@
 - Worktree per task under `runtime/worktrees`
 - Commit and push after meaningful changes.
 - Archive task files after completion/failure.
+- For autonomy-runner code changes, keep near per-file commits where practical.
+
+## GitHub Collaboration Flow
+
+- Use GitHub Issues as the canonical intake for bugs/features/upgrades.
+- Use Pull Requests for all implementation branches.
+- Keep tasks in `review` until PR merge when auto-merge is disabled.
