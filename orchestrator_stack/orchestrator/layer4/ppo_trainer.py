@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +26,15 @@ def train_multiagent_ppo(
     train_iters: int,
     output_dir: str | Path,
 ) -> dict[str, Any]:
-    out = Path(output_dir)
+    os.environ.setdefault("OMP_NUM_THREADS", "1")
+    os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+    os.environ.setdefault("MKL_NUM_THREADS", "1")
+    os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
+    os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
+    os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+    os.environ.setdefault("KMP_INIT_AT_FORK", "FALSE")
+
+    out = Path(output_dir).resolve()
     out.mkdir(parents=True, exist_ok=True)
 
     if PPOConfig is None:
@@ -48,23 +57,44 @@ def train_multiagent_ppo(
         PPOConfig()
         .environment(env=env_name, env_config={"backend": backend, "alpha": alpha, "beta": beta, "gamma": gamma})
         .framework("torch")
-        .training(lr=learning_rate)
+        .training(
+            lr=learning_rate,
+            train_batch_size=32,
+            minibatch_size=16,
+            num_epochs=1,
+        )
         .multi_agent(
             policies=policies,
             policy_mapping_fn=lambda agent_id, *args, **kwargs: agent_id,
         )
-        .rollouts(num_rollout_workers=0)
+        .resources(num_gpus=0)
+        .env_runners(num_env_runners=0, num_envs_per_env_runner=1, rollout_fragment_length=8, batch_mode="truncate_episodes")
+        .reporting(min_sample_timesteps_per_iteration=8, min_train_timesteps_per_iteration=8, min_time_s_per_iteration=0)
     )
 
-    algo = config.build()
+    algo = config.build_algo()
     last_result: dict[str, Any] = {}
     for _ in range(max(1, train_iters)):
         last_result = algo.train()
 
-    checkpoint = algo.save(checkpoint_dir=str(out))
+    checkpoint_result = algo.save(checkpoint_dir=str(out))
+    checkpoint_path = str(out)
+    try:
+        checkpoint_path = str(checkpoint_result.checkpoint.path)
+    except Exception:
+        checkpoint_path = str(checkpoint_result)
+
+    algo.stop()
+    try:
+        import ray
+
+        ray.shutdown()
+    except Exception:
+        pass
+
     return {
         "status": "trained",
-        "checkpoint": str(checkpoint),
+        "checkpoint": checkpoint_path,
         "train_iters": int(train_iters),
         "episode_reward_mean": float(last_result.get("episode_reward_mean", 0.0)),
     }
