@@ -31,6 +31,7 @@ cp codex_autonomy/config/autonomy.example.yaml codex_autonomy/config/autonomy.lo
 ```
 
 2. Edit `command_template` for your Codex CLI form.
+   Optional: set `session.rate_limit_cooldown_seconds` to control automatic wait time after Codex quota/rate-limit failures.
 3. Configure GitHub flow in `github:` block (`repo`, auto issue/PR/merge policy).
 4. If using GitHub automation, install/authenticate GitHub CLI:
 
@@ -74,6 +75,7 @@ Inspect runtime status:
 - Each task has `max_sessions`
 - If not done after one session, task is re-queued (`pending`) and resumed in next session
 - If retries exceed `max_retries`, task is marked failed and archived
+- If Codex returns quota/rate-limit errors, task is auto re-queued with a cooldown (`metadata.not_before_epoch`) and resumes automatically after wait time
 
 ## GitHub Flow
 
