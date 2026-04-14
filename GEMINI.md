@@ -13,10 +13,15 @@ This file contains foundational mandates for Gemini CLI when working in this rep
     - **Aggressive Split-Commits:** Use near per-file granularity. Separate code, docs, config, and handoff files into independent commits.
     - Use clear, concise commit messages focused on "why" and "what".
 
-## Continuity & Memory
-- **State Tracking:** Maintain `NEXT_STEPS.md` and `Agents.md` (and track specific `AGENTS.md` in sub-stacks) to ensure session handoff is seamless.
-- **Milestone Trigger:** When the user says "milestone", record the current state, update all relevant memory files (`NEXT_STEPS.md`, `README.md`, etc.), and commit/push these updates using the split-commit policy.
-- **Reporting:** Use KST timestamped filenames for reports: `YYYYMMDDHHMM_*`.
+## Reporting & Organization
+- **Format:** Use KST timestamped filenames: `YYYYMMDDHHMM_*`.
+- **Directory Structure:**
+    - `reports/milestones/`: State recording and handoff.
+    - `reports/tuning/`: Optuna study results.
+    - `reports/traces/`: Episode-level decision logs.
+    - `reports/evaluations/`: Model and system performance metrics.
+    - `reports/archive/`: Legacy or completed track data.
+- **Auto-Categorization:** Always ensure subdirectories are created and used in tool-generated reports.
 
 ## Data & Environment
 - **Data Isolation:** Keep large datasets under `~/Documents/` (e.g., `borg_data`, `borg_xgboost_workspace`). Do not commit large data files to Git.

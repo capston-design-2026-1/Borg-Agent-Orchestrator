@@ -28,7 +28,7 @@ def export_study_report(study: optuna.Study, study_name: str) -> Path:
     now = datetime.now(kst)
     ts = now.strftime("%Y%m%d%H%M")
     
-    report_path = Path(f"reports/{ts}_optuna_{study_name}.md")
+    report_path = Path(f"reports/tuning/{ts}_optuna_{study_name}.md")
     report_path.parent.mkdir(parents=True, exist_ok=True)
     
     best = study.best_trial

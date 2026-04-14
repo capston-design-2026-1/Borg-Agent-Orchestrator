@@ -74,7 +74,7 @@ def run_episode(config: OrchestratorConfig, verbose: bool = True) -> RunSummary:
     # Setup persistent trace logging
     kst = timezone(timedelta(hours=9))
     ts = datetime.now(kst).strftime("%Y%m%d%H%M")
-    log_path = Path(f"reports/{ts}_episode_trace.log")
+    log_path = Path(f"reports/traces/{ts}_episode_trace.log")
     log_path.parent.mkdir(parents=True, exist_ok=True)
     log_buffer = [f"--- Episode Start: {total_steps} steps ---\n"]
 
