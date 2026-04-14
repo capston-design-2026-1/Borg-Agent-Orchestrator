@@ -17,6 +17,7 @@ This directory is isolated from the baseline/advanced XGBoost tracks and owns th
 - Route every cross-layer interaction through typed data models (`types.py`)
 - Preserve backend portability: local trace twin and AIOpsLab adapter must remain API-compatible
 - Preserve objective portability: heuristic runner and RLlib wrapper must share reward semantics
+- Use near per-file commits for orchestrator module changes (simulator, predictor, referee, optimizer, etc. committed separately when practical)
 
 ## Open-Source Integration Policy
 
