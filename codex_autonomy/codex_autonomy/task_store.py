@@ -35,12 +35,22 @@ def _task_from_raw(raw: dict) -> TaskSpec:
     )
 
 
+def _prefer_task(current: TaskSpec, candidate: TaskSpec) -> TaskSpec:
+    # Prefer richer state first (issue/pr linkage), then newer update timestamp.
+    current_links = int(current.issue_number is not None) + int(current.pr_number is not None)
+    candidate_links = int(candidate.issue_number is not None) + int(candidate.pr_number is not None)
+    if candidate_links != current_links:
+        return candidate if candidate_links > current_links else current
+    return candidate if candidate.updated_at >= current.updated_at else current
+
+
 def load_tasks(queue_dir: Path) -> list[TaskSpec]:
     by_id: dict[str, TaskSpec] = {}
     for path in sorted(queue_dir.glob("*.yaml")):
         raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         task = _task_from_raw(raw)
-        by_id[task.task_id] = task
+        existing = by_id.get(task.task_id)
+        by_id[task.task_id] = task if existing is None else _prefer_task(existing, task)
     return list(by_id.values())
 
 
@@ -51,6 +61,13 @@ def save_task(queue_dir: Path, task: TaskSpec) -> Path:
     payload["status"] = task.status.value
     path = queue_dir / f"{task.task_id}.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    # Canonicalize queue files: one task_id -> one YAML file.
+    for other in queue_dir.glob("*.yaml"):
+        if other == path:
+            continue
+        raw = yaml.safe_load(other.read_text(encoding="utf-8")) or {}
+        if str(raw.get("task_id", "")) == task.task_id:
+            other.unlink(missing_ok=True)
     return path
 
 
