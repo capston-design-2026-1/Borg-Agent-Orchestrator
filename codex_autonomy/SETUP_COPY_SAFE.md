@@ -113,6 +113,13 @@ gh issue list -R capston-design-2026-1/Borg-Agent-Orchestrator --limit 20
 gh pr list -R capston-design-2026-1/Borg-Agent-Orchestrator --limit 20
 ```
 
+## Cleanup duplicate task files with same task_id
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+rm -f codex_autonomy/tasks/queue/full_orchestrator_finish.yaml
+```
+
 ## Optional: enqueue a task
 
 ```bash
