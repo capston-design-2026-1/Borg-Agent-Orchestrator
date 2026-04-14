@@ -1,5 +1,6 @@
 task_id: bootstrap-self-heal
 status: pending
+task_type: feature
 title: Bootstrap self-healing improvements
 priority: 20
 dependencies: []
