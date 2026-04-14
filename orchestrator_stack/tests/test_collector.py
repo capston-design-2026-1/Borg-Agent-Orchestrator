@@ -1,4 +1,13 @@
-from orchestrator.layer1.collector import prometheus_rows_to_trace
+import pytest
+
+from orchestrator.layer1.collector import prometheus_rows_to_trace, validate_prometheus_schema
+
+
+def test_validate_prometheus_schema_raises_on_drift():
+    # Missing node_id in flat row
+    bad_rows = [{"timestamp": 100, "cpu_util": 0.5}]
+    with pytest.raises(ValueError, match="Schema drift"):
+        validate_prometheus_schema(bad_rows)
 
 
 def test_prometheus_rows_to_trace_groups_by_timestamp():

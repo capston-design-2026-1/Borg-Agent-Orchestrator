@@ -113,8 +113,37 @@ def prometheus_rows_to_trace(rows: list[dict[str, Any]], interval_seconds: int =
     return trace
 
 
+def validate_prometheus_schema(rows: list[dict[str, Any]]) -> None:
+    """Detect metric/key drift in Prometheus JSON before trace conversion."""
+    if not rows:
+        return
+
+    # Check first row for mandatory fields
+    first = rows[0]
+    is_grouped = "nodes" in first
+    
+    if is_grouped:
+        if "timestamp" not in first:
+            raise ValueError("Schema drift: Grouped row missing 'timestamp' key.")
+        nodes = first.get("nodes", [])
+        if not isinstance(nodes, list):
+            raise ValueError(f"Schema drift: 'nodes' must be a list, got {type(nodes)}")
+        if nodes and "node_id" not in nodes[0]:
+            raise ValueError("Schema drift: Node entry missing 'node_id' key.")
+    else:
+        mandatory = ("timestamp", "node_id")
+        for key in mandatory:
+            if key not in first:
+                raise ValueError(f"Schema drift: Flat row missing mandatory key '{key}'.")
+        
+        # Check for at least one metric key
+        if not any(k in first for k in METRIC_KEYS):
+            raise ValueError(f"Schema drift: No metric keys {METRIC_KEYS} found in flat row.")
+
+
 def build_trace_file(metrics_path: str | Path, trace_path: str | Path, interval_seconds: int = 60) -> Path:
     raw = json.loads(Path(metrics_path).read_text(encoding="utf-8"))
+    validate_prometheus_schema(raw)
     trace = prometheus_rows_to_trace(raw, interval_seconds=interval_seconds)
     out = Path(trace_path)
     out.parent.mkdir(parents=True, exist_ok=True)
