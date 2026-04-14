@@ -10,6 +10,9 @@ except Exception:  # pragma: no cover
     optuna = None
 
 
+from datetime import datetime, timedelta, timezone
+
+
 @dataclass(slots=True)
 class TuningResult:
     alpha: float
@@ -17,6 +20,35 @@ class TuningResult:
     gamma: float
     score: float
     learning_rate: float | None = None
+
+
+def export_study_report(study: optuna.Study, study_name: str) -> Path:
+    """Export study results to a KST-timestamped markdown report in reports/."""
+    kst = timezone(timedelta(hours=9))
+    now = datetime.now(kst)
+    ts = now.strftime("%Y%m%d%H%M")
+    
+    report_path = Path(f"reports/{ts}_optuna_{study_name}.md")
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    best = study.best_trial
+    
+    content = [
+        f"# Optuna Study Report: {study_name}",
+        f"\n- **Generated (KST):** {now.strftime('%Y-%m-%d %H:%M:%S')}",
+        f"- **Best Score:** {best.value:.4f}",
+        f"- **Best Params:**",
+    ]
+    for k, v in best.params.items():
+        content.append(f"    - {k}: {v}")
+        
+    content.append("\n## Top 5 Trials")
+    trials = sorted(study.trials, key=lambda t: t.value if t.value is not None else -1e9, reverse=True)
+    for i, t in enumerate(trials[:5]):
+        content.append(f"{i+1}. Trial {t.number}: Score {t.value:.4f} (Params: {t.params})")
+        
+    report_path.write_text("\n".join(content), encoding="utf-8")
+    return report_path
 
 
 def tune_reward_weights(
@@ -47,6 +79,7 @@ def tune_reward_weights(
         return objective_fn(alpha, beta, gamma)
 
     study.optimize(objective, n_trials=n_trials)
+    export_study_report(study, study_name)
     best = study.best_trial
     return TuningResult(
         alpha=float(best.params["alpha"]),
@@ -85,6 +118,7 @@ def tune_policy_and_rewards(
         return objective_fn(alpha, beta, gamma, learning_rate)
 
     study.optimize(objective, n_trials=max(1, n_trials))
+    export_study_report(study, study_name)
     best = study.best_trial
     return TuningResult(
         alpha=float(best.params["alpha"]),
