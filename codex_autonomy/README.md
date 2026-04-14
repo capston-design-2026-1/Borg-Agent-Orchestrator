@@ -91,6 +91,7 @@ Inspect runtime status:
 - `max_parallel_workers` controls concurrent sessions
 - Each task uses its own worktree path: `codex_autonomy/runtime/worktrees/<task-id>`
 - Independent tasks can run simultaneously without branch conflicts
+- Queue canonicalization enforces one YAML per `task_id` to avoid duplicate issue/PR side effects
 
 ## Notes
 
