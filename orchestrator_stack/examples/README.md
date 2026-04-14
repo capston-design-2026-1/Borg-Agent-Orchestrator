@@ -1,5 +1,6 @@
 # Example Assets
 
-- `sample_trace.json`: synthetic digital-twin trace rows
-- `generate_synthetic_assets.py`: creates `risk_train.npz` and `demand_train.npz`
-- `models/`: output directory for trained demo models
+- `sample_metrics.json`: Layer 1 input example (Prometheus/JSON-like flat rows)
+- `sample_trace.json`: Layer 1 output / Layer 2 input example trace rows
+- `generate_synthetic_assets.py`: creates synthetic `.npz` datasets and a larger metrics sample
+- `models/`: output directory for trained risk/demand models
