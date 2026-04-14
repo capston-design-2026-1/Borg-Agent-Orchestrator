@@ -12,6 +12,8 @@ class OrchestratorConfig:
     demand_model_path: Path
     raw_metrics_path: Path | None = None
     use_aiopslab_backend: bool = False
+    aiopslab_problem_id: str = "misconfig-1"
+    aiopslab_max_steps: int = 50
     episode_steps: int = 200
     alpha: float = 1.0
     beta: float = 0.6
@@ -30,6 +32,8 @@ class OrchestratorConfig:
             demand_model_path=Path(raw["demand_model_path"]),
             raw_metrics_path=Path(raw_metrics) if raw_metrics else None,
             use_aiopslab_backend=bool(raw.get("use_aiopslab_backend", False)),
+            aiopslab_problem_id=str(raw.get("aiopslab_problem_id", "misconfig-1")),
+            aiopslab_max_steps=int(raw.get("aiopslab_max_steps", 50)),
             episode_steps=int(raw.get("episode_steps", 200)),
             alpha=float(raw.get("alpha", 1.0)),
             beta=float(raw.get("beta", 0.6)),

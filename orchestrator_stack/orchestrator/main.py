@@ -26,8 +26,10 @@ class RunSummary:
     agent_c: float
 
 
-def _build_backend(rows: list[dict], use_aiopslab_backend: bool):
-    return AIOpsLabBackend(rows) if use_aiopslab_backend else TraceDrivenTwinBackend(rows)
+def _build_backend(rows: list[dict], config: OrchestratorConfig):
+    if config.use_aiopslab_backend:
+        return AIOpsLabBackend(config.aiopslab_problem_id, max_steps=config.aiopslab_max_steps)
+    return TraceDrivenTwinBackend(rows)
 
 
 def ensure_trace_exists(config: OrchestratorConfig) -> Path:
@@ -50,7 +52,7 @@ def train_brain_models(config: OrchestratorConfig) -> dict[str, str]:
 def run_episode(config: OrchestratorConfig) -> RunSummary:
     trace_path = ensure_trace_exists(config)
     rows = load_trace_rows(trace_path)
-    backend = _build_backend(rows, config.use_aiopslab_backend)
+    backend = _build_backend(rows, config)
 
     risk_model = SafetyRiskForecast.load(config.risk_model_path)
     demand_model = ResourceDemandForecast.load(config.demand_model_path)
@@ -89,7 +91,7 @@ def run_episode(config: OrchestratorConfig) -> RunSummary:
 
 def run_policy_training(config: OrchestratorConfig, output_dir: str | Path) -> dict[str, Any]:
     rows = load_trace_rows(ensure_trace_exists(config))
-    backend = _build_backend(rows, config.use_aiopslab_backend)
+    backend = _build_backend(rows, config)
     return train_multiagent_ppo(
         backend,
         alpha=config.alpha,
@@ -132,7 +134,7 @@ def tune_policy_and_reward_layer(config: OrchestratorConfig, *, trials: int) -> 
     rows = load_trace_rows(ensure_trace_exists(config))
 
     def objective(alpha: float, beta: float, gamma: float, learning_rate: float) -> float:
-        backend = _build_backend(rows, config.use_aiopslab_backend)
+        backend = _build_backend(rows, config)
         eval_summary = evaluate_heuristic_policy(
             backend,
             alpha=alpha,
