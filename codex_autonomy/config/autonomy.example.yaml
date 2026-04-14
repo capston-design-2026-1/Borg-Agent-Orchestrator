@@ -1,0 +1,22 @@
+repo_root: .
+queue_dir: codex_autonomy/tasks/queue
+archive_dir: codex_autonomy/tasks/archive
+runtime_dir: codex_autonomy/runtime
+state_db_path: codex_autonomy/runtime/state.db
+
+max_parallel_workers: 3
+poll_interval_seconds: 10
+base_branch: main
+auto_push: true
+enable_health_loop: true
+
+session:
+  command_template: "codex --prompt-file {prompt_file}"
+  timeout_seconds: 1800
+  max_session_minutes: 25
+
+health:
+  lint_command: ""
+  test_command: ""
+  upgrade_scan_command: ""
+  interval_seconds: 900
