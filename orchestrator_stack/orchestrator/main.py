@@ -119,10 +119,11 @@ def tune_reward_layer(config: OrchestratorConfig, *, trials: int) -> dict[str, A
         )
         return run_episode(trial_cfg).total_score
 
-    storage = f"sqlite:///{config.optuna_storage_path}"
+    config.optuna_storage_path.parent.mkdir(parents=True, exist_ok=True)
+    storage = f"sqlite:///{config.optuna_storage_path.resolve()}"
     try:
         result = tune_reward_weights(objective, n_trials=trials, storage=storage)
-        return result.__dict__
+        return asdict(result)
     except RuntimeError as exc:
         return {"status": "skipped", "reason": str(exc), "alpha": config.alpha, "beta": config.beta, "gamma": config.gamma}
 
@@ -148,7 +149,7 @@ def tune_policy_and_reward_layer(config: OrchestratorConfig, *, trials: int) -> 
             n_trials=trials,
             storage_path=config.optuna_storage_path,
         )
-        return result.__dict__
+        return asdict(result)
     except RuntimeError as exc:
         return {
             "status": "skipped",
