@@ -118,6 +118,16 @@ After completion, check `reports/` for a KST-timestamped Optuna report (e.g., `2
 ./.venv/bin/pytest orchestrator_stack/tests/
 ```
 
+## Viewing Logs and Decision Traces
+
+The orchestrator now provides verbose step-by-step logging of agent decisions. When running the `run` or `full-process` commands, look for the following output in your terminal:
+
+- **Proposals:** The raw actions suggested by the Risk, Efficiency, and Admission agents.
+- **Referee:** The final action chosen after conflict resolution.
+- **Rewards:** The score impact for each agent (e.g., `AgentA:+11.0` indicates a successful preemptive migration).
+
+To see more training logs from Ray RLlib, increase the `"rllib_train_iters"` value in your `.json` config.
+
 ## Notes
 
 - The default config uses `rllib_train_iters=1` for fast local smoke tests.
