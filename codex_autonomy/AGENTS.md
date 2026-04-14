@@ -16,6 +16,7 @@
 
 - Every session prompt includes repository continuity instructions.
 - If context/session budget is exhausted, re-queue task and continue automatically.
+- If Codex quota/rate limits are detected, set cooldown and resume automatically after cooldown.
 - Persist progress in queue YAML and SQLite logs.
 
 ## Git Discipline
