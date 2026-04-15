@@ -37,6 +37,7 @@
 - Use GitHub Issues as the canonical intake for bugs/features/upgrades.
 - Use Pull Requests for all implementation branches.
 - Keep tasks in `review` until PR merge when auto-merge is disabled.
+- Use merge commits, not squash merges, so fine-grained commit history from feature branches is preserved after merge.
 
 ## Operator UX Rule
 

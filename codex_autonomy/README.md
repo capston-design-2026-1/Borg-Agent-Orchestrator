@@ -131,6 +131,7 @@ For a single copy-safe numbered tracking/recovery checklist, use:
 - If `auto_merge=true`: manager attempts merge and marks task completed when successful
 - Branch naming: `auto/<task-id>`
 - By default, merged task branches are kept (`delete_branch_on_merge=false`).
+- Default merge behavior is `merge`, not `squash`, so the branch's separate commits remain in `main` after PR merge.
 - For finer PR granularity, split work into many dependency-linked tasks (use `enqueue-bundle`).
 
 ## Parallel Rules
