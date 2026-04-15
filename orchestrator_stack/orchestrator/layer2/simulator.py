@@ -12,6 +12,36 @@ class SimulatorBackend(Protocol):
     def step(self, action: AgentAction) -> StepResult: ...
 
 
+class ObservationPredictor(Protocol):
+    def predict(self, obs: Observation) -> dict[str, float]: ...
+
+
+@dataclass(slots=True)
+class PredictorAttachedBackend:
+    backend: SimulatorBackend
+    risk_model: ObservationPredictor
+    demand_model: ObservationPredictor
+
+    def reset(self) -> Observation:
+        obs = self.backend.reset()
+        return self._attach_predictions(obs)
+
+    def step(self, action: AgentAction) -> StepResult:
+        result = self.backend.step(action)
+        next_obs = self._attach_predictions(result.next_observation)
+        return StepResult(
+            next_observation=next_obs,
+            reward_by_agent=result.reward_by_agent,
+            done=result.done,
+            info=result.info,
+        )
+
+    def _attach_predictions(self, obs: Observation) -> Observation:
+        obs.p_fail_scores = self.risk_model.predict(obs)
+        obs.demand_projection = self.demand_model.predict(obs)
+        return obs
+
+
 @dataclass(slots=True)
 class TraceDrivenTwinBackend:
     rows: list[dict]
