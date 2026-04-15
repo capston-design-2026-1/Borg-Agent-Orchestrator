@@ -6,6 +6,8 @@ from typing import Any
 
 
 METRIC_KEYS = ("cpu_util", "mem_util", "disk_util", "net_util")
+TRUE_LITERALS = {"1", "true", "t", "yes", "y", "on"}
+FALSE_LITERALS = {"0", "false", "f", "no", "n", "off"}
 
 
 def _metric_value(value: Any, default: float = 0.0) -> float:
@@ -13,6 +15,24 @@ def _metric_value(value: Any, default: float = 0.0) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def _bool_value(value: Any, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        if value in (0, 1):
+            return bool(value)
+        return default
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in TRUE_LITERALS:
+            return True
+        if lowered in FALSE_LITERALS:
+            return False
+    return default
 
 
 def _normalize_node(raw: dict[str, Any]) -> dict[str, Any]:
@@ -39,8 +59,8 @@ def _normalize_task(raw: dict[str, Any], fallback_node_id: str) -> dict[str, Any
         "task_id": str(raw.get("task_id", "unknown-task")),
         "node_id": str(raw.get("node_id", fallback_node_id)),
         "urgency": min(1.0, max(0.0, _metric_value(raw.get("urgency", 0.5), 0.5))),
-        "queue_priority": parsed_queue_priority,
-        "alive": bool(raw.get("alive", True)),
+        "queue_priority": max(0, parsed_queue_priority),
+        "alive": _bool_value(raw.get("alive"), default=True),
     }
 
 
@@ -49,6 +69,13 @@ def _parse_int(value: Any, *, field: str, row_index: int) -> int:
         return int(value)
     except (TypeError, ValueError) as exc:
         raise ValueError(f"Schema drift: row[{row_index}] field '{field}' must be integer-like, got {value!r}.") from exc
+
+
+def _parse_non_negative_int(value: Any, *, field: str, row_index: int) -> int:
+    parsed = _parse_int(value, field=field, row_index=row_index)
+    if parsed < 0:
+        raise ValueError(f"Schema drift: row[{row_index}] field '{field}' must be non-negative, got {value!r}.")
+    return parsed
 
 
 def _parse_float(value: Any, *, field: str, row_index: int) -> float:
@@ -88,8 +115,15 @@ def _validate_grouped_row(row: dict[str, Any], row_index: int) -> None:
             raise ValueError(
                 f"Schema drift: grouped row[{row_index}] task[{task_index}] must be an object, got {type(task).__name__}."
             )
+        for key in ("task_id", "node_id"):
+            if key not in task:
+                raise ValueError(f"Schema drift: grouped row[{row_index}] task[{task_index}] missing '{key}' key.")
+        if "queue_priority" in task:
+            _parse_non_negative_int(task["queue_priority"], field="queue_priority", row_index=row_index)
+        if "urgency" in task:
+            _parse_float(task["urgency"], field="urgency", row_index=row_index)
     if "queue_length" in row:
-        _parse_int(row["queue_length"], field="queue_length", row_index=row_index)
+        _parse_non_negative_int(row["queue_length"], field="queue_length", row_index=row_index)
     if "energy_price" in row:
         _parse_float(row["energy_price"], field="energy_price", row_index=row_index)
 
@@ -101,6 +135,10 @@ def _validate_flat_row(row: dict[str, Any], row_index: int) -> None:
     _parse_int(row["timestamp"], field="timestamp", row_index=row_index)
     if not any(k in row for k in METRIC_KEYS):
         raise ValueError(f"Schema drift: flat row[{row_index}] missing metric keys {METRIC_KEYS}.")
+    if "queue_length" in row:
+        _parse_non_negative_int(row["queue_length"], field="queue_length", row_index=row_index)
+    if "energy_price" in row:
+        _parse_float(row["energy_price"], field="energy_price", row_index=row_index)
 
 
 def prometheus_rows_to_trace(rows: list[dict[str, Any]], interval_seconds: int = 60) -> list[dict[str, Any]]:
@@ -113,6 +151,8 @@ def prometheus_rows_to_trace(rows: list[dict[str, Any]], interval_seconds: int =
     """
     if not rows:
         return []
+    if interval_seconds <= 0:
+        raise ValueError(f"interval_seconds must be positive, got {interval_seconds}.")
 
     if "nodes" in rows[0]:
         normalized: list[dict[str, Any]] = []
@@ -125,9 +165,9 @@ def prometheus_rows_to_trace(rows: list[dict[str, Any]], interval_seconds: int =
                     "timestamp": int(row.get("timestamp", 0)),
                     "nodes": nodes,
                     "tasks": tasks,
-                    "queue_length": int(row.get("queue_length", len(tasks))),
-                    "energy_price": _metric_value(row.get("energy_price", 0.1), 0.1),
-                    "task_death": bool(row.get("task_death", False)),
+                    "queue_length": max(0, int(row.get("queue_length", len(tasks)))),
+                    "energy_price": max(0.0, _metric_value(row.get("energy_price", 0.1), 0.1)),
+                    "task_death": _bool_value(row.get("task_death"), default=False),
                 }
             )
         return normalized
@@ -153,10 +193,10 @@ def prometheus_rows_to_trace(rows: list[dict[str, Any]], interval_seconds: int =
             bucket["tasks"].append(_normalize_task(raw, node_id))
 
         if "queue_length" in raw:
-            bucket["queue_length"] = max(int(raw["queue_length"]), int(bucket["queue_length"]))
+            bucket["queue_length"] = max(max(0, int(raw["queue_length"])), int(bucket["queue_length"]))
         if "energy_price" in raw:
-            bucket["energy_price"] = _metric_value(raw["energy_price"], 0.1)
-        if raw.get("task_death"):
+            bucket["energy_price"] = max(0.0, _metric_value(raw["energy_price"], 0.1))
+        if _bool_value(raw.get("task_death"), default=False):
             bucket["task_death"] = True
 
     trace: list[dict[str, Any]] = []
@@ -179,10 +219,10 @@ def prometheus_rows_to_trace(rows: list[dict[str, Any]], interval_seconds: int =
 
 def validate_prometheus_schema(rows: list[dict[str, Any]]) -> None:
     """Detect metric/key drift in Prometheus JSON before trace conversion."""
-    if not rows:
-        return
     if not isinstance(rows, list):
         raise ValueError(f"Schema drift: expected top-level list of rows, got {type(rows).__name__}.")
+    if not rows:
+        return
 
     # Check first row for mandatory fields
     first = _ensure_dict_row(rows[0], 0)
