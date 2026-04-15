@@ -139,5 +139,6 @@ To see more training logs from Ray RLlib, increase the `"rllib_train_iters"` val
 ## Notes
 
 - The default config uses `rllib_train_iters=1` for fast local smoke tests.
+- Predictor observation wiring is centralized in Layer 2 runtime backend wrapping, so `run`, PPO env training, and policy-reward tuning all consume XGBoost-enriched observations by default.
 - Optuna studies are persisted at `orchestrator_stack/runtime/optuna/orchestrator.db`.
 - PPO checkpoints are written under `orchestrator_stack/runtime/rllib`.

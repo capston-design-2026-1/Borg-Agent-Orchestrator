@@ -8,6 +8,18 @@
 
 ## Latest Session Note (2026-04-15 KST)
 
+- Layer 3 predictor outputs are now attached at Layer 2 backend runtime boundary:
+  - Added `PredictorAttachedBackend` in `orchestrator/layer2/simulator.py`.
+  - `run`, `train-policy`, and policy-reward tuning now all receive live `p_fail_scores` and `demand_projection` on every `reset/step`.
+  - Removed the previous `run_episode`-only per-step predictor mutation so observation enrichment is centralized.
+- Added focused integration coverage in `orchestrator_stack/tests/test_predictor_integration.py` to assert predictor-backed observation enrichment on both reset and step.
+- Validation run:
+  - compile checks passed for touched modules/tests
+  - `.venv` smoke run succeeded for `train-brains-from-config` and `run`
+  - `pytest` remains unavailable in the system interpreter of this worktree
+- Newly observed runtime gap:
+  - RLlib policy training can fail in sandboxed execution when Ray writes under `~/ray_results`; move Ray local output/cache paths under repository runtime directory in a follow-up slice.
+
 - Layer 1 ingestion and trace loading contracts were hardened:
   - Collector now validates all rows (not only the first row), detects mixed flat/grouped shapes, and reports row-indexed schema errors.
   - Trace ingestor now validates required trace keys and node/task minimum schema for both `.json` and `.jsonl`.
