@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import yaml
+
 from codex_autonomy.config import load_config
 from codex_autonomy.manager import AutonomyManager
 from codex_autonomy.models import TaskSpec
@@ -50,6 +52,38 @@ def cmd_status(args: argparse.Namespace) -> None:
         print(f"- {row[0]} | {row[1]} | {row[2]} | rc={row[3]} | dur={row[4]:.2f}s")
 
 
+def cmd_enqueue_bundle(args: argparse.Namespace) -> None:
+    config = load_config(args.config)
+    bundle_path = Path(args.bundle).resolve()
+    raw = yaml.safe_load(bundle_path.read_text(encoding="utf-8")) or {}
+    items = list(raw.get("tasks", []))
+    if not items:
+        raise SystemExit(f"no tasks found in bundle: {bundle_path}")
+
+    created: list[str] = []
+    for item in items:
+        task = TaskSpec(
+            task_id=str(item["task_id"]),
+            title=str(item.get("title", item["task_id"])),
+            prompt=str(item["prompt"]),
+            task_type=str(item.get("task_type", "feature")),
+            priority=int(item.get("priority", 100)),
+            dependencies=list(item.get("dependencies", [])),
+            scope_paths=list(item.get("scope_paths", [])),
+            done_when_commands=list(item.get("done_when_commands", [])),
+            max_sessions=int(item.get("max_sessions", 12)),
+            max_retries=int(item.get("max_retries", 5)),
+            review_prompt=str(item.get("review_prompt", "Review branch changes for correctness and regressions.")),
+            metadata=dict(item.get("metadata", {})),
+        )
+        save_task(config.queue_dir, task)
+        created.append(task.task_id)
+
+    print(f"enqueued bundle: {bundle_path}")
+    for task_id in created:
+        print(f"- {task_id}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Codex autonomy manager")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -73,6 +107,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_status.add_argument("--config", required=True)
     p_status.add_argument("--limit", type=int, default=20)
     p_status.set_defaults(func=cmd_status)
+
+    p_bundle = sub.add_parser("enqueue-bundle")
+    p_bundle.add_argument("--config", required=True)
+    p_bundle.add_argument("--bundle", required=True, help="YAML file containing top-level 'tasks' list")
+    p_bundle.set_defaults(func=cmd_enqueue_bundle)
 
     return parser
 
