@@ -193,6 +193,20 @@ def try_merge_pr(config: ManagerConfig, pr_number: int) -> bool:
     if not config.github.auto_merge:
         return False
 
+    # Auto-merge cannot proceed while the PR is still marked draft.
+    # Promote it first so the dependency chain can continue unattended.
+    _run(
+        [
+            "gh",
+            "pr",
+            "ready",
+            str(pr_number),
+            "--repo",
+            config.github.repo,
+        ],
+        config.repo_root,
+    )
+
     method_flag = "--squash"
     if config.github.merge_method == "rebase":
         method_flag = "--rebase"
