@@ -34,6 +34,10 @@ If you hit `rc=1` loop, execute:
 
 1. `23) Recover from rc=1 loop (missing modules/worktree runtime mismatch)`
 
+If task stays `running` but streams/logs are silent for several minutes, execute:
+
+1. `26) Recover from stuck running state (no new events/sessions for several minutes)`
+
 ## Rule for Future Replies
 
 When asked what to run:

@@ -292,3 +292,22 @@ echo "stderr: $LATEST_STDERR"
 echo "stdout: $LATEST_STDOUT"
 tail -f "$LATEST_STDERR" "$LATEST_STDOUT"
 ```
+
+## 26) Recover from stuck running state (no new events/sessions for several minutes)
+
+Use this when `status` says `running` but:
+- `stream_events.py` prints no new rows for several minutes, and
+- `stream_sessions.py` prints no new rows, and
+- `tail -f` on latest logs is not moving.
+
+1) Stop manager process.
+
+2) Kill stale `codex exec` processes for this task prompt file path.
+
+3) Remove stale task worktree path for `full-orchestrator-e2e-finish`.
+
+4) Re-enqueue canonical task YAML from template.
+
+5) Start manager again.
+
+6) Re-open monitors (`13.1`, `13.2`, and `25`) to verify fresh progress.
