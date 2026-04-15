@@ -101,6 +101,9 @@ Stream in-session progress heartbeats:
   --db codex_autonomy/runtime/state.db
 ```
 
+For a single copy-safe numbered tracking/recovery checklist, use:
+- `codex_autonomy/TRACKING_STEPS.md`
+
 ## Session Rollover Rules
 
 - Each task has `max_sessions`
