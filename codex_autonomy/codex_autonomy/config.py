@@ -24,6 +24,14 @@ class SessionConfig:
 
 
 @dataclass(slots=True)
+class RecoveryConfig:
+    enabled: bool = True
+    # If 0, manager derives timeout from session.timeout_seconds + 120.
+    stuck_task_seconds: int = 0
+    kill_orphan_task_processes: bool = True
+
+
+@dataclass(slots=True)
 class GitHubFlowConfig:
     enabled: bool = False
     repo: str = ""
@@ -53,6 +61,7 @@ class ManagerConfig:
     auto_push: bool = True
     enable_health_loop: bool = True
     session: SessionConfig = field(default_factory=SessionConfig)
+    recovery: RecoveryConfig = field(default_factory=RecoveryConfig)
     health: HealthCheckConfig = field(default_factory=HealthCheckConfig)
     github: GitHubFlowConfig = field(default_factory=GitHubFlowConfig)
 
@@ -74,6 +83,7 @@ def load_config(path: str | Path) -> ManagerConfig:
     state_db_path = _path(repo_root, raw.get("state_db_path", "codex_autonomy/runtime/state.db"))
 
     session_raw = raw.get("session", {})
+    recovery_raw = raw.get("recovery", {})
     health_raw = raw.get("health", {})
     github_raw = raw.get("github", {})
 
@@ -93,6 +103,11 @@ def load_config(path: str | Path) -> ManagerConfig:
             timeout_seconds=int(session_raw.get("timeout_seconds", 1800)),
             max_session_minutes=int(session_raw.get("max_session_minutes", 25)),
             rate_limit_cooldown_seconds=int(session_raw.get("rate_limit_cooldown_seconds", 1800)),
+        ),
+        recovery=RecoveryConfig(
+            enabled=bool(recovery_raw.get("enabled", True)),
+            stuck_task_seconds=int(recovery_raw.get("stuck_task_seconds", 0)),
+            kill_orphan_task_processes=bool(recovery_raw.get("kill_orphan_task_processes", True)),
         ),
         health=HealthCheckConfig(
             lint_command=str(health_raw.get("lint_command", "")),
