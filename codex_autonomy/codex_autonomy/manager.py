@@ -4,7 +4,9 @@ import time
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import replace
 from datetime import datetime
+from pathlib import Path
 import subprocess
+import yaml
 
 from codex_autonomy.config import ManagerConfig
 from codex_autonomy.github_flow import try_merge_pr
@@ -47,11 +49,24 @@ class AutonomyManager:
                 if dep_task.status != TaskStatus.COMPLETED:
                     return False
                 continue
-            # Completed tasks are archived and removed from queue; treat archived dep as satisfied.
-            archived = list(self.config.archive_dir.glob(f"*_{dep}.yaml"))
+            # Completed tasks are archived and removed from queue.
+            # Treat dependency as satisfied only when latest archived dep has status=completed.
+            archived = sorted(self.config.archive_dir.glob(f"*_{dep}.yaml"))
             if not archived:
                 return False
+            latest = archived[-1]
+            if not self._archived_task_completed(latest):
+                return False
         return True
+
+    @staticmethod
+    def _archived_task_completed(path: Path) -> bool:
+        try:
+            raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except OSError:
+            return False
+        status = str(raw.get("status", "")).strip().lower()
+        return status == TaskStatus.COMPLETED.value
 
     def _handle_finished(self) -> None:
         done_ids: list[str] = []
