@@ -13,7 +13,7 @@ from codex_autonomy.config import ManagerConfig
 from codex_autonomy.github_flow import ensure_issue, ensure_pr, try_merge_pr
 from codex_autonomy.models import TaskSpec, TaskStatus, WorkerResult
 from codex_autonomy.session_adapter import SessionAdapter
-from codex_autonomy.state_db import log_event, log_session
+from codex_autonomy.state_db import log_event, log_session, log_session_progress
 from codex_autonomy.task_store import save_task
 from codex_autonomy.worktree import cleanup_worktree, ensure_branch, ensure_worktree
 
@@ -176,8 +176,39 @@ def run_task(config: ManagerConfig, task: TaskSpec) -> WorkerResult:
             stderr_file = logs_dir / f"session_{idx + 1:03d}.stderr.log"
             followups_file.unlink(missing_ok=True)
             prompt_file.write_text(prompt_text, encoding="utf-8")
+            def _on_progress(snapshot: dict[str, Any]) -> None:
+                tail = str(snapshot.get("stderr_tail") or snapshot.get("stdout_tail") or "").strip()
+                excerpt = tail[-int(config.session.progress_excerpt_chars) :] if tail else "(heartbeat)"
+                ts = datetime.utcnow().isoformat()
+                log_session_progress(
+                    config.state_db_path,
+                    ts=ts,
+                    task_id=task.task_id,
+                    session_index=idx + 1,
+                    elapsed_seconds=float(snapshot.get("elapsed_seconds", 0.0)),
+                    stdout_chars=int(snapshot.get("stdout_chars", 0)),
+                    stderr_chars=int(snapshot.get("stderr_chars", 0)),
+                    stdout_lines=int(snapshot.get("stdout_lines", 0)),
+                    stderr_lines=int(snapshot.get("stderr_lines", 0)),
+                    excerpt=excerpt,
+                )
+                log_event(
+                    config.state_db_path,
+                    ts=ts,
+                    task_id=task.task_id,
+                    event_type="session_heartbeat",
+                    message=(
+                        f"s{idx + 1}: elapsed={int(float(snapshot.get('elapsed_seconds', 0.0)))}s "
+                        f"out={int(snapshot.get('stdout_chars', 0))} err={int(snapshot.get('stderr_chars', 0))}"
+                    ),
+                )
 
-            result = adapter.run(workdir=worktree_path, prompt_file=prompt_file)
+            result = adapter.run(
+                workdir=worktree_path,
+                prompt_file=prompt_file,
+                heartbeat_seconds=max(1, int(config.session.heartbeat_seconds)),
+                progress_callback=_on_progress,
+            )
             stdout_file.write_text(result.stdout, encoding="utf-8")
             stderr_file.write_text(result.stderr, encoding="utf-8")
 
@@ -193,6 +224,14 @@ def run_task(config: ManagerConfig, task: TaskSpec) -> WorkerResult:
             )
 
             if result.return_code != 0:
+                if result.timed_out:
+                    log_event(
+                        config.state_db_path,
+                        ts=now,
+                        task_id=task.task_id,
+                        event_type="session_timeout",
+                        message=f"session {idx + 1} timed out after {int(config.session.timeout_seconds)}s",
+                    )
                 if _is_command_template_error(result.stdout, result.stderr):
                     task = replace(task, status=TaskStatus.FAILED)
                     save_task(config.queue_dir, task)
