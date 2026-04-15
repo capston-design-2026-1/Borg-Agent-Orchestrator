@@ -34,6 +34,13 @@ class RecoveryConfig:
 
 
 @dataclass(slots=True)
+class GuardianConfig:
+    enabled: bool = True
+    poll_interval_seconds: int = 15
+    restart_backoff_seconds: int = 3
+
+
+@dataclass(slots=True)
 class GitHubFlowConfig:
     enabled: bool = False
     repo: str = ""
@@ -65,6 +72,7 @@ class ManagerConfig:
     enable_health_loop: bool = True
     session: SessionConfig = field(default_factory=SessionConfig)
     recovery: RecoveryConfig = field(default_factory=RecoveryConfig)
+    guardian: GuardianConfig = field(default_factory=GuardianConfig)
     health: HealthCheckConfig = field(default_factory=HealthCheckConfig)
     github: GitHubFlowConfig = field(default_factory=GitHubFlowConfig)
 
@@ -87,6 +95,7 @@ def load_config(path: str | Path) -> ManagerConfig:
 
     session_raw = raw.get("session", {})
     recovery_raw = raw.get("recovery", {})
+    guardian_raw = raw.get("guardian", {})
     health_raw = raw.get("health", {})
     github_raw = raw.get("github", {})
 
@@ -113,6 +122,11 @@ def load_config(path: str | Path) -> ManagerConfig:
             enabled=bool(recovery_raw.get("enabled", True)),
             stuck_task_seconds=int(recovery_raw.get("stuck_task_seconds", 0)),
             kill_orphan_task_processes=bool(recovery_raw.get("kill_orphan_task_processes", True)),
+        ),
+        guardian=GuardianConfig(
+            enabled=bool(guardian_raw.get("enabled", True)),
+            poll_interval_seconds=int(guardian_raw.get("poll_interval_seconds", 15)),
+            restart_backoff_seconds=int(guardian_raw.get("restart_backoff_seconds", 3)),
         ),
         health=HealthCheckConfig(
             lint_command=str(health_raw.get("lint_command", "")),

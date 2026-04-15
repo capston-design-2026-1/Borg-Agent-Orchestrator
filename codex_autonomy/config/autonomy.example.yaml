@@ -24,6 +24,11 @@ recovery:
   stuck_task_seconds: 0
   kill_orphan_task_processes: true
 
+guardian:
+  enabled: true
+  poll_interval_seconds: 15
+  restart_backoff_seconds: 3
+
 health:
   lint_command: ""
   test_command: ""
