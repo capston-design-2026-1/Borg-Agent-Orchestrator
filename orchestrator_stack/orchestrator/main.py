@@ -8,7 +8,7 @@ from typing import Any
 from orchestrator.config import OrchestratorConfig
 from orchestrator.layer1.collector import build_trace_file
 from orchestrator.layer1.trace_ingestor import load_trace_rows
-from orchestrator.layer2.simulator import AIOpsLabBackend, TraceDrivenTwinBackend
+from orchestrator.layer2.simulator import AIOpsLabBackend, PredictorAttachedBackend, TraceDrivenTwinBackend
 from orchestrator.layer3.predictors import ResourceDemandForecast, SafetyRiskForecast, train_models_from_trace
 from orchestrator.layer4.agents import AgentARiskMitigator, AgentBEfficiencyOptimizer, AgentCGatekeeper
 from orchestrator.layer4.ppo_trainer import evaluate_heuristic_policy, train_multiagent_ppo
@@ -35,6 +35,12 @@ def _build_backend(rows: list[dict], config: OrchestratorConfig):
     return TraceDrivenTwinBackend(rows)
 
 
+def _attach_predictors(backend, config: OrchestratorConfig) -> PredictorAttachedBackend:
+    risk_model = SafetyRiskForecast.load(config.risk_model_path)
+    demand_model = ResourceDemandForecast.load(config.demand_model_path)
+    return PredictorAttachedBackend(backend=backend, risk_model=risk_model, demand_model=demand_model)
+
+
 def ensure_trace_exists(config: OrchestratorConfig) -> Path:
     if config.trace_path.exists():
         return config.trace_path
@@ -58,10 +64,7 @@ from datetime import datetime, timedelta, timezone
 def run_episode(config: OrchestratorConfig, verbose: bool = True) -> RunSummary:
     trace_path = ensure_trace_exists(config)
     rows = load_trace_rows(trace_path)
-    backend = _build_backend(rows, config)
-
-    risk_model = SafetyRiskForecast.load(config.risk_model_path)
-    demand_model = ResourceDemandForecast.load(config.demand_model_path)
+    backend = _attach_predictors(_build_backend(rows, config), config)
 
     agent_a = AgentARiskMitigator()
     agent_b = AgentBEfficiencyOptimizer()
@@ -82,9 +85,6 @@ def run_episode(config: OrchestratorConfig, verbose: bool = True) -> RunSummary:
         print(f"\n--- Episode Start: {total_steps} steps ---")
 
     for step in range(total_steps):
-        obs.p_fail_scores = risk_model.predict(obs)
-        obs.demand_projection = demand_model.predict(obs)
-
         proposals = [agent_a.act(obs), agent_b.act(obs), agent_c.act(obs)]
         validated_action = resolve(proposals)
 
@@ -124,7 +124,7 @@ def run_episode(config: OrchestratorConfig, verbose: bool = True) -> RunSummary:
 
 def run_policy_training(config: OrchestratorConfig, output_dir: str | Path) -> dict[str, Any]:
     rows = load_trace_rows(ensure_trace_exists(config))
-    backend = _build_backend(rows, config)
+    backend = _attach_predictors(_build_backend(rows, config), config)
     return train_multiagent_ppo(
         backend,
         alpha=config.alpha,
@@ -167,9 +167,15 @@ def tune_reward_layer(config: OrchestratorConfig, *, trials: int) -> dict[str, A
 
 def tune_policy_and_reward_layer(config: OrchestratorConfig, *, trials: int) -> dict[str, Any]:
     rows = load_trace_rows(ensure_trace_exists(config))
+    risk_model = SafetyRiskForecast.load(config.risk_model_path)
+    demand_model = ResourceDemandForecast.load(config.demand_model_path)
 
     def objective(alpha: float, beta: float, gamma: float, learning_rate: float) -> float:
-        backend = _build_backend(rows, config)
+        backend = PredictorAttachedBackend(
+            backend=_build_backend(rows, config),
+            risk_model=risk_model,
+            demand_model=demand_model,
+        )
         eval_summary = evaluate_heuristic_policy(
             backend,
             alpha=alpha,
