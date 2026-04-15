@@ -8,7 +8,7 @@ import yaml
 from codex_autonomy.config import load_config
 from codex_autonomy.manager import AutonomyManager
 from codex_autonomy.models import TaskSpec
-from codex_autonomy.status import queue_snapshot, recent_events, recent_sessions
+from codex_autonomy.status import queue_snapshot, recent_events, recent_progress, recent_sessions
 from codex_autonomy.task_store import save_task
 
 
@@ -38,6 +38,7 @@ def cmd_status(args: argparse.Namespace) -> None:
     queue = queue_snapshot(config.queue_dir)
     events = recent_events(config.state_db_path, limit=args.limit)
     sessions = recent_sessions(config.state_db_path, limit=args.limit)
+    progress = recent_progress(config.state_db_path, limit=args.limit)
 
     print("Queue Snapshot:")
     for row in queue:
@@ -50,6 +51,13 @@ def cmd_status(args: argparse.Namespace) -> None:
     print("\nRecent Sessions:")
     for row in sessions:
         print(f"- {row[0]} | {row[1]} | {row[2]} | rc={row[3]} | dur={row[4]:.2f}s")
+
+    print("\nRecent Session Progress:")
+    for row in progress:
+        print(
+            f"- {row[0]} | {row[1]} | s{row[2]} | elapsed={int(row[3])}s | "
+            f"out={row[4]} err={row[5]} | {row[6]}"
+        )
 
 
 def cmd_enqueue_bundle(args: argparse.Namespace) -> None:

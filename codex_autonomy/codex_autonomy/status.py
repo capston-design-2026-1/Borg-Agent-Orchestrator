@@ -30,6 +30,26 @@ def recent_sessions(db_path: Path, limit: int = 20) -> list[tuple]:
     return rows
 
 
+def recent_progress(db_path: Path, limit: int = 20) -> list[tuple]:
+    if not db_path.exists():
+        return []
+    conn = sqlite3.connect(str(db_path))
+    try:
+        rows = conn.execute(
+            """
+            SELECT ts, task_id, session_index, elapsed_seconds, stdout_chars, stderr_chars, excerpt
+            FROM session_progress
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        rows = []
+    conn.close()
+    return rows
+
+
 def queue_snapshot(queue_dir: Path) -> list[tuple[str, str, int | None, int | None]]:
     tasks = load_tasks(queue_dir)
     tasks.sort(key=lambda t: (t.priority, t.created_at))
