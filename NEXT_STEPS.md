@@ -21,7 +21,7 @@ Read Agents.md, NEXT_STEPS.md, MAS_ARCHITECTURE.md, and README.md, inspect the l
 - Isolated full orchestrator track: `orchestrator_stack/` (new, dedicated)
 - Orchestrator Mermaid architecture is now tracked at `orchestrator_stack/ARCHITECTURE.md`
 - Orchestrator CLI now supports full flow: `build-trace -> train-brains -> run -> full-process`
-- Orchestrator full-process now runs with real Ray PPO + Optuna in repo `.venv` (smoke profile)
+- Orchestrator full-process command is green in repo `.venv` (smoke profile); in restricted macOS sandbox hosts RLlib currently returns `ppo.status=degraded` with a `sysctl` permission error while Layers 1/2/3/5/6 still complete
 - Codex autonomy runner is now available under `codex_autonomy/` for continuous multi-session execution
 - Default working clusters: `b`, `c`, `d`, `e`, `f`, `g`
 - Excluded by default: `a`, `h`
