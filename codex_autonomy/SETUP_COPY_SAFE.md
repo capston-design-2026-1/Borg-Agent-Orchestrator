@@ -126,6 +126,13 @@ cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 ./.venv/bin/python codex_autonomy/scripts/stream_sessions.py --db codex_autonomy/runtime/state.db --task-id full-orchestrator-e2e-finish
 ```
 
+## 13.3) Live append-only in-session progress stream (heartbeat + excerpt)
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+./.venv/bin/python codex_autonomy/scripts/stream_progress.py --db codex_autonomy/runtime/state.db
+```
+
 ## 14) Track GitHub issue/PR flow
 
 ```bash
@@ -245,7 +252,8 @@ Run these sections in order:
 13. `14) Track GitHub issue/PR flow`
 14. If you want new events appended at bottom, run `13.1) Live append-only event stream (new events at bottom)`
 15. If you want new session rc lines appended at bottom, run `13.2) Live append-only session stream (new rc lines at bottom)`
-16. If you see rapid `rc=2`, run `20) Recover from rc=2 loop (--prompt-file error)`
+16. If you want live within-session heartbeat rows, run `13.3) Live append-only in-session progress stream (heartbeat + excerpt)`
+17. If you see rapid `rc=2`, run `20) Recover from rc=2 loop (--prompt-file error)`
 
 ## 23) Recover from rc=1 loop (missing modules/worktree runtime mismatch)
 

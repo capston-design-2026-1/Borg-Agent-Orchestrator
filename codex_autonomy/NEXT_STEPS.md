@@ -8,3 +8,4 @@
 6. Enable real health checks (`lint_command`, `test_command`, `upgrade_scan_command`).
 7. Add webhook/cron triggers to auto-enqueue upgrade tasks daily.
 8. Add a richer dashboard view (grouped task states + PR/issue links) from `state.db`, including `task_watchdog`, `task_recovered`, and `followup_enqueued` events.
+9. Expose `session_progress` heartbeat rows in dashboard so active work is visible before session completion.

@@ -23,6 +23,7 @@ Execute these numbered sections from `SETUP_COPY_SAFE.md` in this exact order:
 12. `14) Track GitHub issue/PR flow`
 13. Optional monitor: `13.1) Live append-only event stream (new events at bottom)`
 14. Optional monitor: `13.2) Live append-only session stream (new rc lines at bottom)`
+15. Optional monitor: `13.3) Live append-only in-session progress stream (heartbeat + excerpt)`
 
 ## Recovery Flows
 

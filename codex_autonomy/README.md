@@ -11,6 +11,7 @@ Local supervisor to run Codex sessions continuously with task queueing, session 
 - Session rollover per task when one session budget is exhausted
 - Watchdog auto-recovery for stuck `running` tasks and orphan `codex exec` processes
 - Persistent event/session logs in SQLite (`codex_autonomy/runtime/state.db`)
+- Live in-session heartbeat/progress rows in SQLite (`session_progress` table)
 - Auto-generated healing/upgrade tasks from lint/test/upgrade scanners
 - Automatic archive of completed/failed task specs
 - GitHub issue/PR automation with optional auto-merge (`gh` CLI)
@@ -78,6 +79,13 @@ Inspect runtime status:
 ./.venv/bin/python codex_autonomy/scripts/run_daemon.py status \
   --config codex_autonomy/config/autonomy.local.yaml \
   --limit 30
+```
+
+Stream in-session progress heartbeats:
+
+```bash
+./.venv/bin/python codex_autonomy/scripts/stream_progress.py \
+  --db codex_autonomy/runtime/state.db
 ```
 
 ## Session Rollover Rules
