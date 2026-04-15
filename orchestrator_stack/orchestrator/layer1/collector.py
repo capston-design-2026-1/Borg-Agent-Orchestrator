@@ -30,13 +30,77 @@ def _normalize_node(raw: dict[str, Any]) -> dict[str, Any]:
 
 
 def _normalize_task(raw: dict[str, Any], fallback_node_id: str) -> dict[str, Any]:
+    queue_priority = raw.get("queue_priority", 1)
+    try:
+        parsed_queue_priority = int(queue_priority)
+    except (TypeError, ValueError):
+        parsed_queue_priority = 1
     return {
         "task_id": str(raw.get("task_id", "unknown-task")),
         "node_id": str(raw.get("node_id", fallback_node_id)),
         "urgency": min(1.0, max(0.0, _metric_value(raw.get("urgency", 0.5), 0.5))),
-        "queue_priority": int(raw.get("queue_priority", 1)),
+        "queue_priority": parsed_queue_priority,
         "alive": bool(raw.get("alive", True)),
     }
+
+
+def _parse_int(value: Any, *, field: str, row_index: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Schema drift: row[{row_index}] field '{field}' must be integer-like, got {value!r}.") from exc
+
+
+def _parse_float(value: Any, *, field: str, row_index: int) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Schema drift: row[{row_index}] field '{field}' must be numeric, got {value!r}.") from exc
+
+
+def _ensure_dict_row(row: Any, row_index: int) -> dict[str, Any]:
+    if not isinstance(row, dict):
+        raise ValueError(f"Schema drift: row[{row_index}] must be an object, got {type(row).__name__}.")
+    return row
+
+
+def _validate_grouped_row(row: dict[str, Any], row_index: int) -> None:
+    if "timestamp" not in row:
+        raise ValueError(f"Schema drift: grouped row[{row_index}] missing 'timestamp' key.")
+    _parse_int(row["timestamp"], field="timestamp", row_index=row_index)
+
+    nodes = row.get("nodes", [])
+    if not isinstance(nodes, list):
+        raise ValueError(f"Schema drift: grouped row[{row_index}] field 'nodes' must be a list.")
+    for node_index, node in enumerate(nodes):
+        if not isinstance(node, dict):
+            raise ValueError(
+                f"Schema drift: grouped row[{row_index}] node[{node_index}] must be an object, got {type(node).__name__}."
+            )
+        if "node_id" not in node:
+            raise ValueError(f"Schema drift: grouped row[{row_index}] node[{node_index}] missing 'node_id' key.")
+
+    tasks = row.get("tasks", [])
+    if not isinstance(tasks, list):
+        raise ValueError(f"Schema drift: grouped row[{row_index}] field 'tasks' must be a list.")
+    for task_index, task in enumerate(tasks):
+        if not isinstance(task, dict):
+            raise ValueError(
+                f"Schema drift: grouped row[{row_index}] task[{task_index}] must be an object, got {type(task).__name__}."
+            )
+    if "queue_length" in row:
+        _parse_int(row["queue_length"], field="queue_length", row_index=row_index)
+    if "energy_price" in row:
+        _parse_float(row["energy_price"], field="energy_price", row_index=row_index)
+
+
+def _validate_flat_row(row: dict[str, Any], row_index: int) -> None:
+    for key in ("timestamp", "node_id"):
+        if key not in row:
+            raise ValueError(f"Schema drift: flat row[{row_index}] missing mandatory key '{key}'.")
+    _parse_int(row["timestamp"], field="timestamp", row_index=row_index)
+    if not any(k in row for k in METRIC_KEYS):
+        raise ValueError(f"Schema drift: flat row[{row_index}] missing metric keys {METRIC_KEYS}.")
 
 
 def prometheus_rows_to_trace(rows: list[dict[str, Any]], interval_seconds: int = 60) -> list[dict[str, Any]]:
@@ -117,34 +181,41 @@ def validate_prometheus_schema(rows: list[dict[str, Any]]) -> None:
     """Detect metric/key drift in Prometheus JSON before trace conversion."""
     if not rows:
         return
+    if not isinstance(rows, list):
+        raise ValueError(f"Schema drift: expected top-level list of rows, got {type(rows).__name__}.")
 
     # Check first row for mandatory fields
-    first = rows[0]
+    first = _ensure_dict_row(rows[0], 0)
     is_grouped = "nodes" in first
-    
-    if is_grouped:
-        if "timestamp" not in first:
-            raise ValueError("Schema drift: Grouped row missing 'timestamp' key.")
-        nodes = first.get("nodes", [])
-        if not isinstance(nodes, list):
-            raise ValueError(f"Schema drift: 'nodes' must be a list, got {type(nodes)}")
-        if nodes and "node_id" not in nodes[0]:
-            raise ValueError("Schema drift: Node entry missing 'node_id' key.")
-    else:
-        mandatory = ("timestamp", "node_id")
-        for key in mandatory:
-            if key not in first:
-                raise ValueError(f"Schema drift: Flat row missing mandatory key '{key}'.")
-        
-        # Check for at least one metric key
-        if not any(k in first for k in METRIC_KEYS):
-            raise ValueError(f"Schema drift: No metric keys {METRIC_KEYS} found in flat row.")
+
+    for row_index, raw_row in enumerate(rows):
+        row = _ensure_dict_row(raw_row, row_index)
+        row_is_grouped = "nodes" in row
+        if row_is_grouped != is_grouped:
+            expected = "grouped" if is_grouped else "flat"
+            got = "grouped" if row_is_grouped else "flat"
+            raise ValueError(
+                f"Schema drift: mixed row shapes detected at row[{row_index}] "
+                f"(expected {expected}, got {got})."
+            )
+        if row_is_grouped:
+            _validate_grouped_row(row, row_index)
+        else:
+            _validate_flat_row(row, row_index)
 
 
 def build_trace_file(metrics_path: str | Path, trace_path: str | Path, interval_seconds: int = 60) -> Path:
-    raw = json.loads(Path(metrics_path).read_text(encoding="utf-8"))
+    source = Path(metrics_path)
+    try:
+        raw = json.loads(source.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Failed to parse metrics JSON at {source}: {exc}") from exc
+    if not isinstance(raw, list):
+        raise ValueError(f"Schema drift: metrics payload at {source} must be a list, got {type(raw).__name__}.")
     validate_prometheus_schema(raw)
     trace = prometheus_rows_to_trace(raw, interval_seconds=interval_seconds)
+    if not trace:
+        raise ValueError(f"Trace build produced zero rows from {source}.")
     out = Path(trace_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(trace, indent=2), encoding="utf-8")

@@ -25,6 +25,7 @@ Read Agents.md, NEXT_STEPS.md, MAS_ARCHITECTURE.md, and README.md, inspect the l
 - Codex autonomy runner is now available under `codex_autonomy/` for continuous multi-session execution
 - Default working clusters: `b`, `c`, `d`, `e`, `f`, `g`
 - Excluded by default: `a`, `h`
+- Orchestrator Layer 1 ingestion path now enforces stricter row-by-row schema validation for metrics -> trace build and trace `.json/.jsonl` load contracts (implemented 2026-04-15 KST in `orchestrator_stack/`).
 
 ## Pipeline Status
 
