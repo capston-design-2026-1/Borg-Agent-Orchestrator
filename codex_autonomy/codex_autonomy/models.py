@@ -44,6 +44,7 @@ class SessionResult:
     stdout: str
     stderr: str
     duration_seconds: float
+    timed_out: bool = False
 
 
 @dataclass(slots=True)

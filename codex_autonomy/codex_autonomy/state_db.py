@@ -32,6 +32,22 @@ def init_db(db_path: Path) -> None:
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS session_progress (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ts TEXT NOT NULL,
+            task_id TEXT NOT NULL,
+            session_index INTEGER NOT NULL,
+            elapsed_seconds REAL NOT NULL,
+            stdout_chars INTEGER NOT NULL,
+            stderr_chars INTEGER NOT NULL,
+            stdout_lines INTEGER NOT NULL,
+            stderr_lines INTEGER NOT NULL,
+            excerpt TEXT NOT NULL
+        )
+        """
+    )
     conn.commit()
     conn.close()
 
@@ -64,6 +80,44 @@ def log_session(
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (ts, task_id, branch_name, return_code, duration_seconds, stdout_path, stderr_path),
+    )
+    conn.commit()
+    conn.close()
+
+
+def log_session_progress(
+    db_path: Path,
+    *,
+    ts: str,
+    task_id: str,
+    session_index: int,
+    elapsed_seconds: float,
+    stdout_chars: int,
+    stderr_chars: int,
+    stdout_lines: int,
+    stderr_lines: int,
+    excerpt: str,
+) -> None:
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        """
+        INSERT INTO session_progress(
+            ts, task_id, session_index, elapsed_seconds,
+            stdout_chars, stderr_chars, stdout_lines, stderr_lines, excerpt
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            ts,
+            task_id,
+            session_index,
+            elapsed_seconds,
+            stdout_chars,
+            stderr_chars,
+            stdout_lines,
+            stderr_lines,
+            excerpt,
+        ),
     )
     conn.commit()
     conn.close()
