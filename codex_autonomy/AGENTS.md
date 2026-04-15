@@ -3,6 +3,7 @@
 ## Execution Mode
 
 - Manager must keep running until externally stopped.
+- Guardian should be the default long-running entrypoint; it must restart manager automatically if manager exits.
 - Do not block on a single task if other ready tasks exist.
 - Prefer parallel execution for independent tasks.
 

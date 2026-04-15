@@ -176,6 +176,29 @@ cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
   --bundle codex_autonomy/tasks/templates/orchestrator_finish_bundle.yaml
 ```
 
+## 28) Start guardian loop (recommended instead of direct manager run)
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+./.venv/bin/python codex_autonomy/scripts/run_guardian.py --config codex_autonomy/config/autonomy.local.yaml
+```
+
+## 29) Install always-on macOS launchd guardian service
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+./.venv/bin/python codex_autonomy/scripts/install_guardian_launchd.py --config codex_autonomy/config/autonomy.local.yaml
+```
+
+## 30) Verify guardian and manager runtime state
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+./.venv/bin/python codex_autonomy/scripts/run_daemon.py status --config codex_autonomy/config/autonomy.local.yaml --limit 30
+cat codex_autonomy/runtime/guardian.pid
+cat codex_autonomy/runtime/manager.pid
+```
+
 ## 18) Cleanup duplicate GitHub issues for this task (keep #19)
 
 ```bash
@@ -246,14 +269,15 @@ Run these sections in order:
 7. `7) Verify GitHub CLI auth`
 8. `15) Cleanup duplicate task files with same task_id`
 9. `27) Start decomposed orchestrator bundle (recommended for many small PRs)`
-10. If using legacy single-task flow instead, run `17) Start full orchestrator-finish task` and `18) Cleanup duplicate GitHub issues for this task`
-11. `8) Start autonomy manager`
-12. `12) Track processes continuously (copy-safe)`
-13. `14) Track GitHub issue/PR flow`
-14. If you want new events appended at bottom, run `13.1) Live append-only event stream (new events at bottom)`
-15. If you want new session rc lines appended at bottom, run `13.2) Live append-only session stream (new rc lines at bottom)`
-16. If you want live within-session heartbeat rows, run `13.3) Live append-only in-session progress stream (heartbeat + excerpt)`
-17. If you see rapid `rc=2`, run `20) Recover from rc=2 loop (--prompt-file error)`
+10. `29) Install always-on macOS launchd guardian service`
+11. `30) Verify guardian and manager runtime state`
+12. If using legacy single-task flow instead, run `17) Start full orchestrator-finish task` and `18) Cleanup duplicate GitHub issues for this task`
+13. `12) Track processes continuously (copy-safe)`
+14. `14) Track GitHub issue/PR flow`
+15. If you want new events appended at bottom, run `13.1) Live append-only event stream (new events at bottom)`
+16. If you want new session rc lines appended at bottom, run `13.2) Live append-only session stream (new rc lines at bottom)`
+17. If you want live within-session heartbeat rows, run `13.3) Live append-only in-session progress stream (heartbeat + excerpt)`
+18. If you see rapid `rc=2`, run `20) Recover from rc=2 loop (--prompt-file error)`
 
 ## 23) Recover from rc=1 loop (missing modules/worktree runtime mismatch)
 

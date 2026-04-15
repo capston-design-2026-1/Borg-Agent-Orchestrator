@@ -17,13 +17,14 @@ Execute these numbered sections from `SETUP_COPY_SAFE.md` in this exact order:
 6. `7) Verify GitHub CLI auth`
 7. `15) Cleanup duplicate task files with same task_id`
 8. `27) Start decomposed orchestrator bundle (recommended for many small PRs)`
-9. Legacy single-task option only: `17)` then `18)`
-10. `8) Start autonomy manager`
-11. `12) Track processes continuously (copy-safe)`
-12. `14) Track GitHub issue/PR flow`
-13. Optional monitor: `13.1) Live append-only event stream (new events at bottom)`
-14. Optional monitor: `13.2) Live append-only session stream (new rc lines at bottom)`
-15. Optional monitor: `13.3) Live append-only in-session progress stream (heartbeat + excerpt)`
+9. `29) Install always-on macOS launchd guardian service`
+10. `30) Verify guardian and manager runtime state`
+11. Legacy single-task option only: `17)` then `18)`
+12. `12) Track processes continuously (copy-safe)`
+13. `14) Track GitHub issue/PR flow`
+14. Optional monitor: `13.1) Live append-only event stream (new events at bottom)`
+15. Optional monitor: `13.2) Live append-only session stream (new rc lines at bottom)`
+16. Optional monitor: `13.3) Live append-only in-session progress stream (heartbeat + excerpt)`
 
 ## Recovery Flows
 

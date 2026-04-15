@@ -5,6 +5,7 @@ Local supervisor to run Codex sessions continuously with task queueing, session 
 ## What It Provides
 
 - Endless manager loop (`run` command)
+- Always-on guardian loop that keeps manager alive (`run_guardian.py`)
 - Task queue in `codex_autonomy/tasks/queue/*.yaml`
 - Task templates in `codex_autonomy/tasks/templates/*.yaml`
 - Parallel independent execution with `git worktree` branches (`auto/<task-id>`)
@@ -52,6 +53,18 @@ gh auth status
 
 ```bash
 ./.venv/bin/python codex_autonomy/scripts/run_daemon.py run --config codex_autonomy/config/autonomy.local.yaml
+```
+
+Recommended for persistent operation (auto-restart manager):
+
+```bash
+./.venv/bin/python codex_autonomy/scripts/run_guardian.py --config codex_autonomy/config/autonomy.local.yaml
+```
+
+Install macOS launchd service for always-on guardian:
+
+```bash
+./.venv/bin/python codex_autonomy/scripts/install_guardian_launchd.py --config codex_autonomy/config/autonomy.local.yaml
 ```
 
 Enqueue task manually:
