@@ -87,6 +87,12 @@ Inspect runtime status:
 - If retries exceed `max_retries`, task is marked failed and archived
 - If Codex returns quota/rate-limit errors, task is auto re-queued with a cooldown (`metadata.not_before_epoch`) and resumes automatically after wait time
 
+## Dynamic Task/PR Decomposition
+
+- Worker prompts instruct Codex to generate follow-up task specs when it discovers new feature slices or bugs.
+- Follow-up specs are read from runtime log YAML and enqueued automatically.
+- Each generated follow-up task gets its own branch/issue/PR lifecycle, enabling incremental small PRs over time.
+
 ## Self-Healing Recovery Rules
 
 - If manager restarts and finds a task marked `running` without an in-memory worker, it auto-requeues the task.

@@ -14,6 +14,7 @@
 - Keep task prompts concrete and outcome-based.
 - Prefer bundle-driven decomposition for large initiatives so each minor feature/bugfix is its own task/branch/PR.
 - Avoid single mega-task prompts for multi-layer architecture work when a dependency chain can split the work.
+- During task execution, Codex should emit follow-up tasks for newly discovered feature slices/bugs so issue+PR splitting continues dynamically.
 
 ## Session Continuity
 
