@@ -12,6 +12,8 @@
 - One `task_id` must map to exactly one queue YAML file (canonical filename `<task_id>.yaml`).
 - Use dependencies to serialize tasks when needed.
 - Keep task prompts concrete and outcome-based.
+- Prefer bundle-driven decomposition for large initiatives so each minor feature/bugfix is its own task/branch/PR.
+- Avoid single mega-task prompts for multi-layer architecture work when a dependency chain can split the work.
 
 ## Session Continuity
 
