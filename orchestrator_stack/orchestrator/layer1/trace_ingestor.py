@@ -8,6 +8,8 @@ from typing import Any
 REQUIRED_TRACE_ROW_KEYS = ("timestamp", "nodes", "tasks")
 REQUIRED_NODE_KEYS = ("node_id", "cpu_util", "mem_util")
 REQUIRED_TASK_KEYS = ("task_id", "node_id")
+TRUE_LITERALS = {"1", "true", "t", "yes", "y", "on"}
+FALSE_LITERALS = {"0", "false", "f", "no", "n", "off"}
 
 
 def _int_like(value: Any, *, field: str, row_index: int) -> int:
@@ -17,6 +19,13 @@ def _int_like(value: Any, *, field: str, row_index: int) -> int:
         raise ValueError(f"Trace contract error: row[{row_index}] field '{field}' must be integer-like.") from exc
 
 
+def _non_negative_int_like(value: Any, *, field: str, row_index: int) -> int:
+    parsed = _int_like(value, field=field, row_index=row_index)
+    if parsed < 0:
+        raise ValueError(f"Trace contract error: row[{row_index}] field '{field}' must be non-negative.")
+    return parsed
+
+
 def _float_like(value: Any, *, field: str, row_index: int, default: float | None = None) -> float:
     if value is None and default is not None:
         return default
@@ -24,6 +33,22 @@ def _float_like(value: Any, *, field: str, row_index: int, default: float | None
         return float(value)
     except (TypeError, ValueError) as exc:
         raise ValueError(f"Trace contract error: row[{row_index}] field '{field}' must be numeric.") from exc
+
+
+def _bool_like(value: Any, *, field: str, row_index: int, default: bool | None = None) -> bool:
+    if value is None and default is not None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)) and value in (0, 1):
+        return bool(value)
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in TRUE_LITERALS:
+            return True
+        if lowered in FALSE_LITERALS:
+            return False
+    raise ValueError(f"Trace contract error: row[{row_index}] field '{field}' must be bool-like.")
 
 
 def validate_trace_rows(rows: list[dict[str, Any]], *, source: Path) -> None:
@@ -67,14 +92,25 @@ def validate_trace_rows(rows: list[dict[str, Any]], *, source: Path) -> None:
                     raise ValueError(
                         f"Trace contract error: row[{row_index}] task[{task_index}] missing required key '{key}'."
                     )
+            if "urgency" in task:
+                _float_like(task.get("urgency"), field="urgency", row_index=row_index)
+            if "queue_priority" in task:
+                _non_negative_int_like(task.get("queue_priority"), field="queue_priority", row_index=row_index)
+            if "alive" in task:
+                _bool_like(task.get("alive"), field="alive", row_index=row_index)
 
-        _int_like(raw_row.get("queue_length", 0), field="queue_length", row_index=row_index)
+        _non_negative_int_like(raw_row.get("queue_length", 0), field="queue_length", row_index=row_index)
         _float_like(raw_row.get("energy_price", 0.1), field="energy_price", row_index=row_index)
+        _bool_like(raw_row.get("task_death", False), field="task_death", row_index=row_index, default=False)
 
 
 def load_trace_rows(path: str | Path) -> list[dict[str, Any]]:
     source = Path(path)
-    if source.suffix == ".jsonl":
+    if not source.exists() or not source.is_file():
+        raise ValueError(f"Trace source not found: {source}")
+
+    suffix = source.suffix.lower()
+    if suffix == ".jsonl":
         rows: list[dict[str, Any]] = []
         with source.open("r", encoding="utf-8") as f:
             for line_number, line in enumerate(f, start=1):
@@ -87,7 +123,7 @@ def load_trace_rows(path: str | Path) -> list[dict[str, Any]]:
         validate_trace_rows(rows, source=source)
         return rows
 
-    if source.suffix != ".json":
+    if suffix != ".json":
         raise ValueError(f"Unsupported trace format for {source}. Expected .json or .jsonl.")
 
     try:

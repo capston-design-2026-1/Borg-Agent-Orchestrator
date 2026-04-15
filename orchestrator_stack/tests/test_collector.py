@@ -40,3 +40,38 @@ def test_build_trace_file_rejects_non_list_payload(tmp_path):
 
     with pytest.raises(ValueError, match="must be a list"):
         build_trace_file(metrics_path, trace_path)
+
+
+def test_validate_prometheus_schema_rejects_non_list_top_level():
+    with pytest.raises(ValueError, match="expected top-level list"):
+        validate_prometheus_schema({"timestamp": 100})  # type: ignore[arg-type]
+
+
+def test_validate_prometheus_schema_rejects_negative_queue_length():
+    bad_rows = [{"timestamp": 100, "node_id": "n1", "cpu_util": 0.5, "queue_length": -1}]
+    with pytest.raises(ValueError, match="must be non-negative"):
+        validate_prometheus_schema(bad_rows)
+
+
+def test_prometheus_rows_to_trace_parses_bool_like_task_fields():
+    rows = [
+        {
+            "timestamp": 100,
+            "node_id": "n1",
+            "cpu_util": 0.5,
+            "mem_util": 0.4,
+            "task_id": "t1",
+            "alive": "false",
+            "task_death": "false",
+        }
+    ]
+
+    trace = prometheus_rows_to_trace(rows)
+    assert trace[0]["tasks"][0]["alive"] is False
+    assert trace[0]["task_death"] is False
+
+
+def test_prometheus_rows_to_trace_rejects_non_positive_interval():
+    rows = [{"timestamp": 100, "node_id": "n1", "cpu_util": 0.5}]
+    with pytest.raises(ValueError, match="interval_seconds must be positive"):
+        prometheus_rows_to_trace(rows, interval_seconds=0)
