@@ -21,6 +21,8 @@ class SessionConfig:
     timeout_seconds: int = 1800
     max_session_minutes: int = 25
     rate_limit_cooldown_seconds: int = 1800
+    heartbeat_seconds: int = 8
+    progress_excerpt_chars: int = 200
 
 
 @dataclass(slots=True)
@@ -103,6 +105,8 @@ def load_config(path: str | Path) -> ManagerConfig:
             timeout_seconds=int(session_raw.get("timeout_seconds", 1800)),
             max_session_minutes=int(session_raw.get("max_session_minutes", 25)),
             rate_limit_cooldown_seconds=int(session_raw.get("rate_limit_cooldown_seconds", 1800)),
+            heartbeat_seconds=int(session_raw.get("heartbeat_seconds", 8)),
+            progress_excerpt_chars=int(session_raw.get("progress_excerpt_chars", 200)),
         ),
         recovery=RecoveryConfig(
             enabled=bool(recovery_raw.get("enabled", True)),
