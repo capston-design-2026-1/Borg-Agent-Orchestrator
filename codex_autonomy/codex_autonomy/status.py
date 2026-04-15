@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
+import os
+import subprocess
 
 from codex_autonomy.task_store import load_tasks
 
@@ -54,3 +56,27 @@ def queue_snapshot(queue_dir: Path) -> list[tuple[str, str, int | None, int | No
     tasks = load_tasks(queue_dir)
     tasks.sort(key=lambda t: (t.priority, t.created_at))
     return [(t.task_id, t.status.value, t.issue_number, t.pr_number) for t in tasks]
+
+
+def process_state(pid_file: Path, command_substring: str = "") -> tuple[int | None, bool]:
+    if not pid_file.exists():
+        return None, False
+    try:
+        pid = int(pid_file.read_text(encoding="utf-8").strip())
+    except (ValueError, OSError):
+        return None, False
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return pid, False
+    if not command_substring:
+        return pid, True
+    proc = subprocess.run(
+        ["ps", "-p", str(pid), "-o", "command="],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        return pid, False
+    return pid, command_substring in (proc.stdout or "")

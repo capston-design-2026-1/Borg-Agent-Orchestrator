@@ -8,7 +8,7 @@ import yaml
 from codex_autonomy.config import load_config
 from codex_autonomy.manager import AutonomyManager
 from codex_autonomy.models import TaskSpec
-from codex_autonomy.status import queue_snapshot, recent_events, recent_progress, recent_sessions
+from codex_autonomy.status import process_state, queue_snapshot, recent_events, recent_progress, recent_sessions
 from codex_autonomy.task_store import save_task
 
 
@@ -35,12 +35,24 @@ def cmd_enqueue(args: argparse.Namespace) -> None:
 
 def cmd_status(args: argparse.Namespace) -> None:
     config = load_config(args.config)
+    guardian_pid, guardian_alive = process_state(
+        config.runtime_dir / "guardian.pid",
+        "codex_autonomy/scripts/run_guardian.py",
+    )
+    manager_pid, manager_alive = process_state(
+        config.runtime_dir / "manager.pid",
+        "codex_autonomy/scripts/run_daemon.py run",
+    )
     queue = queue_snapshot(config.queue_dir)
     events = recent_events(config.state_db_path, limit=args.limit)
     sessions = recent_sessions(config.state_db_path, limit=args.limit)
     progress = recent_progress(config.state_db_path, limit=args.limit)
 
-    print("Queue Snapshot:")
+    print("Runtime Processes:")
+    print(f"- guardian | pid={guardian_pid} | alive={guardian_alive}")
+    print(f"- manager  | pid={manager_pid} | alive={manager_alive}")
+
+    print("\nQueue Snapshot:")
     for row in queue:
         print(f"- {row[0]} | status={row[1]} | issue={row[2]} | pr={row[3]}")
 
