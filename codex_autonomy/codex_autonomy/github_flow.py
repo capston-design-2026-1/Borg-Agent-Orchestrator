@@ -207,7 +207,8 @@ def try_merge_pr(config: ManagerConfig, pr_number: int) -> bool:
         "--repo",
         config.github.repo,
         method_flag,
-        "--delete-branch",
     ]
+    if config.github.delete_branch_on_merge:
+        args.append("--delete-branch")
     code, _, _ = _run(args, config.repo_root)
     return code == 0

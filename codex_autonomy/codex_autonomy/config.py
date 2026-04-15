@@ -40,6 +40,7 @@ class GitHubFlowConfig:
     auto_create_issue: bool = True
     auto_create_pr: bool = True
     auto_merge: bool = False
+    delete_branch_on_merge: bool = False
     merge_method: str = "squash"
     draft_pr: bool = True
     auto_issue_on_health: bool = True
@@ -125,6 +126,7 @@ def load_config(path: str | Path) -> ManagerConfig:
             auto_create_issue=bool(github_raw.get("auto_create_issue", True)),
             auto_create_pr=bool(github_raw.get("auto_create_pr", True)),
             auto_merge=bool(github_raw.get("auto_merge", False)),
+            delete_branch_on_merge=bool(github_raw.get("delete_branch_on_merge", False)),
             merge_method=str(github_raw.get("merge_method", "squash")),
             draft_pr=bool(github_raw.get("draft_pr", True)),
             auto_issue_on_health=bool(github_raw.get("auto_issue_on_health", True)),
