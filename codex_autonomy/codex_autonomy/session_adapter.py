@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 import threading
 import time
+import os
 from queue import Empty, Queue
 from pathlib import Path
 from typing import Callable
@@ -25,6 +26,10 @@ class SessionAdapter:
     ) -> SessionResult:
         command = self.command_template.format(prompt_file=str(prompt_file), workdir=str(workdir))
         started = time.time()
+        env = dict(os.environ)
+        base_path = env.get("PATH", "")
+        required = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"]
+        env["PATH"] = ":".join(dict.fromkeys([p for p in (base_path.split(":") + required) if p]))
         proc = subprocess.Popen(
             command,
             cwd=str(workdir),
@@ -33,6 +38,7 @@ class SessionAdapter:
             stderr=subprocess.PIPE,
             shell=True,
             bufsize=1,
+            env=env,
         )
 
         q: Queue[tuple[str, str | None]] = Queue()
