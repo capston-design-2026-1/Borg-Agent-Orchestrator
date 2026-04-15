@@ -11,7 +11,7 @@ from codex_autonomy.github_flow import try_merge_pr
 from codex_autonomy.health import run_health_checks
 from codex_autonomy.models import TaskSpec, TaskStatus
 from codex_autonomy.state_db import init_db, log_event
-from codex_autonomy.task_store import archive_task, dependency_satisfied, load_tasks, save_task
+from codex_autonomy.task_store import archive_task, load_tasks, save_task
 from codex_autonomy.worker import run_task
 
 
@@ -35,10 +35,23 @@ class AutonomyManager:
                 continue
             if task.task_id in self.inflight:
                 continue
-            if dependency_satisfied(task, by_id):
+            if self._dependency_satisfied(task, by_id):
                 runnable.append(task)
         runnable.sort(key=lambda t: (t.priority, t.created_at))
         return runnable
+
+    def _dependency_satisfied(self, task: TaskSpec, by_id: dict[str, TaskSpec]) -> bool:
+        for dep in task.dependencies:
+            dep_task = by_id.get(dep)
+            if dep_task is not None:
+                if dep_task.status != TaskStatus.COMPLETED:
+                    return False
+                continue
+            # Completed tasks are archived and removed from queue; treat archived dep as satisfied.
+            archived = list(self.config.archive_dir.glob(f"*_{dep}.yaml"))
+            if not archived:
+                return False
+        return True
 
     def _handle_finished(self) -> None:
         done_ids: list[str] = []
