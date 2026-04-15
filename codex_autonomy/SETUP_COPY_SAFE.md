@@ -160,6 +160,15 @@ cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 cp -f codex_autonomy/tasks/templates/full_orchestrator_finish.yaml codex_autonomy/tasks/queue/full-orchestrator-e2e-finish.yaml
 ```
 
+## 27) Start decomposed orchestrator bundle (recommended for many small PRs)
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+./.venv/bin/python codex_autonomy/scripts/run_daemon.py enqueue-bundle \
+  --config codex_autonomy/config/autonomy.local.yaml \
+  --bundle codex_autonomy/tasks/templates/orchestrator_finish_bundle.yaml
+```
+
 ## 18) Cleanup duplicate GitHub issues for this task (keep #19)
 
 ```bash
@@ -229,8 +238,8 @@ Run these sections in order:
 6. `5) Set cooldown for Codex limit windows (optional)`
 7. `7) Verify GitHub CLI auth`
 8. `15) Cleanup duplicate task files with same task_id`
-9. `17) Start full orchestrator-finish task (recommended)`
-10. `18) Cleanup duplicate GitHub issues for this task (keep #19)`
+9. `27) Start decomposed orchestrator bundle (recommended for many small PRs)`
+10. If using legacy single-task flow instead, run `17) Start full orchestrator-finish task` and `18) Cleanup duplicate GitHub issues for this task`
 11. `8) Start autonomy manager`
 12. `12) Track processes continuously (copy-safe)`
 13. `14) Track GitHub issue/PR flow`

@@ -9,6 +9,7 @@ Local supervisor to run Codex sessions continuously with task queueing, session 
 - Task templates in `codex_autonomy/tasks/templates/*.yaml`
 - Parallel independent execution with `git worktree` branches (`auto/<task-id>`)
 - Session rollover per task when one session budget is exhausted
+- Watchdog auto-recovery for stuck `running` tasks and orphan `codex exec` processes
 - Persistent event/session logs in SQLite (`codex_autonomy/runtime/state.db`)
 - Auto-generated healing/upgrade tasks from lint/test/upgrade scanners
 - Automatic archive of completed/failed task specs
@@ -63,6 +64,14 @@ Enqueue task manually:
   --priority 10
 ```
 
+Enqueue a decomposed multi-task bundle (recommended for small PR granularity):
+
+```bash
+./.venv/bin/python codex_autonomy/scripts/run_daemon.py enqueue-bundle \
+  --config codex_autonomy/config/autonomy.local.yaml \
+  --bundle codex_autonomy/tasks/templates/orchestrator_finish_bundle.yaml
+```
+
 Inspect runtime status:
 
 ```bash
@@ -78,6 +87,12 @@ Inspect runtime status:
 - If retries exceed `max_retries`, task is marked failed and archived
 - If Codex returns quota/rate-limit errors, task is auto re-queued with a cooldown (`metadata.not_before_epoch`) and resumes automatically after wait time
 
+## Self-Healing Recovery Rules
+
+- If manager restarts and finds a task marked `running` without an in-memory worker, it auto-requeues the task.
+- If a `running` task exceeds recovery timeout, watchdog terminates stuck task session processes and lets the worker continue/retry.
+- Recovery defaults come from `recovery:` config; by default timeout is `session.timeout_seconds + 120`.
+
 ## GitHub Flow
 
 - Task starts: issue can be auto-created and linked (`issue_number`, `issue_url`)
@@ -85,6 +100,7 @@ Inspect runtime status:
 - If `auto_merge=false`: task status becomes `review`
 - If `auto_merge=true`: manager attempts merge and marks task completed when successful
 - Branch naming: `auto/<task-id>`
+- For finer PR granularity, split work into many dependency-linked tasks (use `enqueue-bundle`).
 
 ## Parallel Rules
 

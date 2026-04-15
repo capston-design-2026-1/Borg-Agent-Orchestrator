@@ -16,8 +16,8 @@ Execute these numbered sections from `SETUP_COPY_SAFE.md` in this exact order:
 5. `4) Enable GitHub flow and set repository`
 6. `7) Verify GitHub CLI auth`
 7. `15) Cleanup duplicate task files with same task_id`
-8. `17) Start full orchestrator-finish task (recommended)`
-9. `18) Cleanup duplicate GitHub issues for this task (keep #19)`
+8. `27) Start decomposed orchestrator bundle (recommended for many small PRs)`
+9. Legacy single-task option only: `17)` then `18)`
 10. `8) Start autonomy manager`
 11. `12) Track processes continuously (copy-safe)`
 12. `14) Track GitHub issue/PR flow`
