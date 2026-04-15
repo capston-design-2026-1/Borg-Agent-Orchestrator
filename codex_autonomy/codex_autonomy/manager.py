@@ -46,17 +46,33 @@ class AutonomyManager:
             if not future.done():
                 continue
             done_ids.append(task_id)
-            result = future.result()
-            now = datetime.utcnow().isoformat()
-            log_event(
-                self.config.state_db_path,
-                ts=now,
-                task_id=task_id,
-                event_type="task_result",
-                message=f"{result.status.value}: {result.message}",
-            )
-            if result.status in {TaskStatus.COMPLETED, TaskStatus.FAILED}:
-                archive_task(self.config.queue_dir, self.config.archive_dir, task_id)
+            try:
+                result = future.result()
+                now = datetime.utcnow().isoformat()
+                log_event(
+                    self.config.state_db_path,
+                    ts=now,
+                    task_id=task_id,
+                    event_type="task_result",
+                    message=f"{result.status.value}: {result.message}",
+                )
+                if result.status in {TaskStatus.COMPLETED, TaskStatus.FAILED}:
+                    archive_task(self.config.queue_dir, self.config.archive_dir, task_id)
+            except Exception as exc:
+                tasks = load_tasks(self.config.queue_dir)
+                for task in tasks:
+                    if task.task_id != task_id:
+                        continue
+                    task.status = TaskStatus.PENDING
+                    save_task(self.config.queue_dir, task)
+                    break
+                log_event(
+                    self.config.state_db_path,
+                    ts=datetime.utcnow().isoformat(),
+                    task_id=task_id,
+                    event_type="worker_crashed",
+                    message=f"worker future exception: {type(exc).__name__}: {exc}",
+                )
 
         for task_id in done_ids:
             self.inflight.pop(task_id, None)
