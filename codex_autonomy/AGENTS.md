@@ -33,3 +33,9 @@
 - Use GitHub Issues as the canonical intake for bugs/features/upgrades.
 - Use Pull Requests for all implementation branches.
 - Keep tasks in `review` until PR merge when auto-merge is disabled.
+
+## Operator UX Rule
+
+- Do not paste terminal commands directly in assistant chat replies.
+- Store runnable commands in tracked Markdown runbooks under `codex_autonomy/` (copy-safe formatting).
+- In chat replies, point to the runbook path and provide only the numbered step sequence to execute.
