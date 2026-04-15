@@ -1,0 +1,31 @@
+task_id: orchestrator-optuna-meta-tuning
+title: 'Orchestrator: Optuna meta-optimizer tuning integration'
+prompt: 'Integrate Optuna meta-optimizer for reward weights and RL hyperparameters.
+
+  Validate it executes in runtime paths and is not placeholder code.
+
+  Commit and push only this slice.
+
+  '
+task_type: feature
+priority: 50
+dependencies:
+- orchestrator-rllib-referee
+scope_paths:
+- orchestrator_stack/
+- reports/
+- README.md
+- NEXT_STEPS.md
+done_when_commands: []
+max_sessions: 8
+max_retries: 4
+retries: 0
+status: pending
+review_prompt: Review branch changes for correctness and regressions.
+issue_number: null
+issue_url: null
+pr_number: null
+pr_url: null
+metadata: {}
+created_at: '2026-04-15T04:23:41.525546'
+updated_at: '2026-04-15T04:23:41.525556'

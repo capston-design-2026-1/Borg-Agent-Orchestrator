@@ -1,0 +1,32 @@
+task_id: orchestrator-rllib-referee
+title: 'Orchestrator: RLlib PPO multi-agent and referee conflict logic'
+prompt: 'Implement and validate Ray RLlib PPO multi-agent layer (Agent A/B/C) with
+  referee conflict logic.
+
+  Keep this PR focused on RL/referee behavior and related fixes.
+
+  Commit and push only this slice.
+
+  '
+task_type: feature
+priority: 40
+dependencies:
+- orchestrator-xgboost-observation
+scope_paths:
+- orchestrator_stack/
+- reports/
+- README.md
+- NEXT_STEPS.md
+done_when_commands: []
+max_sessions: 8
+max_retries: 4
+retries: 0
+status: pending
+review_prompt: Review branch changes for correctness and regressions.
+issue_number: null
+issue_url: null
+pr_number: null
+pr_url: null
+metadata: {}
+created_at: '2026-04-15T04:23:41.523404'
+updated_at: '2026-04-15T04:23:41.523416'

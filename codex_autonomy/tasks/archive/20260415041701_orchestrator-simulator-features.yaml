@@ -1,0 +1,32 @@
+task_id: orchestrator-simulator-features
+title: 'Orchestrator: simulator layer and feature extraction'
+prompt: 'Implement and validate AIOpsLab-style simulator behavior and feature extraction
+  integration.
+
+  Keep this PR limited to simulator/feature logic and immediate tests/fixes.
+
+  Commit and push only this slice.
+
+  '
+task_type: feature
+priority: 20
+dependencies:
+- orchestrator-ingestion-trace-path
+scope_paths:
+- orchestrator_stack/
+- reports/
+- README.md
+- NEXT_STEPS.md
+done_when_commands: []
+max_sessions: 6
+max_retries: 4
+retries: 4
+status: failed
+review_prompt: Review branch changes for correctness and regressions.
+issue_number: 32
+issue_url: https://github.com/capston-design-2026-1/Borg-Agent-Orchestrator/issues/32
+pr_number: null
+pr_url: null
+metadata: {}
+created_at: '2026-04-15T03:18:26.054041'
+updated_at: '2026-04-15T04:16:52.116746'
