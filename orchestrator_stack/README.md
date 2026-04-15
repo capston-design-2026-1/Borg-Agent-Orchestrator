@@ -97,9 +97,13 @@ This runs Layer 1 through Layer 6 in one go using the project virtual environmen
 ```bash
 ./.venv/bin/python orchestrator_stack/run.py full-process \
   --config orchestrator_stack/config/orchestrator.example.json \
-  --trials 3
+  --trials 1
 ```
-After completion, check `reports/` for a KST-timestamped Optuna report (e.g., `202604142115_optuna_*.md`).
+After completion:
+- Check `reports/tuning/` for KST-timestamped Optuna reports (`*_optuna_orchestrator_reward_weights.md`, `*_optuna_orchestrator_policy_and_rewards.md`)
+- Check `reports/traces/` for the episode decision trace (`*_episode_trace.log`)
+- Check `orchestrator_stack/runtime/optuna/orchestrator.db` for persisted studies
+- Check `orchestrator_stack/runtime/rllib/` for PPO outputs when RLlib is fully available
 
 ### 2. Run a Manual Episode (Sim Loop)
 ```bash
@@ -115,8 +119,17 @@ After completion, check `reports/` for a KST-timestamped Optuna report (e.g., `2
 
 ### 4. Unit Tests
 ```bash
-./.venv/bin/pytest orchestrator_stack/tests/
+./.venv/bin/python -m pytest orchestrator_stack/tests/
 ```
+
+## Troubleshooting
+
+- If `full-process` prints `"ppo": {"status": "degraded", ... "Operation not permitted (sysctl ...)"}`:
+  - Cause: restricted runtime/sandbox blocks Ray process inspection on macOS.
+  - Impact: Layer 4 PPO training is attempted but cannot complete in that environment; Layers 1/2/3/5/6 still run and return artifacts.
+  - Action: run the same command on a host with normal process permissions to get `"ppo.status": "trained"` and checkpoint artifacts.
+- If `python -m pytest` fails with `No module named pytest`:
+  - Install dev test tooling in the active `.venv` and rerun tests.
 
 ## Viewing Logs and Decision Traces
 

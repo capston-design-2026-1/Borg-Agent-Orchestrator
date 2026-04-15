@@ -22,6 +22,8 @@ An independent end-to-end orchestrator workspace now exists at `orchestrator_sta
 - Has dedicated handoff files: `orchestrator_stack/README.md`, `orchestrator_stack/AGENTS.md`, `orchestrator_stack/NEXT_STEPS.md`
 - Mermaid architecture source is tracked at `orchestrator_stack/ARCHITECTURE.md`
 - Repo `.venv` has verified Ray PPO + Optuna runtime support for orchestrator smoke runs
+- One-command E2E smoke entrypoint: `./.venv/bin/python orchestrator_stack/run.py full-process --config orchestrator_stack/config/orchestrator.example.json --trials 1`
+- Troubleshooting for RLlib permission-limited hosts is tracked in `orchestrator_stack/README.md` ("Troubleshooting")
 
 ## New Isolated Track: Codex Autonomy Runner
 
