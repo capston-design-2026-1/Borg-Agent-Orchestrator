@@ -39,3 +39,30 @@ def test_load_trace_rows_jsonl_reports_decode_line(tmp_path):
 
     with pytest.raises(ValueError, match="line 2"):
         load_trace_rows(path)
+
+
+def test_load_trace_rows_rejects_negative_queue_length(tmp_path):
+    path = tmp_path / "trace.json"
+    bad = _sample_trace_row()
+    bad["queue_length"] = -1
+    path.write_text(json.dumps([bad]), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="queue_length.*non-negative"):
+        load_trace_rows(path)
+
+
+def test_load_trace_rows_rejects_invalid_task_alive_literal(tmp_path):
+    path = tmp_path / "trace.json"
+    bad = _sample_trace_row()
+    bad["tasks"][0]["alive"] = "sometimes"
+    path.write_text(json.dumps([bad]), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="field 'alive' must be bool-like"):
+        load_trace_rows(path)
+
+
+def test_load_trace_rows_rejects_missing_source(tmp_path):
+    path = tmp_path / "missing.json"
+
+    with pytest.raises(ValueError, match="Trace source not found"):
+        load_trace_rows(path)
