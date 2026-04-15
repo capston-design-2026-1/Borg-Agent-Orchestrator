@@ -42,7 +42,7 @@ github:
   auto_create_pr: true
   auto_merge: false
   delete_branch_on_merge: false
-  merge_method: "squash"
+  merge_method: "merge"
   draft_pr: true
   auto_issue_on_health: true
   reviewers: []
