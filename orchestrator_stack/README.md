@@ -79,6 +79,14 @@ Before running the orchestrator, you must generate the synthetic trace and train
 ./.venv/bin/python orchestrator_stack/examples/generate_synthetic_assets.py
 ```
 
+Layer 1 ingestion now enforces strict contracts for `.json` and `.jsonl` trace sources:
+
+- rejects mixed flat/grouped metrics row shapes during trace build
+- rejects malformed JSON/JSONL with file/line context
+- validates required trace keys (`timestamp`, `nodes`, `tasks`) before Layer 2/3 usage
+
+See `orchestrator_stack/examples/README.md` for the concise schema contract.
+
 ### 5. Train the Predictor Models (Layer 3)
 Train the XGBoost safety-risk and resource-demand models from the generated trace:
 ```bash
