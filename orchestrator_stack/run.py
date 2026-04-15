@@ -17,6 +17,12 @@ os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 os.environ.setdefault("KMP_INIT_AT_FORK", "FALSE")
 
+# Keep Ray artifacts inside repository runtime paths to avoid user-home permission issues.
+RUNTIME = ROOT / "runtime"
+os.environ.setdefault("RAY_TMPDIR", str(RUNTIME / "ray_tmp"))
+os.environ.setdefault("RAY_AIR_LOCAL_CACHE_DIR", str(RUNTIME / "ray_air"))
+os.environ.setdefault("TUNE_RESULT_DIR", str(RUNTIME / "rllib"))
+
 from orchestrator.cli import main  # noqa: E402
 
 
