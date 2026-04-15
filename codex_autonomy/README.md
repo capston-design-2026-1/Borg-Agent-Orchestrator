@@ -114,6 +114,7 @@ Stream in-session progress heartbeats:
 - If `auto_merge=false`: task status becomes `review`
 - If `auto_merge=true`: manager attempts merge and marks task completed when successful
 - Branch naming: `auto/<task-id>`
+- By default, merged task branches are kept (`delete_branch_on_merge=false`).
 - For finer PR granularity, split work into many dependency-linked tasks (use `enqueue-bundle`).
 
 ## Parallel Rules
