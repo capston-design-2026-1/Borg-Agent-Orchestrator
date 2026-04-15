@@ -19,4 +19,5 @@
 - Required top-level keys per row: `timestamp`, `nodes`, `tasks`
 - Required node keys: `node_id`, `cpu_util`, `mem_util`
 - Required task keys: `task_id`, `node_id`
-- Optional but validated when present: `queue_length` (int-like), `energy_price` (numeric)
+- Optional but validated when present: `queue_length` (non-negative int-like), `energy_price` (numeric), `task_death` (bool-like)
+- Optional task fields validated when present: `urgency` (numeric), `queue_priority` (non-negative int-like), `alive` (bool-like)
