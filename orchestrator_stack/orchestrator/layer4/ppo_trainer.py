@@ -10,12 +10,6 @@ from orchestrator.layer4.referee import resolve
 from orchestrator.layer4.policy import decode_agent_action
 from orchestrator.layer6.scoreboard import Scoreboard
 
-try:
-    from ray.rllib.algorithms.ppo import PPOConfig
-except Exception:  # pragma: no cover
-    PPOConfig = None
-
-
 def train_multiagent_ppo(
     backend,
     *,
@@ -33,9 +27,19 @@ def train_multiagent_ppo(
     os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
     os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
     os.environ.setdefault("KMP_INIT_AT_FORK", "FALSE")
+    os.environ["RAY_ENABLE_UV_RUN_RUNTIME_ENV"] = "0"
 
     out = Path(output_dir).resolve()
     out.mkdir(parents=True, exist_ok=True)
+    # Keep RLlib/Tune artifacts inside the repository runtime path so the
+    # full-process command is runnable in sandboxed or CI environments.
+    os.environ.setdefault("RAY_AIR_LOCAL_CACHE_DIR", str(out))
+    os.environ.setdefault("RAY_RESULTS_DIR", str(out))
+
+    try:
+        from ray.rllib.algorithms.ppo import PPOConfig
+    except Exception:  # pragma: no cover
+        PPOConfig = None
 
     if PPOConfig is None:
         return {
@@ -45,6 +49,14 @@ def train_multiagent_ppo(
         }
 
     env_name = "OrchestratorMultiAgentEnv"
+    try:
+        from ray.rllib.algorithms import algorithm as ray_algorithm
+        import ray.train.constants as ray_train_constants
+
+        ray_algorithm.DEFAULT_STORAGE_PATH = str(out)
+        ray_train_constants.DEFAULT_STORAGE_PATH = str(out)
+    except Exception:
+        pass
 
     # Delayed import avoids hard dependency when RLlib is not installed.
     from ray.tune.registry import register_env
@@ -72,32 +84,41 @@ def train_multiagent_ppo(
         .reporting(min_sample_timesteps_per_iteration=8, min_train_timesteps_per_iteration=8, min_time_s_per_iteration=0)
     )
 
-    algo = config.build_algo()
-    last_result: dict[str, Any] = {}
-    for _ in range(max(1, train_iters)):
-        last_result = algo.train()
-
-    checkpoint_result = algo.save(checkpoint_dir=str(out))
-    checkpoint_path = str(out)
     try:
-        checkpoint_path = str(checkpoint_result.checkpoint.path)
-    except Exception:
-        checkpoint_path = str(checkpoint_result)
+        algo = config.build_algo()
+        last_result: dict[str, Any] = {}
+        for _ in range(max(1, train_iters)):
+            last_result = algo.train()
 
-    algo.stop()
-    try:
-        import ray
+        checkpoint_result = algo.save(checkpoint_dir=str(out))
+        checkpoint_path = str(out)
+        try:
+            checkpoint_path = str(checkpoint_result.checkpoint.path)
+        except Exception:
+            checkpoint_path = str(checkpoint_result)
 
-        ray.shutdown()
-    except Exception:
-        pass
+        algo.stop()
+        return {
+            "status": "trained",
+            "checkpoint": checkpoint_path,
+            "train_iters": int(train_iters),
+            "episode_reward_mean": float(last_result.get("episode_reward_mean", 0.0)),
+        }
+    except Exception as exc:
+        return {
+            "status": "degraded",
+            "reason": f"rllib runtime failed: {exc}",
+            "checkpoint": None,
+            "train_iters": int(train_iters),
+            "output_dir": str(out),
+        }
+    finally:
+        try:
+            import ray
 
-    return {
-        "status": "trained",
-        "checkpoint": checkpoint_path,
-        "train_iters": int(train_iters),
-        "episode_reward_mean": float(last_result.get("episode_reward_mean", 0.0)),
-    }
+            ray.shutdown()
+        except Exception:
+            pass
 
 
 def evaluate_heuristic_policy(backend, *, alpha: float, beta: float, gamma: float, steps: int) -> dict[str, float | int]:
