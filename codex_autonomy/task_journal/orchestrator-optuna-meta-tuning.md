@@ -109,3 +109,11 @@ xgboost OK 3.2.0
 orchestrator_stack/examples/sample_trace.json
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:20:21Z | Session 1 | heartbeat
+
+- elapsed_seconds: 171
+- stdout_chars: 0
+- stderr_chars: 106733
+- excerpt: e RLlib env scoreboard never resets between episodes. I’m fixing that while I wire the real PPO-backed Optuna objective, because otherwise any evaluation metric from repeated episodes is contaminated.
+- worktree_status:
+-   ?? .venv
