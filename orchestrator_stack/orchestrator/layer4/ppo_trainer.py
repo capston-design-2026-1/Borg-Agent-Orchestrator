@@ -8,7 +8,7 @@ from orchestrator.layer4.policy import default_policy_actions
 from orchestrator.layer4.rllib_env import OrchestratorMultiAgentEnv
 from orchestrator.layer4.referee import resolve
 from orchestrator.layer4.policy import decode_agent_action
-from orchestrator.layer6.scoreboard import Scoreboard
+from orchestrator.layer6.scoreboard import FeedbackLoop, Scoreboard
 
 try:
     from ray.rllib.algorithms.ppo import PPOConfig
@@ -103,7 +103,7 @@ def train_multiagent_ppo(
 def evaluate_heuristic_policy(backend, *, alpha: float, beta: float, gamma: float, steps: int) -> dict[str, float | int]:
     obs = backend.reset()
     scoreboard = Scoreboard(alpha=alpha, beta=beta, gamma=gamma)
-    feedback = None
+    feedback_loop = FeedbackLoop(scoreboard)
 
     for _ in range(max(1, steps)):
         action_ids = default_policy_actions(obs)
@@ -112,10 +112,9 @@ def evaluate_heuristic_policy(backend, *, alpha: float, beta: float, gamma: floa
             decode_agent_action("AgentB", action_ids["AgentB"], obs),
             decode_agent_action("AgentC", action_ids["AgentC"], obs),
         ]
-        action = resolve(proposals, feedback=feedback)
+        action = feedback_loop.resolve(proposals, resolve)
         result = backend.step(action)
-        update = scoreboard.update(result.reward_by_agent)
-        feedback = update.feedback
+        feedback_loop.apply(result.reward_by_agent)
         obs = result.next_observation
         if result.done:
             break

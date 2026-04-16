@@ -14,7 +14,7 @@ except Exception:  # pragma: no cover
 
 from orchestrator.layer4.policy import POLICY_SPACES, decode_agent_action, default_policy_actions
 from orchestrator.layer4.referee import resolve
-from orchestrator.layer6.scoreboard import Scoreboard
+from orchestrator.layer6.scoreboard import FeedbackLoop, Scoreboard
 from orchestrator.types import Observation, StepResult
 
 
@@ -31,14 +31,14 @@ class OrchestratorMultiAgentEnv(MultiAgentEnv):  # type: ignore[misc]
             beta=float(env_config.get("beta", 0.6)),
             gamma=float(env_config.get("gamma", 0.8)),
         )
+        self.feedback_loop = FeedbackLoop(self.scoreboard)
         self._obs: Observation | None = None
-        self._feedback = None
 
         if Box is not None and Discrete is not None:
             self.observation_spaces = {
-                "AgentA": Box(low=0.0, high=1.0, shape=(6,), dtype=float),
-                "AgentB": Box(low=0.0, high=1.0, shape=(6,), dtype=float),
-                "AgentC": Box(low=0.0, high=1.0, shape=(6,), dtype=float),
+                "AgentA": Box(low=0.0, high=1.0, shape=(10,), dtype=float),
+                "AgentB": Box(low=0.0, high=1.0, shape=(10,), dtype=float),
+                "AgentC": Box(low=0.0, high=1.0, shape=(10,), dtype=float),
             }
             self.action_spaces = {
                 "AgentA": Discrete(POLICY_SPACES["AgentA"].action_count),
@@ -48,7 +48,6 @@ class OrchestratorMultiAgentEnv(MultiAgentEnv):  # type: ignore[misc]
 
     def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None):
         self.scoreboard.reset()
-        self._feedback = None
         self._obs = self.backend.reset()
         packed = self._pack_obs(self._obs)
         return packed, {}
@@ -65,12 +64,11 @@ class OrchestratorMultiAgentEnv(MultiAgentEnv):  # type: ignore[misc]
             decode_agent_action("AgentB", action_ids["AgentB"], self._obs),
             decode_agent_action("AgentC", action_ids["AgentC"], self._obs),
         ]
-        validated = resolve(proposals, feedback=self._feedback)
+        validated = self.feedback_loop.resolve(proposals, resolve)
         result: StepResult = self.backend.step(validated)
         self._obs = result.next_observation
 
-        update = self.scoreboard.update(result.reward_by_agent)
-        self._feedback = update.feedback
+        update = self.feedback_loop.apply(result.reward_by_agent)
         rewards = {
             "AgentA": update.feedback.adjusted_rewards.get("AgentA", 0.0),
             "AgentB": update.feedback.adjusted_rewards.get("AgentB", 0.0),
@@ -94,8 +92,9 @@ class OrchestratorMultiAgentEnv(MultiAgentEnv):  # type: ignore[misc]
         mem_avg = sum(n.mem_util for n in obs.nodes) / max(1, len(obs.nodes))
         queue_norm = min(1.0, obs.queue_length / max(1, len(obs.tasks) + 1))
         energy_norm = min(1.0, obs.energy_price / 0.2)
-        vector = np.asarray(
-            [queue_norm, energy_norm, float(max_risk), float(max_demand), float(cpu_avg), float(mem_avg)],
-            dtype=np.float32,
-        )
-        return {"AgentA": vector.copy(), "AgentB": vector.copy(), "AgentC": vector.copy()}
+        base_vector = [queue_norm, energy_norm, float(max_risk), float(max_demand), float(cpu_avg), float(mem_avg)]
+        packed: dict[str, np.ndarray] = {}
+        for agent_name in self.possible_agents:
+            scoreboard_vector = list(self.scoreboard.observation_features(agent_name))
+            packed[agent_name] = np.asarray(base_vector + scoreboard_vector, dtype=np.float32)
+        return packed

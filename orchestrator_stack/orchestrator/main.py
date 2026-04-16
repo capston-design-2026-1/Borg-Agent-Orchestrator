@@ -14,7 +14,7 @@ from orchestrator.layer4.agents import AgentARiskMitigator, AgentBEfficiencyOpti
 from orchestrator.layer4.ppo_trainer import evaluate_heuristic_policy, train_multiagent_ppo
 from orchestrator.layer4.referee import resolve
 from orchestrator.layer5.optuna_tuner import tune_policy_and_rewards, tune_reward_weights
-from orchestrator.layer6.scoreboard import Scoreboard
+from orchestrator.layer6.scoreboard import FeedbackLoop, Scoreboard
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ def run_episode(config: OrchestratorConfig, verbose: bool = True) -> RunSummary:
     agent_b = AgentBEfficiencyOptimizer()
     agent_c = AgentCGatekeeper()
     scoreboard = Scoreboard(alpha=config.alpha, beta=config.beta, gamma=config.gamma)
-    feedback = None
+    feedback_loop = FeedbackLoop(scoreboard)
 
     obs = backend.reset()
     total_steps = min(config.episode_steps, len(rows))
@@ -90,11 +90,10 @@ def run_episode(config: OrchestratorConfig, verbose: bool = True) -> RunSummary:
         obs.demand_projection = demand_model.predict(obs)
 
         proposals = [agent_a.act(obs), agent_b.act(obs), agent_c.act(obs)]
-        validated_action = resolve(proposals, feedback=feedback)
+        validated_action = feedback_loop.resolve(proposals, resolve)
 
         result = backend.step(validated_action)
-        update = scoreboard.update(result.reward_by_agent)
-        feedback = update.feedback
+        update = feedback_loop.apply(result.reward_by_agent)
 
         p_str = ", ".join([f"{p.agent_name}:{p.kind.value}" for p in proposals if p.kind.value != "noop"])
         ref_str = f"{validated_action.agent_name}:{validated_action.kind.value}"
@@ -116,7 +115,7 @@ def run_episode(config: OrchestratorConfig, verbose: bool = True) -> RunSummary:
 
     log_buffer.append("--- Episode End ---\n")
     log_path.write_text("".join(log_buffer), encoding="utf-8")
-    
+
     if verbose:
         print(f"--- Episode Trace stored at: {log_path} ---\n")
 

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
+from typing import Callable
 
-from orchestrator.types import GlobalScore, ScoreFeedback, ScoreboardUpdate
+from orchestrator.types import AgentAction, GlobalScore, ScoreFeedback, ScoreboardUpdate
 
 
 AGENT_NAMES = ("AgentA", "AgentB", "AgentC")
@@ -79,6 +81,34 @@ class Scoreboard:
             return None
         return self.feedback_history[-1]
 
+    def current_feedback(self) -> ScoreFeedback:
+        latest = self.latest_feedback()
+        if latest is not None:
+            return latest
+        return ScoreFeedback(
+            global_score=0.0,
+            adjusted_rewards={agent: 0.0 for agent in AGENT_NAMES},
+            agent_weights={agent: 1.0 for agent in AGENT_NAMES},
+            cumulative_by_agent=dict(self.cumulative_by_agent),
+            recent_by_agent={agent: 0.0 for agent in AGENT_NAMES},
+            dominant_agent=None,
+            balance_gap=0.0,
+        )
+
+    def observation_features(self, agent_name: str) -> tuple[float, float, float, float]:
+        feedback = self.current_feedback()
+        cumulative_total = sum(abs(value) for value in self.cumulative_by_agent.values())
+        cohort_average = sum(self.cumulative_by_agent.values()) / max(1, len(AGENT_NAMES))
+        deficit = cohort_average - self.cumulative_by_agent.get(agent_name, 0.0)
+        deficit_scale = max(1.0, cumulative_total / max(1, len(AGENT_NAMES)))
+
+        global_norm = (math.tanh(feedback.global_score / 10.0) + 1.0) / 2.0
+        balance_norm = min(1.0, feedback.balance_gap / max(1.0, cumulative_total))
+        weight = feedback.agent_weights.get(agent_name, 1.0)
+        weight_norm = min(1.0, max(0.0, (weight - 0.75) / 0.5))
+        deficit_norm = (math.tanh(deficit / deficit_scale) + 1.0) / 2.0
+        return (global_norm, balance_norm, weight_norm, deficit_norm)
+
     def _build_feedback(self, score: GlobalScore) -> ScoreFeedback:
         cumulative_values = list(self.cumulative_by_agent.values())
         cohort_average = sum(cumulative_values) / max(1, len(cumulative_values))
@@ -114,3 +144,21 @@ class Scoreboard:
             agent: sum(float(score.raw_rewards.get(agent, 0.0)) for score in recent_scores) / len(recent_scores)
             for agent in AGENT_NAMES
         }
+
+
+@dataclass(slots=True)
+class FeedbackLoop:
+    scoreboard: Scoreboard
+
+    def feedback(self) -> ScoreFeedback:
+        return self.scoreboard.current_feedback()
+
+    def resolve(
+        self,
+        actions: list[AgentAction],
+        resolver: Callable[[list[AgentAction], ScoreFeedback | None], AgentAction],
+    ) -> AgentAction:
+        return resolver(actions, feedback=self.scoreboard.latest_feedback())
+
+    def apply(self, reward_by_agent: dict[str, float]) -> ScoreboardUpdate:
+        return self.scoreboard.update(reward_by_agent)
