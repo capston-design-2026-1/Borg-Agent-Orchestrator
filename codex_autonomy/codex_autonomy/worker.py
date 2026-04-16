@@ -18,6 +18,10 @@ from codex_autonomy.task_store import save_task
 from codex_autonomy.worktree import cleanup_worktree, ensure_branch, ensure_worktree
 
 
+def _journal_relpath(task_id: str) -> Path:
+    return Path("codex_autonomy") / "task_journal" / f"{task_id}.md"
+
+
 def _run(command: str, cwd: Path) -> int:
     proc = subprocess.run(command, cwd=str(cwd), shell=True)
     return proc.returncode
@@ -53,6 +57,64 @@ def _is_command_template_error(stdout: str, stderr: str) -> bool:
         "for more information, try '--help'",
     )
     return all(p in text for p in patterns)
+
+
+def _append_task_journal(
+    worktree_path: Path,
+    task: TaskSpec,
+    *,
+    session_idx: int,
+    heading: str,
+    details: list[str],
+) -> Path:
+    relpath = _journal_relpath(task.task_id)
+    path = worktree_path / relpath
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path.exists():
+        path.write_text(
+            (
+                f"# Task Journal: {task.task_id}\n\n"
+                f"- Title: {task.title}\n"
+                f"- Task type: {task.task_type}\n"
+                f"- Issue: {task.issue_url or 'n/a'}\n"
+                f"- Scope: {', '.join(task.scope_paths) if task.scope_paths else 'not restricted'}\n\n"
+            ),
+            encoding="utf-8",
+        )
+
+    timestamp = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+    body = [f"## {timestamp} | Session {session_idx + 1} | {heading}", ""]
+    body.extend(f"- {line}" for line in details)
+    body.append("")
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write("\n".join(body))
+    return relpath
+
+
+def _commit_paths_and_push(
+    config: ManagerConfig,
+    worktree_path: Path,
+    branch_name: str,
+    *,
+    paths: list[Path],
+    message: str,
+) -> bool:
+    if not paths:
+        return False
+    subprocess.run(["git", "add", "--", *[str(path) for path in paths]], cwd=str(worktree_path), check=False)
+    diff = subprocess.run(["git", "diff", "--cached", "--quiet", "--", *[str(path) for path in paths]], cwd=str(worktree_path), check=False)
+    if diff.returncode == 0:
+        return False
+    commit = subprocess.run(
+        ["git", "commit", "-m", message, "--", *[str(path) for path in paths]],
+        cwd=str(worktree_path),
+        check=False,
+    )
+    if commit.returncode != 0:
+        return False
+    if config.auto_push:
+        subprocess.run(["git", "push", "-u", "origin", branch_name], cwd=str(worktree_path), check=False)
+    return True
 
 
 def _auto_commit_and_push(config: ManagerConfig, worktree_path: Path, branch_name: str, task: TaskSpec) -> None:
@@ -118,10 +180,20 @@ def _enqueue_followups(
 
 
 def _make_prompt(task: TaskSpec, session_idx: int, followups_file: Path) -> str:
+    journal_relpath = _journal_relpath(task.task_id)
     resume = (
         "Read Agents.md, NEXT_STEPS.md, and latest reports before coding. "
         "When context is exhausted, update task/report files and let supervisor continue next session. "
         "Do implementation, verification, commit, and push."
+    )
+    commit_rules = (
+        "Commit/push tracking protocol:\n"
+        f"- Keep a durable progress journal in `{journal_relpath}`.\n"
+        "- After every meaningful step, append a short timestamped note to that journal, commit it, and push it even if no code changed.\n"
+        "- When you edit code or docs, commit the changed file immediately after validating that specific file-level slice.\n"
+        "- Prefer one changed file per commit. Only group files when they are truly inseparable for correctness.\n"
+        "- Push after every commit so the remote branch shows the live operation trail.\n"
+        "- Do not wait until task completion to record progress.\n"
     )
     expansion = (
         "Autonomous decomposition protocol:\n"
@@ -139,6 +211,7 @@ def _make_prompt(task: TaskSpec, session_idx: int, followups_file: Path) -> str:
         f"Scope paths: {', '.join(task.scope_paths) if task.scope_paths else 'not restricted'}\n\n"
         f"Primary objective:\n{task.prompt}\n\n"
         f"Continuation protocol:\n{resume}\n"
+        f"{commit_rules}\n"
         f"{expansion}\n"
     )
 
@@ -170,6 +243,24 @@ def run_task(config: ManagerConfig, task: TaskSpec) -> WorkerResult:
             sessions_used = idx + 1
             now = datetime.utcnow().isoformat()
             followups_file = logs_dir / f"session_{idx + 1:03d}.followups.yaml"
+            journal_relpath = _append_task_journal(
+                worktree_path,
+                task,
+                session_idx=idx,
+                heading="session_started",
+                details=[
+                    f"supervisor started session {idx + 1} of {task.max_sessions}",
+                    f"prompt file: {logs_dir / f'session_{idx + 1:03d}.prompt.txt'}",
+                    "agent must commit each meaningful journal/code step and push immediately",
+                ],
+            )
+            _commit_paths_and_push(
+                config,
+                worktree_path,
+                branch_name,
+                paths=[journal_relpath],
+                message=f"auto(trace): {task.task_id} session {idx + 1} start",
+            )
             prompt_text = _make_prompt(task, idx, followups_file)
             prompt_file = logs_dir / f"session_{idx + 1:03d}.prompt.txt"
             stdout_file = logs_dir / f"session_{idx + 1:03d}.stdout.log"
@@ -221,6 +312,29 @@ def run_task(config: ManagerConfig, task: TaskSpec) -> WorkerResult:
                 duration_seconds=result.duration_seconds,
                 stdout_path=str(stdout_file),
                 stderr_path=str(stderr_file),
+            )
+            session_detail = [
+                f"return_code: {result.return_code}",
+                f"duration_seconds: {result.duration_seconds:.1f}",
+                f"timed_out: {result.timed_out}",
+            ]
+            if result.return_code != 0:
+                session_detail.append("result: session_failed_or_incomplete")
+            else:
+                session_detail.append("result: session_completed")
+            journal_relpath = _append_task_journal(
+                worktree_path,
+                task,
+                session_idx=idx,
+                heading="session_finished",
+                details=session_detail,
+            )
+            _commit_paths_and_push(
+                config,
+                worktree_path,
+                branch_name,
+                paths=[journal_relpath],
+                message=f"auto(trace): {task.task_id} session {idx + 1} finish",
             )
 
             if result.return_code != 0:
