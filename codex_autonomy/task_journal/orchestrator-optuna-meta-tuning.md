@@ -238,3 +238,12 @@ orchestrator_stack/ARCHITECTURE_EXPLAINED.md:78:- **Transparency:** Every critic
 - RLlib environment integration is intentionally untouched in this slice.
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:25:01Z | Session 1 | heartbeat
+
+- elapsed_seconds: 49
+- stdout_chars: 0
+- stderr_chars: 69986
+- excerpt: orchestrator_stack/orchestrator/cli.py:134:    p_full = sub.add_parser("full-process")
+orchestrator_stack/MILESTONE_JOURNEY.md:7:- Add CLI to run train/execute/tune flows
+- worktree_status:
+-   ?? .venv
