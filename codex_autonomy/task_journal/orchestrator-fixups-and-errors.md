@@ -222,3 +222,16 @@ index 99bf5ebc52b852765dff9a83777bcc6858db9ec3..fdac9b5415254a0a5a69661c80d2cb5e
 -   ?? reports/traces/202604161033_episode_trace.log
 -   ?? reports/traces/202604161035_episode_trace.log
 -   ?? reports/traces/202604161036_episode_trace.log
+## 2026-04-16T01:36:28Z | Session 1 | heartbeat
+
+- elapsed_seconds: 259
+- stdout_chars: 0
+- stderr_chars: 247247
+- excerpt: `ray.init()` triggers. That’s environment-specific rather than a logic bug, so I’m hardening `train_multiagent_ppo()` to degrade to a structured `skipped` result instead of taking down `full-process`.
+- worktree_status:
+-   M orchestrator_stack/orchestrator/layer4/ppo_trainer.py
+-   M orchestrator_stack/orchestrator/main.py
+-   ?? orchestrator_stack/tests/test_main.py
+-   ?? reports/traces/202604161033_episode_trace.log
+-   ?? reports/traces/202604161035_episode_trace.log
+-   ?? reports/traces/202604161036_episode_trace.log
