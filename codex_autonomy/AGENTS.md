@@ -30,6 +30,8 @@
 - Branch per task: `auto/<task-id>`
 - Worktree per task under `runtime/worktrees`
 - Commit and push after meaningful changes.
+- During active execution, append tracked progress notes to `codex_autonomy/task_journal/<task-id>.md` and push them so the remote branch shows live operation history even when no code changed.
+- During active execution, commit code/doc changes immediately at file granularity when practical; do not batch unrelated files until session end.
 - Archive task files after completion/failure.
 - For autonomy-runner code changes, keep near per-file commits where practical.
 

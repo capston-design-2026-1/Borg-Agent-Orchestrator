@@ -13,6 +13,7 @@ Local supervisor to run Codex sessions continuously with task queueing, session 
 - Watchdog auto-recovery for stuck `running` tasks and orphan `codex exec` processes
 - Persistent event/session logs in SQLite (`codex_autonomy/runtime/state.db`)
 - Live in-session heartbeat/progress rows in SQLite (`session_progress` table)
+- Tracked per-task journals under `codex_autonomy/task_journal/<task-id>.md` so remote branches show progress even when a session only records analysis/status work
 - Auto-generated healing/upgrade tasks from lint/test/upgrade scanners
 - Automatic archive of completed/failed task specs
 - GitHub issue/PR automation with optional auto-merge (`gh` CLI)
@@ -121,6 +122,12 @@ For a single copy-safe numbered tracking/recovery checklist, use:
 - Worker prompts instruct Codex to generate follow-up task specs when it discovers new feature slices or bugs.
 - Follow-up specs are read from runtime log YAML and enqueued automatically.
 - Each generated follow-up task gets its own branch/issue/PR lifecycle, enabling incremental small PRs over time.
+
+## Live Commit Trail
+
+- Supervisor writes session start/finish entries to `codex_autonomy/task_journal/<task-id>.md` on the task branch and pushes them immediately.
+- Worker prompts require Codex to append journal notes during execution, commit each meaningful step, and push after every commit.
+- For code edits, the default rule is one changed file per commit when practical so remote history exposes file-level progress.
 
 ## Self-Healing Recovery Rules
 

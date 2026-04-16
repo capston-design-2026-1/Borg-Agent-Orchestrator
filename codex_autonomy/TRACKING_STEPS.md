@@ -54,6 +54,11 @@ tail -f "$LATEST_STDERR" "$LATEST_STDOUT"
 - `out=0` is acceptable; many Codex runs primarily emit to stderr.
 - Increasing `err` can still be healthy when the stream is progress text, git output, or patches.
 
+## 7.1) Inspect remote-visible task journal progress
+
+- Each autonomous task branch should update `codex_autonomy/task_journal/<task-id>.md` during execution.
+- Session start/end markers are pushed by the supervisor; additional entries should appear as the agent commits intermediate steps.
+
 ## 8) Recovery if manager is down or task is stale
 
 ```bash
