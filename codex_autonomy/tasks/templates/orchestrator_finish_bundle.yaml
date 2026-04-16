@@ -21,8 +21,7 @@ tasks:
     title: "Orchestrator: simulator layer and feature extraction"
     task_type: feature
     priority: 20
-    dependencies:
-      - orchestrator-ingestion-trace-path
+    dependencies: []
     scope_paths:
       - orchestrator_stack/
       - reports/
@@ -39,8 +38,7 @@ tasks:
     title: "Orchestrator: XGBoost predictor observation integration"
     task_type: feature
     priority: 30
-    dependencies:
-      - orchestrator-simulator-features
+    dependencies: []
     scope_paths:
       - orchestrator_stack/
       - reports/
@@ -57,8 +55,7 @@ tasks:
     title: "Orchestrator: RLlib PPO multi-agent and referee conflict logic"
     task_type: feature
     priority: 40
-    dependencies:
-      - orchestrator-xgboost-observation
+    dependencies: []
     scope_paths:
       - orchestrator_stack/
       - reports/
@@ -75,8 +72,7 @@ tasks:
     title: "Orchestrator: Optuna meta-optimizer tuning integration"
     task_type: feature
     priority: 50
-    dependencies:
-      - orchestrator-rllib-referee
+    dependencies: []
     scope_paths:
       - orchestrator_stack/
       - reports/
@@ -93,8 +89,7 @@ tasks:
     title: "Orchestrator: global scoreboard and feedback loop"
     task_type: feature
     priority: 60
-    dependencies:
-      - orchestrator-optuna-meta-tuning
+    dependencies: []
     scope_paths:
       - orchestrator_stack/
       - reports/
@@ -111,8 +106,7 @@ tasks:
     title: "Orchestrator: targeted bug fixes and resiliency"
     task_type: bug
     priority: 70
-    dependencies:
-      - orchestrator-scoreboard-feedback
+    dependencies: []
     scope_paths:
       - orchestrator_stack/
       - codex_autonomy/
@@ -130,8 +124,7 @@ tasks:
     title: "Orchestrator: end-to-end final gate and docs sync"
     task_type: chore
     priority: 80
-    dependencies:
-      - orchestrator-fixups-and-errors
+    dependencies: []
     scope_paths:
       - orchestrator_stack/
       - codex_autonomy/
