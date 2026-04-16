@@ -413,3 +413,11 @@ NEXT_STEPS.md
 - excerpt: __all__ = ["Scoreboard"]
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:31:51Z | Session 1 | heartbeat
+
+- elapsed_seconds: 146
+- stdout_chars: 0
+- stderr_chars: 137620
+- excerpt:  centered on a reusable feedback-loop helper and scoreboard-derived observation features, then I’ll update the episode and RL paths to use the same loop instead of each carrying its own local variant.
+- worktree_status:
+-   ?? .venv
