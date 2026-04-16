@@ -54,6 +54,16 @@ def load_tasks(queue_dir: Path) -> list[TaskSpec]:
     return list(by_id.values())
 
 
+def load_tasks_from_dir(task_dir: Path) -> list[TaskSpec]:
+    by_id: dict[str, TaskSpec] = {}
+    for path in sorted(task_dir.glob("*.yaml")):
+        raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        task = _task_from_raw(raw)
+        existing = by_id.get(task.task_id)
+        by_id[task.task_id] = task if existing is None else _prefer_task(existing, task)
+    return list(by_id.values())
+
+
 def save_task(queue_dir: Path, task: TaskSpec) -> Path:
     queue_dir.mkdir(parents=True, exist_ok=True)
     task.updated_at = datetime.utcnow().isoformat()
@@ -71,6 +81,22 @@ def save_task(queue_dir: Path, task: TaskSpec) -> Path:
     return path
 
 
+def save_task_to_dir(task_dir: Path, task: TaskSpec) -> Path:
+    task_dir.mkdir(parents=True, exist_ok=True)
+    task.updated_at = datetime.utcnow().isoformat()
+    payload = asdict(task)
+    payload["status"] = task.status.value
+    path = task_dir / f"{task.task_id}.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    for other in task_dir.glob("*.yaml"):
+        if other == path:
+            continue
+        raw = yaml.safe_load(other.read_text(encoding="utf-8")) or {}
+        if str(raw.get("task_id", "")) == task.task_id:
+            other.unlink(missing_ok=True)
+    return path
+
+
 def archive_task(queue_dir: Path, archive_dir: Path, task_id: str) -> None:
     source = queue_dir / f"{task_id}.yaml"
     if not source.exists():
@@ -79,6 +105,17 @@ def archive_task(queue_dir: Path, archive_dir: Path, task_id: str) -> None:
     timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
     target = archive_dir / f"{timestamp}_{task_id}.yaml"
     source.replace(target)
+
+
+def move_task(task_id: str, *, source_dir: Path, target_dir: Path) -> Path | None:
+    source = source_dir / f"{task_id}.yaml"
+    if not source.exists():
+        return None
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / source.name
+    target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+    source.unlink()
+    return target
 
 
 def dependency_satisfied(task: TaskSpec, all_tasks: dict[str, TaskSpec]) -> bool:

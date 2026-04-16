@@ -62,6 +62,7 @@ class GitHubFlowConfig:
 class ManagerConfig:
     repo_root: Path
     queue_dir: Path
+    deferred_dir: Path
     archive_dir: Path
     runtime_dir: Path
     state_db_path: Path
@@ -89,6 +90,7 @@ def load_config(path: str | Path) -> ManagerConfig:
 
     repo_root = _path(cwd, raw.get("repo_root", "."))
     queue_dir = _path(repo_root, raw.get("queue_dir", "codex_autonomy/tasks/queue"))
+    deferred_dir = _path(repo_root, raw.get("deferred_dir", "codex_autonomy/tasks/deferred"))
     archive_dir = _path(repo_root, raw.get("archive_dir", "codex_autonomy/tasks/archive"))
     runtime_dir = _path(repo_root, raw.get("runtime_dir", "codex_autonomy/runtime"))
     state_db_path = _path(repo_root, raw.get("state_db_path", "codex_autonomy/runtime/state.db"))
@@ -102,6 +104,7 @@ def load_config(path: str | Path) -> ManagerConfig:
     return ManagerConfig(
         repo_root=repo_root,
         queue_dir=queue_dir,
+        deferred_dir=deferred_dir,
         archive_dir=archive_dir,
         runtime_dir=runtime_dir,
         state_db_path=state_db_path,

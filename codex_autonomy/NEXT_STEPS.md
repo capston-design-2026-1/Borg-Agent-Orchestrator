@@ -11,3 +11,4 @@
 9. Expose `session_progress` heartbeat rows in dashboard so active work is visible before session completion.
 10. Keep launchd guardian installed in local environments so manager is auto-restarted and runtime remains continuously active.
 11. Keep `.venv` local and rebuild it immediately if it ever becomes a broken symlink; guardian launchd now selects a usable Python automatically, but worker commands still assume a valid repo-root virtualenv.
+12. Extend `status` output to show active-queue vs deferred-cooldown counts so operators can distinguish blocked cooldown work from runnable work at a glance.

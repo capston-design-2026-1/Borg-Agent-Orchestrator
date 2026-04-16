@@ -7,6 +7,7 @@ Local supervisor to run Codex sessions continuously with task queueing, session 
 - Endless manager loop (`run` command)
 - Always-on guardian loop that keeps manager alive (`run_guardian.py`)
 - Task queue in `codex_autonomy/tasks/queue/*.yaml`
+- Cooldown/deferred queue in `codex_autonomy/tasks/deferred/*.yaml`
 - Task templates in `codex_autonomy/tasks/templates/*.yaml`
 - Parallel independent execution with `git worktree` branches (`auto/<task-id>`)
 - Session rollover per task when one session budget is exhausted
@@ -115,7 +116,7 @@ For a single copy-safe numbered tracking/recovery checklist, use:
 - Each task has `max_sessions`
 - If not done after one session, task is re-queued (`pending`) and resumed in next session
 - If retries exceed `max_retries`, task is marked failed and archived
-- If Codex returns quota/rate-limit errors, task is auto re-queued with a cooldown (`metadata.not_before_epoch`) and resumes automatically after wait time
+- If Codex returns quota/rate-limit errors, task is moved out of the active queue into `tasks/deferred` with a cooldown (`metadata.not_before_epoch`) and is revived automatically after wait time
 
 ## Dynamic Task/PR Decomposition
 

@@ -9,6 +9,8 @@ cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 ./.venv/bin/python codex_autonomy/scripts/run_daemon.py status --config codex_autonomy/config/autonomy.local.yaml --limit 30
 ```
 
+- Cooldown tasks should not remain in the active queue; they should appear under `codex_autonomy/tasks/deferred/` until reactivation time.
+
 ## 2) Verify core processes are alive
 
 ```bash
