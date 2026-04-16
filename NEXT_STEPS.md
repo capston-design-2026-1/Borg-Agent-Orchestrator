@@ -26,6 +26,7 @@ Read Agents.md, NEXT_STEPS.md, MAS_ARCHITECTURE.md, and README.md, inspect the l
 - Default working clusters: `b`, `c`, `d`, `e`, `f`, `g`
 - Excluded by default: `a`, `h`
 - Orchestrator Layer 1 ingestion path now enforces stricter row-by-row schema validation for metrics -> trace build and trace `.json/.jsonl` load contracts, including bool-like coercion checks, non-negative queue fields, positive bucket interval checks, and missing-source detection (implemented 2026-04-15 KST in `orchestrator_stack/`).
+- Orchestrator Layer 2 now normalizes AIOpsLab-style nested simulator payloads into the shared `Observation` contract for replay and feature extraction, and the fallback AIOpsLab backend now simulates stateful steps locally; direct upstream package/session validation remains open, and this worktree runtime still cannot run repo pytest because `.venv` is a self-referential symlink while system `python3` is missing `numpy` and `pytest` (2026-04-16 KST).
 
 ## Pipeline Status
 
@@ -207,7 +208,7 @@ The immediate next engineering work is now to let the advanced flatten run compl
 
 Parallel immediate track:
 
-1. Continue `orchestrator_stack/` from `orchestrator_stack/NEXT_STEPS.md` by replacing adapter shells with full AIOpsLab API integration.
+1. Continue `orchestrator_stack/` from `orchestrator_stack/NEXT_STEPS.md` by validating the live AIOpsLab adapter against the actual upstream package/session API and then replacing the current AIOpsLab-style fallback assumptions with a confirmed contract.
 2. Wire RLlib PPO policies into `orchestrator_stack/orchestrator/layer4/rllib_env.py` (replace current heuristic action source).
 3. Add timestamped orchestrator evaluation reports in `reports/` as Optuna studies begin.
 

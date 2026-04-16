@@ -5,6 +5,8 @@ from pathlib import Path
 
 import numpy as np
 
+from orchestrator.layer2.feature_extractor import FEATURE_COUNT
+
 
 OUT_DIR = Path(__file__).resolve().parent
 
@@ -43,15 +45,23 @@ def _build_sample_metrics(path: Path) -> None:
 
 def main() -> None:
     rng = np.random.default_rng(42)
-    x_risk = rng.uniform(0, 1, size=(4000, 6)).astype(np.float32)
-    y_risk = ((0.45 * x_risk[:, 0] + 0.35 * x_risk[:, 1] + 0.1 * x_risk[:, 4] + 0.1 * x_risk[:, 5]) > 0.62).astype(
-        np.int32
-    )
+    x_risk = rng.uniform(0, 1, size=(4000, FEATURE_COUNT)).astype(np.float32)
+    y_risk = (
+        (0.35 * x_risk[:, 0] + 0.25 * x_risk[:, 1] + 0.15 * x_risk[:, 4] + 0.15 * x_risk[:, 5] + 0.1 * x_risk[:, 6])
+        > 0.62
+    ).astype(np.int32)
     np.savez(OUT_DIR / "risk_train.npz", x=x_risk, y=y_risk)
 
-    x_dem = rng.uniform(0, 1, size=(4000, 6)).astype(np.float32)
+    x_dem = rng.uniform(0, 1, size=(4000, FEATURE_COUNT)).astype(np.float32)
     y_dem = (
-        0.35 * x_dem[:, 0] + 0.35 * x_dem[:, 1] + 0.2 * x_dem[:, 3] + 0.1 * x_dem[:, 4] + rng.normal(0, 0.03, 4000)
+        0.25 * x_dem[:, 0]
+        + 0.25 * x_dem[:, 1]
+        + 0.15 * x_dem[:, 3]
+        + 0.15 * x_dem[:, 4]
+        + 0.1 * x_dem[:, 5]
+        + 0.05 * x_dem[:, 6]
+        - 0.05 * x_dem[:, 7]
+        + rng.normal(0, 0.03, 4000)
     ).clip(0, 1).astype(np.float32)
     np.savez(OUT_DIR / "demand_train.npz", x=x_dem, y=y_dem)
 

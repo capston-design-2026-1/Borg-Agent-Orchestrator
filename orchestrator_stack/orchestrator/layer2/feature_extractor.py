@@ -5,7 +5,11 @@ from typing import Any
 
 import numpy as np
 
+from orchestrator.layer1.collector import prometheus_rows_to_trace
+from orchestrator.layer2.simulator import state_to_observation
 from orchestrator.types import Observation
+
+FEATURE_COUNT = 8
 
 
 @dataclass(slots=True)
@@ -15,18 +19,55 @@ class TrainingMatrices:
     y_demand: np.ndarray
 
 
+def _node_lookup(obs: Observation) -> dict[str, Any]:
+    return {node.node_id: node for node in obs.nodes}
+
+
+def _risk_label(current_obs: Observation, next_obs: Observation, node_id: str) -> int:
+    current_node = _node_lookup(current_obs).get(node_id)
+    next_node = _node_lookup(next_obs).get(node_id, current_node)
+    fail_signal = float(next_obs.p_fail_scores.get(node_id, current_obs.p_fail_scores.get(node_id, 0.0)))
+    death_signal = int(any(not task.alive for task in next_obs.tasks if task.node_id == node_id))
+    overloaded_signal = int(
+        next_node is not None
+        and (float(next_node.cpu_util) > 0.9 or float(next_node.mem_util) > 0.9)
+    )
+    return int(fail_signal > 0.75 or death_signal or overloaded_signal)
+
+
+def _demand_target(current_obs: Observation, next_obs: Observation, node_id: str) -> float:
+    next_node = _node_lookup(next_obs).get(node_id)
+    demand = float(
+        next_obs.demand_projection.get(
+            node_id,
+            0.5 * float(next_node.cpu_util) + 0.5 * float(next_node.mem_util) if next_node is not None else 0.0,
+        )
+    )
+    return max(0.0, min(1.0, demand))
+
+
+def _queue_pressure(obs: Observation) -> float:
+    return min(1.0, obs.queue_length / max(1.0, len(obs.tasks) + len(obs.nodes) + 1.0))
+
+
+def _task_pressure(obs: Observation, node_id: str) -> float:
+    live_task_count = sum(1 for task in obs.tasks if task.node_id == node_id and task.alive)
+    return min(1.0, live_task_count / max(1.0, len(obs.tasks) + 1.0))
+
+
 def node_feature_vector(obs: Observation, node_id: str) -> list[float]:
     node = next((n for n in obs.nodes if n.node_id == node_id), None)
     if node is None:
-        return [0.0, 0.0, 0.0, 0.0, 0.0, float(obs.energy_price)]
-    queue_norm = min(1.0, obs.queue_length / max(1.0, len(obs.tasks) + 1.0))
+        return [0.0, 0.0, 0.0, 0.0, 0.0, _queue_pressure(obs), float(obs.energy_price), 0.0]
     return [
         float(node.cpu_util),
         float(node.mem_util),
         float(node.disk_util),
         float(node.net_util),
-        float(queue_norm),
+        _task_pressure(obs, node_id),
+        _queue_pressure(obs),
         float(obs.energy_price),
+        1.0 if node.power_state == "on" else 0.0,
     ]
 
 
@@ -34,50 +75,45 @@ def observation_matrix(obs: Observation) -> tuple[np.ndarray, list[str]]:
     node_ids = [n.node_id for n in obs.nodes]
     rows = [node_feature_vector(obs, node_id) for node_id in node_ids]
     if not rows:
-        rows = [[0.0, 0.0, 0.0, 0.0, 0.0, float(obs.energy_price)]]
+        rows = [[0.0] * (FEATURE_COUNT - 2) + [float(obs.energy_price), 0.0]]
         node_ids = ["unknown-node"]
     return np.asarray(rows, dtype=np.float32), node_ids
 
 
+def _normalize_training_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not rows:
+        return rows
+    first = rows[0]
+    if isinstance(first, dict) and "nodes" not in first and "timestamp" in first:
+        return prometheus_rows_to_trace(rows)
+    return rows
+
+
 def trace_rows_to_training_matrices(rows: list[dict[str, Any]]) -> TrainingMatrices:
+    normalized_rows = _normalize_training_rows(rows)
     x_rows: list[list[float]] = []
     risk_labels: list[int] = []
     demand_targets: list[float] = []
 
-    for idx, row in enumerate(rows):
-        nodes = row.get("nodes", [])
-        queue_length = float(row.get("queue_length", 0.0))
-        energy_price = float(row.get("energy_price", 0.1))
-        next_row = rows[min(idx + 1, len(rows) - 1)]
-        next_nodes_by_id = {str(n.get("node_id", "unknown-node")): n for n in next_row.get("nodes", [])}
-        p_fail_by_id = row.get("p_fail_scores", {})
-        demand_by_id = row.get("demand_projection", {})
+    for idx, row in enumerate(normalized_rows):
+        obs = state_to_observation(row)
+        next_obs = state_to_observation(
+            normalized_rows[min(idx + 1, len(normalized_rows) - 1)],
+            fallback_timestamp=obs.timestamp + 1,
+        )
+        x_matrix, node_ids = observation_matrix(obs)
+        current_nodes_by_id = _node_lookup(obs)
 
-        for node in nodes:
-            node_id = str(node.get("node_id", "unknown-node"))
-            cpu_util = float(node.get("cpu_util", 0.0))
-            mem_util = float(node.get("mem_util", 0.0))
-            disk_util = float(node.get("disk_util", 0.0))
-            net_util = float(node.get("net_util", 0.0))
-            queue_norm = min(1.0, queue_length / max(1.0, len(row.get("tasks", [])) + 1.0))
-            x_rows.append([cpu_util, mem_util, disk_util, net_util, queue_norm, energy_price])
-
-            fail_signal = float(p_fail_by_id.get(node_id, 0.0))
-            death_signal = 1 if row.get("task_death", False) else 0
-            overloaded_signal = 1 if (cpu_util > 0.9 or mem_util > 0.9) else 0
-            risk_labels.append(int(fail_signal > 0.75 or death_signal or overloaded_signal))
-
-            next_node = next_nodes_by_id.get(node_id, node)
-            demand = float(
-                demand_by_id.get(
-                    node_id,
-                    0.5 * float(next_node.get("cpu_util", cpu_util)) + 0.5 * float(next_node.get("mem_util", mem_util)),
-                )
-            )
-            demand_targets.append(max(0.0, min(1.0, demand)))
+        for feature_row, node_id in zip(x_matrix, node_ids, strict=False):
+            node = current_nodes_by_id.get(node_id)
+            if node is None:
+                continue
+            x_rows.append(feature_row.tolist() if hasattr(feature_row, "tolist") else list(feature_row))
+            risk_labels.append(_risk_label(obs, next_obs, node_id))
+            demand_targets.append(_demand_target(obs, next_obs, node_id))
 
     if not x_rows:
-        x_rows = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.1]]
+        x_rows = [[0.0] * (FEATURE_COUNT - 2) + [0.1, 0.0]]
         risk_labels = [0]
         demand_targets = [0.0]
 
