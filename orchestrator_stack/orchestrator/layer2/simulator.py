@@ -121,6 +121,10 @@ def _node_metric(node: Any, *keys: str, default: float = 0.0) -> float:
             )
             nested = _state_value(container, *candidates)
             if nested is not None:
+                if isinstance(nested, dict):
+                    nested_value = _state_value(nested, "utilization", "usage", "used_ratio", "ratio", "percent", "value")
+                    if nested_value is not None:
+                        return _normalize_ratio(nested_value, default)
                 return _normalize_ratio(nested, default)
             sub_mapping = _as_mapping(_state_value(container, key.replace("_util", "")))
             sub_value = _state_value(sub_mapping, "utilization", "usage", "used_ratio", "ratio", "percent", "value")
