@@ -397,3 +397,11 @@ NEXT_STEPS.md
 +    assert scoreboard.latest_feedback() is None
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:31:27Z | Session 1 | heartbeat
+
+- elapsed_seconds: 122
+- stdout_chars: 0
+- stderr_chars: 136990
+- excerpt: ought and reimplements the loop in multiple places. I’m patching a single Layer 6 feedback-loop abstraction and wiring RL observations to include scoreboard context so the loop is actually end to end.
+- worktree_status:
+-   ?? .venv
