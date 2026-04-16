@@ -150,3 +150,14 @@ gymnasium missing ModuleNotFoundError No module named 'gymnasium'
 - excerpt: now. The first patch is the referee itself plus env/trainer call sites so conflict resolution can use the live observation and the RL env stops hiding missing policy actions behind heuristic defaults.
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:21:26Z | Session 1 | heartbeat
+
+- elapsed_seconds: 236
+- stdout_chars: 0
+- stderr_chars: 166006
+- excerpt: def _pack_obs(self, obs: Observation) -> dict[str, np.ndarray]:
+- worktree_status:
+-   M orchestrator_stack/orchestrator/layer4/ppo_trainer.py
+-   M orchestrator_stack/orchestrator/layer4/referee.py
+-   M orchestrator_stack/orchestrator/layer4/rllib_env.py
+-   ?? .venv
