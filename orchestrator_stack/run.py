@@ -22,6 +22,7 @@ RUNTIME = ROOT / "runtime"
 os.environ.setdefault("RAY_TMPDIR", str(RUNTIME / "ray_tmp"))
 os.environ.setdefault("RAY_AIR_LOCAL_CACHE_DIR", str(RUNTIME / "ray_air"))
 os.environ.setdefault("TUNE_RESULT_DIR", str(RUNTIME / "rllib"))
+os.environ.setdefault("RAY_ENABLE_UV_RUN_RUNTIME_ENV", "0")
 
 from orchestrator.cli import main  # noqa: E402
 

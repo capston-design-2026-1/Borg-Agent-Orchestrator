@@ -132,6 +132,10 @@ def run_policy_training(config: OrchestratorConfig, output_dir: str | Path) -> d
         gamma=config.gamma,
         learning_rate=config.ppo_learning_rate,
         train_iters=config.rllib_train_iters,
+        train_batch_size=config.ppo_train_batch_size,
+        minibatch_size=config.ppo_minibatch_size,
+        num_epochs=config.ppo_num_epochs,
+        rollout_fragment_length=config.ppo_rollout_fragment_length,
         output_dir=output_dir,
     )
 
@@ -152,6 +156,10 @@ def tune_reward_layer(config: OrchestratorConfig, *, trials: int) -> dict[str, A
             gamma=gamma,
             rllib_train_iters=config.rllib_train_iters,
             ppo_learning_rate=config.ppo_learning_rate,
+            ppo_train_batch_size=config.ppo_train_batch_size,
+            ppo_minibatch_size=config.ppo_minibatch_size,
+            ppo_num_epochs=config.ppo_num_epochs,
+            ppo_rollout_fragment_length=config.ppo_rollout_fragment_length,
             optuna_storage_path=config.optuna_storage_path,
         )
         return run_episode(trial_cfg, verbose=False).total_score
@@ -168,17 +176,43 @@ def tune_reward_layer(config: OrchestratorConfig, *, trials: int) -> dict[str, A
 def tune_policy_and_reward_layer(config: OrchestratorConfig, *, trials: int) -> dict[str, Any]:
     rows = load_trace_rows(ensure_trace_exists(config))
 
-    def objective(alpha: float, beta: float, gamma: float, learning_rate: float) -> float:
+    def objective(
+        alpha: float,
+        beta: float,
+        gamma: float,
+        learning_rate: float,
+        train_batch_size: int,
+        minibatch_size: int,
+        num_epochs: int,
+        rollout_fragment_length: int,
+    ) -> float:
         backend = _build_backend(rows, config)
-        eval_summary = evaluate_heuristic_policy(
+        trial_output = config.optuna_storage_path.parent / "rllib_trials"
+        training_summary = train_multiagent_ppo(
             backend,
+            alpha=alpha,
+            beta=beta,
+            gamma=gamma,
+            learning_rate=learning_rate,
+            train_iters=config.rllib_train_iters,
+            train_batch_size=train_batch_size,
+            minibatch_size=minibatch_size,
+            num_epochs=num_epochs,
+            rollout_fragment_length=rollout_fragment_length,
+            output_dir=trial_output,
+        )
+        if training_summary.get("status") != "trained":
+            raise RuntimeError(str(training_summary.get("reason", "RLlib training did not complete")))
+
+        eval_backend = _build_backend(rows, config)
+        eval_summary = evaluate_heuristic_policy(
+            eval_backend,
             alpha=alpha,
             beta=beta,
             gamma=gamma,
             steps=config.episode_steps,
         )
-        # Heuristic proxy objective keeps this stage executable without mandatory RLlib runtime.
-        return float(eval_summary["total_score"]) - (learning_rate * 10.0)
+        return float(training_summary["episode_reward_mean"]) + (float(eval_summary["total_score"]) * 0.05)
 
     try:
         result = tune_policy_and_rewards(
@@ -195,6 +229,10 @@ def tune_policy_and_reward_layer(config: OrchestratorConfig, *, trials: int) -> 
             "beta": config.beta,
             "gamma": config.gamma,
             "learning_rate": config.ppo_learning_rate,
+            "train_batch_size": config.ppo_train_batch_size,
+            "minibatch_size": config.ppo_minibatch_size,
+            "num_epochs": config.ppo_num_epochs,
+            "rollout_fragment_length": config.ppo_rollout_fragment_length,
         }
 
 
