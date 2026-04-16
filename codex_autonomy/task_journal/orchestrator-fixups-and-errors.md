@@ -88,3 +88,12 @@ orchestrator_stack/examples/sample_trace.json
 orchestrator_stack/config/orchestrator.example.json:5:  "demand_model_path": "orchestrator_stack/examples/models/demand_model.json",
 - worktree_status:
 -   clean
+## 2026-04-16T01:33:46Z | Session 1 | heartbeat
+
+- elapsed_seconds: 96
+- stdout_chars: 0
+- stderr_chars: 103196
+- excerpt: assert cpu_by_node["n2"] > 0.35
+    assert result.reward_by_agent["AgentA"] > 10.0
+- worktree_status:
+-   clean
