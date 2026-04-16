@@ -114,3 +114,12 @@ orchestrator_stack/config/orchestrator.example.json:5:  "demand_model_path": "or
 PermissionError: [Errno 1] Operation not permitted: '/Users/theokim/ray_results/2026-04-16_10-33-54zlk_anyz'
 - worktree_status:
 -   ?? reports/traces/202604161033_episode_trace.log
+## 2026-04-16T01:34:11Z | Session 1 | heartbeat
+
+- elapsed_seconds: 121
+- stdout_chars: 0
+- stderr_chars: 131562
+- excerpt: PO checkpoints are written under `orchestrator_stack/runtime/rllib`.
+orchestrator_stack/config/orchestrator.example.json:13:  "optuna_storage_path": "orchestrator_stack/runtime/optuna/orchestrator.db"
+- worktree_status:
+-   ?? reports/traces/202604161033_episode_trace.log
