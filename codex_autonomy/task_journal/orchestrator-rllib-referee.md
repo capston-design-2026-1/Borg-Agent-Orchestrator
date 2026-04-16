@@ -322,3 +322,13 @@ codex
 - excerpt: ayer 4 files now. The main change is adding a structured referee decision path that keeps the backend on one action while giving RLlib explicit visibility into which proposals were overridden and why.
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:26:05Z | Session 1 | heartbeat
+
+- elapsed_seconds: 113
+- stdout_chars: 0
+- stderr_chars: 103088
+- excerpt: +def resolve(actions: list[AgentAction]) -> AgentAction:
++    return resolve_with_context(actions).action
+- worktree_status:
+-   M orchestrator_stack/orchestrator/layer4/referee.py
+-   ?? .venv
