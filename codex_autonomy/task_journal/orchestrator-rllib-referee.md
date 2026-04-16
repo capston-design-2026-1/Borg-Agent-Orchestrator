@@ -454,3 +454,18 @@ codex
 -   ?? .venv
 -   ?? orchestrator_stack/tests/test_rllib_env.py
 -   ?? reports/milestones/202604161027_orchestrator_rllib_referee_session1.md
+## 2026-04-16T01:28:07Z | Session 1 | heartbeat
+
+- elapsed_seconds: 235
+- stdout_chars: 0
+- stderr_chars: 358894
+- excerpt: lidation under a Ray+pytest-capable environment. I’m attempting to record it in the required follow-up YAML path now; if the sandbox blocks that external log path again, I’ll call that out explicitly.
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
+-   M orchestrator_stack/orchestrator/layer4/__init__.py
+-   M orchestrator_stack/orchestrator/layer4/referee.py
+-   M orchestrator_stack/orchestrator/layer4/rllib_env.py
+-   M orchestrator_stack/tests/test_referee.py
+-   ?? .venv
+-   ?? orchestrator_stack/tests/test_rllib_env.py
+-   ?? reports/milestones/202604161027_orchestrator_rllib_referee_session1.md
