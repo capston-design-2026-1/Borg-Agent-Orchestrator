@@ -21,12 +21,12 @@ Read Agents.md, NEXT_STEPS.md, MAS_ARCHITECTURE.md, and README.md, inspect the l
 - Isolated full orchestrator track: `orchestrator_stack/` (new, dedicated)
 - Orchestrator Mermaid architecture is now tracked at `orchestrator_stack/ARCHITECTURE.md`
 - Orchestrator CLI now supports full flow: `build-trace -> train-brains -> run -> full-process`
-- Orchestrator full-process now runs with real Ray PPO + Optuna in repo `.venv` (smoke profile)
+- Orchestrator full-process now passes in repo `.venv` with the smoke profile; in this macOS sandbox the PPO stage returns a structured `"skipped"` result when Ray cannot inspect local processes/start its local runtime, while the rest of the flow and both Optuna stages complete successfully
 - Codex autonomy runner is now available under `codex_autonomy/` for continuous multi-session execution
 - Default working clusters: `b`, `c`, `d`, `e`, `f`, `g`
 - Excluded by default: `a`, `h`
 - Orchestrator Layer 1 ingestion path now enforces stricter row-by-row schema validation for metrics -> trace build and trace `.json/.jsonl` load contracts, including bool-like coercion checks, non-negative queue fields, positive bucket interval checks, and missing-source detection (implemented 2026-04-15 KST in `orchestrator_stack/`).
-- Orchestrator Layer 2 now normalizes AIOpsLab-style nested simulator payloads into the shared `Observation` contract for replay and feature extraction, and the fallback AIOpsLab backend now simulates stateful steps locally; direct upstream package/session validation remains open, and this worktree runtime still cannot run repo pytest because `.venv` is a self-referential symlink while system `python3` is missing `numpy` and `pytest` (2026-04-16 KST).
+- Orchestrator Layer 2 now normalizes AIOpsLab-style nested simulator payloads into the shared `Observation` contract for replay and feature extraction, and the fallback AIOpsLab backend now simulates stateful steps locally; direct upstream package/session validation remains open, and this worktree runtime still cannot run repo pytest because `pytest` is not installed in the repo `.venv` (2026-04-16 KST).
 
 ## Pipeline Status
 

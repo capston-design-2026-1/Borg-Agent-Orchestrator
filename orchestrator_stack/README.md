@@ -107,9 +107,13 @@ This runs Layer 1 through Layer 6 in one go using the project virtual environmen
 ```bash
 ./.venv/bin/python orchestrator_stack/run.py full-process \
   --config orchestrator_stack/config/orchestrator.example.json \
-  --trials 3
+  --trials 1
 ```
-After completion, check `reports/` for a KST-timestamped Optuna report (e.g., `202604142115_optuna_*.md`).
+Tested on `2026-04-16` with `--trials 1` in this worktree:
+
+- trace/model training, episode replay, reward tuning, and policy+reward tuning completed successfully
+- PPO now keeps Ray result storage under `orchestrator_stack/runtime/rllib`, but in restricted macOS sandbox runtimes it may return `"status": "skipped"` instead of failing the whole command if Ray cannot inspect local processes/start a local cluster
+- successful tuning artifacts from that gate run were written to `reports/tuning/202604161043_optuna_orchestrator_reward_weights.md` and `reports/tuning/202604161043_optuna_orchestrator_policy_and_rewards.md`
 
 ### 2. Run a Manual Episode (Sim Loop)
 ```bash
@@ -142,4 +146,6 @@ To see more training logs from Ray RLlib, increase the `"rllib_train_iters"` val
 
 - The default config uses `rllib_train_iters=1` for fast local smoke tests.
 - Optuna studies are persisted at `orchestrator_stack/runtime/optuna/orchestrator.db`.
-- PPO checkpoints are written under `orchestrator_stack/runtime/rllib`.
+- PPO checkpoints/results are written under `orchestrator_stack/runtime/rllib` when Ray starts successfully.
+- In restricted macOS sandbox runtimes, RLlib PPO startup may be skipped with a structured reason string instead of aborting `full-process`; this is the current tested behavior of the final gate command.
+- `pytest` is not currently installed in the repository `.venv`, so the documented `./.venv/bin/pytest orchestrator_stack/tests/` command still requires an environment repair before it can be used as the normal gate runner.

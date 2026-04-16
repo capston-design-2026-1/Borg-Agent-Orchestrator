@@ -1,10 +1,24 @@
 # Orchestrator Stack Next Steps
 
-1. Validate the live AIOpsLab adapter against the actual upstream package/session API and replace the current multi-method fallback probing with a confirmed contract.
-2. Extend PPO training beyond smoke profile (`rllib_train_iters=1`) and benchmark policy performance over longer episodes.
-3. Add SHAP diagnostics for XGBoost models to provide feature importance transparency.
-4. Add model calibration and threshold optimization for `SafetyRiskForecast`.
-5. Add curriculum training schedule for RLlib PPO multi-agent agents.
+1. Validate RLlib PPO in an unrestricted local runtime so `full-process` returns `"ppo.status": "trained"` instead of the current sandbox-driven `"skipped"` result.
+2. Repair the repo `.venv` test runner state by installing `pytest` and rerun the focused orchestrator test suite.
+3. Validate the live AIOpsLab adapter against the actual upstream package/session API and replace the current multi-method fallback probing with a confirmed contract.
+4. Add SHAP diagnostics for XGBoost models to provide feature importance transparency.
+5. Add model calibration and threshold optimization for `SafetyRiskForecast`.
+6. Add curriculum training schedule for RLlib PPO multi-agent agents.
+
+## Latest Session Note (2026-04-16 KST, end-to-end final gate)
+
+- `./.venv/bin/python orchestrator_stack/run.py full-process --config orchestrator_stack/config/orchestrator.example.json --trials 1` now exits successfully in this worktree.
+- Layer 4 PPO startup no longer aborts the gate when Ray cannot create its default home-directory result path or cannot inspect local processes in this sandbox:
+  - RLlib/Tune result storage is pinned to `orchestrator_stack/runtime/rllib`
+  - uv runtime-env auto-detection is disabled for the orchestrator PPO path
+  - PPO now returns a structured `"status": "skipped"` payload if Ray runtime startup is unavailable instead of crashing `full-process`
+- Added focused regression coverage in `orchestrator_stack/tests/test_ppo_trainer.py` for the Ray storage-path pinning helper.
+- Validation run status:
+  - `PYTHONPATH=orchestrator_stack .venv/bin/python -m compileall orchestrator_stack/orchestrator/layer4 orchestrator_stack/tests/test_ppo_trainer.py orchestrator_stack/tests/test_referee.py orchestrator_stack/tests/test_rllib_env.py`: success
+  - `PYTHONPATH=orchestrator_stack:orchestrator_stack/tests .venv/bin/python` smoke invoking `test_ppo_trainer`, `test_referee`, and `test_rllib_env`: success (`layer4-gate-smoke-ok`)
+  - `./.venv/bin/python orchestrator_stack/run.py full-process --config orchestrator_stack/config/orchestrator.example.json --trials 1`: success, with `ppo.status="skipped"` and successful reward/policy Optuna reports in `reports/tuning/202604161043_*`
 
 ## Latest Session Note (2026-04-16 KST, RLlib/referee slice)
 

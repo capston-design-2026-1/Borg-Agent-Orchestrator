@@ -21,7 +21,7 @@ An independent end-to-end orchestrator workspace now exists at `orchestrator_sta
 - Keeps this work isolated from the existing baseline and advanced XGBoost tracks
 - Has dedicated handoff files: `orchestrator_stack/README.md`, `orchestrator_stack/AGENTS.md`, `orchestrator_stack/NEXT_STEPS.md`
 - Mermaid architecture source is tracked at `orchestrator_stack/ARCHITECTURE.md`
-- Repo `.venv` has verified Ray PPO + Optuna runtime support for orchestrator smoke runs
+- Repo `.venv` now passes the orchestrator `full-process` gate command for the smoke profile, with RLlib PPO falling back to a structured `skipped` result when the local Ray runtime is blocked by sandbox/process-inspection constraints
 - Layer 1 ingestion/trace contracts are strict by default (row-indexed schema checks, `.json/.jsonl` contract validation, bool-like and non-negative queue guardrails)
 - Layer 2 now normalizes AIOpsLab-style nested state payloads into the shared `Observation`/feature contract used by simulator replay, live adapters, and XGBoost feature extraction
 - `orchestrator_stack/examples/generate_synthetic_assets.py` now derives sample matrix width from Layer 2 `FEATURE_COUNT`, so synthetic assets stay aligned with simulator/feature changes
