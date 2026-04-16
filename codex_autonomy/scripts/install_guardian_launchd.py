@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -42,6 +43,37 @@ def _plist_content(label: str, python_bin: Path, script_path: Path, config_path:
 """
 
 
+def _supports_yaml(python_bin: Path) -> bool:
+    probe = subprocess.run(
+        [str(python_bin), "-c", "import yaml"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return probe.returncode == 0
+
+
+def _resolve_python_bin(repo_root: Path) -> Path:
+    candidates: list[Path] = []
+    repo_venv = (repo_root / ".venv/bin/python").absolute()
+    candidates.append(repo_venv)
+    current = Path(sys.executable).absolute()
+    if current not in candidates:
+        candidates.append(current)
+
+    for candidate in candidates:
+        if not candidate.exists() or not os.access(candidate, os.X_OK):
+            continue
+        if _supports_yaml(candidate):
+            return candidate
+
+    attempted = ", ".join(str(path) for path in candidates)
+    raise SystemExit(
+        "no usable python interpreter found for guardian launchd install; "
+        f"expected one of [{attempted}] to be executable and import PyYAML"
+    )
+
+
 def _run(args: list[str]) -> None:
     subprocess.run(args, check=False)
 
@@ -53,7 +85,7 @@ def main() -> None:
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parents[2]
-    python_bin = (repo_root / ".venv/bin/python")
+    python_bin = _resolve_python_bin(repo_root)
     script_path = (repo_root / "codex_autonomy/scripts/run_guardian.py").resolve()
     config_path = Path(args.config).resolve()
     log_dir = (repo_root / "codex_autonomy/runtime").resolve()
@@ -62,8 +94,6 @@ def main() -> None:
     launch_agents = Path.home() / "Library/LaunchAgents"
     launch_agents.mkdir(parents=True, exist_ok=True)
     plist_path = launch_agents / f"{args.label}.plist"
-    if not python_bin.exists():
-        raise SystemExit(f"missing venv python: {python_bin}")
     plist_path.write_text(_plist_content(args.label, python_bin, script_path, config_path, log_dir), encoding="utf-8")
 
     uid = str(os.getuid())
