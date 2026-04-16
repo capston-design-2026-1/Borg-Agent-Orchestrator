@@ -202,3 +202,12 @@ I’ve got the code compiling. I’m doing one cleanup pass on the new objective
 ?? .venv
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:24:28Z | Session 1 | heartbeat
+
+- elapsed_seconds: 16
+- stdout_chars: 0
+- stderr_chars: 26566
+- excerpt: - Use Optuna for meta-optimization through `layer5/optuna_tuner.py`
+- Keep version-sensitive notes in `README.md` and update when upstream major features change
+- worktree_status:
+-   ?? .venv
