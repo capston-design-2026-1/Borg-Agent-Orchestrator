@@ -103,6 +103,7 @@ def train_multiagent_ppo(
 def evaluate_heuristic_policy(backend, *, alpha: float, beta: float, gamma: float, steps: int) -> dict[str, float | int]:
     obs = backend.reset()
     scoreboard = Scoreboard(alpha=alpha, beta=beta, gamma=gamma)
+    feedback = None
 
     for _ in range(max(1, steps)):
         action_ids = default_policy_actions(obs)
@@ -111,15 +112,19 @@ def evaluate_heuristic_policy(backend, *, alpha: float, beta: float, gamma: floa
             decode_agent_action("AgentB", action_ids["AgentB"], obs),
             decode_agent_action("AgentC", action_ids["AgentC"], obs),
         ]
-        action = resolve(proposals)
+        action = resolve(proposals, feedback=feedback)
         result = backend.step(action)
-        scoreboard.update(result.reward_by_agent)
+        update = scoreboard.update(result.reward_by_agent)
+        feedback = update.feedback
         obs = result.next_observation
         if result.done:
             break
 
+    snap = scoreboard.snapshot()
     return {
         "steps": len(scoreboard.history),
         "total_score": scoreboard.total(),
         "avg_score": scoreboard.average(),
+        "adjusted_total_score": float(snap["adjusted_total"]),
+        "balance_gap": float(snap["balance_gap"]),
     }

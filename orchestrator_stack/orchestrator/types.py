@@ -74,3 +74,20 @@ class GlobalScore:
             + self.beta * self.raw_rewards.get("AgentB", 0.0)
             + self.gamma * self.raw_rewards.get("AgentC", 0.0)
         )
+
+
+@dataclass(slots=True)
+class ScoreFeedback:
+    global_score: float
+    adjusted_rewards: dict[str, float]
+    agent_weights: dict[str, float]
+    cumulative_by_agent: dict[str, float]
+    recent_by_agent: dict[str, float]
+    dominant_agent: str | None
+    balance_gap: float
+
+
+@dataclass(slots=True)
+class ScoreboardUpdate:
+    score: GlobalScore
+    feedback: ScoreFeedback

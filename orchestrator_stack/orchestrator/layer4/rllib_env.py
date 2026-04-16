@@ -32,6 +32,7 @@ class OrchestratorMultiAgentEnv(MultiAgentEnv):  # type: ignore[misc]
             gamma=float(env_config.get("gamma", 0.8)),
         )
         self._obs: Observation | None = None
+        self._feedback = None
 
         if Box is not None and Discrete is not None:
             self.observation_spaces = {
@@ -46,6 +47,8 @@ class OrchestratorMultiAgentEnv(MultiAgentEnv):  # type: ignore[misc]
             }
 
     def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None):
+        self.scoreboard.reset()
+        self._feedback = None
         self._obs = self.backend.reset()
         packed = self._pack_obs(self._obs)
         return packed, {}
@@ -62,19 +65,26 @@ class OrchestratorMultiAgentEnv(MultiAgentEnv):  # type: ignore[misc]
             decode_agent_action("AgentB", action_ids["AgentB"], self._obs),
             decode_agent_action("AgentC", action_ids["AgentC"], self._obs),
         ]
-        validated = resolve(proposals)
+        validated = resolve(proposals, feedback=self._feedback)
         result: StepResult = self.backend.step(validated)
         self._obs = result.next_observation
 
-        score = self.scoreboard.update(result.reward_by_agent)
+        update = self.scoreboard.update(result.reward_by_agent)
+        self._feedback = update.feedback
         rewards = {
-            "AgentA": score.raw_rewards.get("AgentA", 0.0),
-            "AgentB": score.raw_rewards.get("AgentB", 0.0),
-            "AgentC": score.raw_rewards.get("AgentC", 0.0),
+            "AgentA": update.feedback.adjusted_rewards.get("AgentA", 0.0),
+            "AgentB": update.feedback.adjusted_rewards.get("AgentB", 0.0),
+            "AgentC": update.feedback.adjusted_rewards.get("AgentC", 0.0),
         }
         terminated = {"__all__": result.done, "AgentA": result.done, "AgentB": result.done, "AgentC": result.done}
         truncated = {"__all__": False, "AgentA": False, "AgentB": False, "AgentC": False}
-        infos = {"AgentA": result.info, "AgentB": result.info, "AgentC": result.info}
+        shared_info = {
+            **result.info,
+            "global_score": update.feedback.global_score,
+            "scoreboard": self.scoreboard.snapshot(),
+            "agent_weights": dict(update.feedback.agent_weights),
+        }
+        infos = {"AgentA": shared_info, "AgentB": shared_info, "AgentC": shared_info}
         return self._pack_obs(self._obs), rewards, terminated, truncated, infos
 
     def _pack_obs(self, obs: Observation) -> dict[str, np.ndarray]:

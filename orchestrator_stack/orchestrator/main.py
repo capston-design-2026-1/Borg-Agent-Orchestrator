@@ -24,6 +24,9 @@ class RunSummary:
     steps: int
     total_score: float
     avg_score: float
+    adjusted_total_score: float
+    adjusted_avg_score: float
+    balance_gap: float
     agent_a: float
     agent_b: float
     agent_c: float
@@ -67,6 +70,7 @@ def run_episode(config: OrchestratorConfig, verbose: bool = True) -> RunSummary:
     agent_b = AgentBEfficiencyOptimizer()
     agent_c = AgentCGatekeeper()
     scoreboard = Scoreboard(alpha=config.alpha, beta=config.beta, gamma=config.gamma)
+    feedback = None
 
     obs = backend.reset()
     total_steps = min(config.episode_steps, len(rows))
@@ -86,18 +90,23 @@ def run_episode(config: OrchestratorConfig, verbose: bool = True) -> RunSummary:
         obs.demand_projection = demand_model.predict(obs)
 
         proposals = [agent_a.act(obs), agent_b.act(obs), agent_c.act(obs)]
-        validated_action = resolve(proposals)
+        validated_action = resolve(proposals, feedback=feedback)
 
         result = backend.step(validated_action)
-        scoreboard.update(result.reward_by_agent)
+        update = scoreboard.update(result.reward_by_agent)
+        feedback = update.feedback
 
         p_str = ", ".join([f"{p.agent_name}:{p.kind.value}" for p in proposals if p.kind.value != "noop"])
         ref_str = f"{validated_action.agent_name}:{validated_action.kind.value}"
         rew_str = ", ".join([f"{k}:{v:+.1f}" for k, v in result.reward_by_agent.items()])
-        
-        line = f"Step {step:03d} | Proposals: [{p_str}] | Referee: {ref_str} | Rewards: [{rew_str}]"
+        feedback_str = ", ".join([f"{k}:{v:.2f}" for k, v in update.feedback.agent_weights.items()])
+
+        line = (
+            f"Step {step:03d} | Proposals: [{p_str}] | Referee: {ref_str} | "
+            f"Rewards: [{rew_str}] | Global:{update.feedback.global_score:+.2f} | Weights: [{feedback_str}]"
+        )
         log_buffer.append(line + "\n")
-        
+
         if verbose:
             print(line)
 
@@ -116,6 +125,9 @@ def run_episode(config: OrchestratorConfig, verbose: bool = True) -> RunSummary:
         steps=int(snap["steps"]),
         total_score=float(snap["total"]),
         avg_score=float(snap["average"]),
+        adjusted_total_score=float(snap["adjusted_total"]),
+        adjusted_avg_score=float(snap["adjusted_average"]),
+        balance_gap=float(snap["balance_gap"]),
         agent_a=float(snap["agent_a"]),
         agent_b=float(snap["agent_b"]),
         agent_c=float(snap["agent_c"]),
@@ -178,7 +190,7 @@ def tune_policy_and_reward_layer(config: OrchestratorConfig, *, trials: int) -> 
             steps=config.episode_steps,
         )
         # Heuristic proxy objective keeps this stage executable without mandatory RLlib runtime.
-        return float(eval_summary["total_score"]) - (learning_rate * 10.0)
+        return float(eval_summary["adjusted_total_score"]) - float(eval_summary["balance_gap"]) - (learning_rate * 10.0)
 
     try:
         result = tune_policy_and_rewards(
