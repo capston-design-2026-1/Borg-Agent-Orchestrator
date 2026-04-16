@@ -159,3 +159,16 @@ I’ve got the code compiling. I’m doing one cleanup pass on the new objective
 -   M orchestrator_stack/orchestrator/layer5/optuna_tuner.py
 -   M orchestrator_stack/orchestrator/main.py
 -   ?? .venv
+## 2026-04-16T01:22:39Z | Session 1 | heartbeat
+
+- elapsed_seconds: 308
+- stdout_chars: 0
+- stderr_chars: 201885
+- excerpt: focused tests around the new wiring now: one for the scoreboard reset bug, and one to prove the Optuna objective calls the PPO trainer with tuned RL hyperparameters instead of the old heuristic proxy.
+- worktree_status:
+-   M orchestrator_stack/orchestrator/config.py
+-   M orchestrator_stack/orchestrator/layer4/ppo_trainer.py
+-   M orchestrator_stack/orchestrator/layer4/rllib_env.py
+-   M orchestrator_stack/orchestrator/layer5/optuna_tuner.py
+-   M orchestrator_stack/orchestrator/main.py
+-   ?? .venv
