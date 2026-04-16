@@ -345,3 +345,15 @@ RuntimeError: Timed out waiting for file /tmp/raytmp-orch-gate3/session_2026-04-
 -   ?? reports/traces/202604161038_episode_trace.log
 -   ?? reports/traces/202604161040_episode_trace.log
 -   ?? reports/traces/202604161041_episode_trace.log
+## 2026-04-16T01:43:08Z | Session 1 | heartbeat
+
+- elapsed_seconds: 341
+- stdout_chars: 0
+- stderr_chars: 295644
+- excerpt:  That matches the existing Layer 5 pattern, keeps the command useful in constrained runtimes, and lets the docs state the exact tested behavior instead of overclaiming full RLlib execution everywhere.
+- worktree_status:
+-   M orchestrator_stack/orchestrator/layer4/ppo_trainer.py
+-   ?? orchestrator_stack/tests/test_ppo_trainer.py
+-   ?? reports/traces/202604161038_episode_trace.log
+-   ?? reports/traces/202604161040_episode_trace.log
+-   ?? reports/traces/202604161041_episode_trace.log
