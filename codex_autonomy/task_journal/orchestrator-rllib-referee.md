@@ -210,3 +210,8 @@ gymnasium missing ModuleNotFoundError No module named 'gymnasium'
 -   M orchestrator_stack/tests/test_referee.py
 -   ?? .venv
 -   ?? orchestrator_stack/tests/test_rllib_env.py
+## 2026-04-16T01:24:10Z | Session 1 | session_started
+
+- supervisor started session 1 of 8
+- prompt file: /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator/codex_autonomy/runtime/logs/orchestrator-rllib-referee/session_001.prompt.txt
+- supervisor will publish heartbeat trace commits during execution
