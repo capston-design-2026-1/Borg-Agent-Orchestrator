@@ -219,3 +219,14 @@ PermissionError: [Errno 1] Operation not permitted (originated from sysctl() mal
 -   ?? orchestrator_stack/tests/test_ppo_trainer.py
 -   ?? reports/traces/202604161038_episode_trace.log
 -   ?? reports/traces/202604161040_episode_trace.log
+## 2026-04-16T01:40:42Z | Session 1 | heartbeat
+
+- elapsed_seconds: 195
+- stdout_chars: 0
+- stderr_chars: 225600
+- excerpt: v hook calls `psutil.Process().parents()`, which is what triggers the macOS permission error. I’m patching the PPO trainer to disable that uv hook for this orchestrator run and then retrying the gate.
+- worktree_status:
+-   M orchestrator_stack/orchestrator/layer4/ppo_trainer.py
+-   ?? orchestrator_stack/tests/test_ppo_trainer.py
+-   ?? reports/traces/202604161038_episode_trace.log
+-   ?? reports/traces/202604161040_episode_trace.log
