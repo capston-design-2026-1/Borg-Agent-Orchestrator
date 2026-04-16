@@ -111,3 +111,14 @@ reports/tuning/202604142305_optuna_orchestrator_reward_weights.md
 -   M orchestrator_stack/orchestrator/layer6/scoreboard.py
 -   M orchestrator_stack/orchestrator/types.py
 -   ?? .venv
+## 2026-04-16T01:20:12Z | Session 1 | heartbeat
+
+- elapsed_seconds: 162
+- stdout_chars: 0
+- stderr_chars: 127833
+- excerpt: lf and added unit coverage for feedback shaping and reset behavior. Next I’m threading that feedback into decision resolution and the episode/training loops so the new state actually affects behavior.
+- worktree_status:
+-   M orchestrator_stack/orchestrator/layer6/scoreboard.py
+-   M orchestrator_stack/orchestrator/types.py
+-   M orchestrator_stack/tests/test_scoreboard.py
+-   ?? .venv
