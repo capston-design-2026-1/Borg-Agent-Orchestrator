@@ -172,3 +172,19 @@ I’ve got the code compiling. I’m doing one cleanup pass on the new objective
 -   M orchestrator_stack/orchestrator/layer5/optuna_tuner.py
 -   M orchestrator_stack/orchestrator/main.py
 -   ?? .venv
+## 2026-04-16T01:23:27Z | Session 1 | heartbeat
+
+- elapsed_seconds: 357
+- stdout_chars: 0
+- stderr_chars: 244806
+- excerpt: +    assert result["score"] == 42.0
++    assert result["checkpoint"].endswith("checkpoint_000001")
+- worktree_status:
+-   M orchestrator_stack/config/orchestrator.example.json
+-   M orchestrator_stack/orchestrator/config.py
+-   M orchestrator_stack/orchestrator/layer4/ppo_trainer.py
+-   M orchestrator_stack/orchestrator/layer4/rllib_env.py
+-   M orchestrator_stack/orchestrator/layer5/optuna_tuner.py
+-   M orchestrator_stack/orchestrator/main.py
+-   ?? .venv
+-   ?? orchestrator_stack/tests/test_optuna_integration.py
