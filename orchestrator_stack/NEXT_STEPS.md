@@ -8,6 +8,19 @@
 
 ## Latest Session Note (2026-04-16 KST)
 
+- Layer 5 Optuna tuning now executes a PPO-backed policy objective instead of the previous learning-rate-only heuristic stub:
+  - `tune-policy-rewards` now samples `learning_rate`, `train_batch_size`, `minibatch_size`, `num_epochs`, and a batch-compatible `rollout_fragment_length`.
+  - `run_policy_training()` and the example config now expose the PPO batch/epoch knobs directly.
+  - Layer 4 PPO training now pins Ray trial artifacts under the requested runtime output directory and returns the actual training reward metric plus the resolved PPO hyperparameters.
+  - Added `orchestrator_stack/tests/test_optuna_meta_tuning.py` to verify that Layer 5 forwards sampled RL hyperparameters into `train_multiagent_ppo()` rather than scoring a placeholder objective.
+- Validation run status:
+  - `python3 -m compileall orchestrator_stack/run.py orchestrator_stack/orchestrator/config.py orchestrator_stack/orchestrator/main.py orchestrator_stack/orchestrator/layer4/ppo_trainer.py orchestrator_stack/orchestrator/layer5/optuna_tuner.py orchestrator_stack/tests/test_optuna_meta_tuning.py`: success
+  - `PYTHONPATH=orchestrator_stack ./.venv/bin/python -m unittest orchestrator_stack.tests.test_optuna_meta_tuning`: success
+  - `PYTHONPATH=orchestrator_stack ./.venv/bin/python orchestrator_stack/run.py tune --config <temp-config> --trials 1`: success, wrote `reports/tuning/202604161029_optuna_orchestrator_reward_weights.md`
+  - `PYTHONPATH=orchestrator_stack ./.venv/bin/python orchestrator_stack/run.py tune-policy-rewards --config <temp-config> --trials 1`: reached the PPO-backed trial path, but Ray initialization is blocked in this sandbox by macOS process-enumeration permissions (`PermissionError` from `psutil`/`sysctl`), so the command now returns a structured `"status": "skipped"` result instead of crashing
+- Remaining validation gap:
+  - Re-run `tune-policy-rewards` in a non-sandboxed local shell where `ray.init()` is allowed to enumerate processes, then confirm a completed Optuna study report for `orchestrator_policy_and_rewards`.
+
 - Layer 2 simulator + feature extraction were expanded to use a shared AIOpsLab-style normalization path:
   - `state_to_observation()` now accepts nested state wrappers, dict-backed node/task collections, queued-task placement, and common alternate field names (`machines`, `pods`, `risk_scores`, `demand_scores`, etc.).
   - `AIOpsLabBackend` now falls back to a stateful local twin-style simulation instead of returning an empty mock observation on every step, so Layer 4/5 loops can exercise Layer 2 behavior without the upstream package.
