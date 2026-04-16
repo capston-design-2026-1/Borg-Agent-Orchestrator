@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from orchestrator.layer1.collector import prometheus_rows_to_trace
 from orchestrator.types import ActionKind, AgentAction, NodeState, Observation, StepResult, TaskState
 
 
@@ -10,6 +12,545 @@ class SimulatorBackend(Protocol):
     def reset(self) -> Observation: ...
 
     def step(self, action: AgentAction) -> StepResult: ...
+
+
+def _state_value(payload: Any, *keys: str, default: Any = None) -> Any:
+    if payload is None:
+        return default
+    if isinstance(payload, dict):
+        for key in keys:
+            if key in payload:
+                return payload[key]
+        return default
+    for key in keys:
+        if hasattr(payload, key):
+            return getattr(payload, key)
+    return default
+
+
+def _coerce_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _coerce_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _coerce_bool(value: Any, default: bool = True) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"1", "true", "yes", "y", "on"}:
+            return True
+        if lowered in {"0", "false", "no", "n", "off"}:
+            return False
+    if value is None:
+        return default
+    return bool(value)
+
+
+def _normalize_ratio(value: Any, default: float = 0.0) -> float:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return default
+    if 1.0 < numeric <= 10.0:
+        return 1.0
+    if numeric > 10.0:
+        numeric /= 100.0
+    return max(0.0, min(1.0, numeric))
+
+
+def _normalize_state_payload(state: Any) -> Any:
+    if isinstance(state, (bytes, bytearray)):
+        state = state.decode("utf-8")
+    if isinstance(state, str):
+        state = json.loads(state)
+
+    while True:
+        for key in ("observation", "state", "cluster", "snapshot", "telemetry", "payload", "data", "current_state"):
+            nested = _state_value(state, key)
+            if nested is not None and nested is not state:
+                state = nested
+                break
+        else:
+            break
+    return state
+
+
+def _iter_state_items(collection: Any) -> list[tuple[str | None, Any]]:
+    if collection is None:
+        return []
+    if isinstance(collection, dict):
+        return [(str(key), value) for key, value in collection.items()]
+    if isinstance(collection, list):
+        return [(None, value) for value in collection]
+    return []
+
+
+def _as_mapping(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    return {}
+
+
+def _node_metric(node: Any, *keys: str, default: float = 0.0) -> float:
+    direct = _state_value(node, *keys)
+    if direct is not None:
+        if isinstance(direct, dict):
+            nested_direct = _state_value(direct, "utilization", "usage", "used_ratio", "ratio", "percent", "value")
+            if nested_direct is not None:
+                return _normalize_ratio(nested_direct, default)
+        return _normalize_ratio(direct, default)
+
+    for container_key in ("resources", "resource_usage", "usage", "utilization", "metrics", "stats"):
+        container = _as_mapping(_state_value(node, container_key))
+        for key in keys:
+            candidates = (
+                key,
+                key.replace("_util", ""),
+                key.replace("_util", "_usage"),
+                key.replace("_util", "_ratio"),
+            )
+            nested = _state_value(container, *candidates)
+            if nested is not None:
+                return _normalize_ratio(nested, default)
+            sub_mapping = _as_mapping(_state_value(container, key.replace("_util", "")))
+            sub_value = _state_value(sub_mapping, "utilization", "usage", "used_ratio", "ratio", "percent", "value")
+            if sub_value is not None:
+                return _normalize_ratio(sub_value, default)
+
+    for key in keys:
+        base_mapping = _as_mapping(_state_value(node, key.replace("_util", "")))
+        base_value = _state_value(base_mapping, "utilization", "usage", "used_ratio", "ratio", "percent", "value")
+        if base_value is not None:
+            return _normalize_ratio(base_value, default)
+
+    return default
+
+
+def _task_node_id(task: Any) -> str:
+    placement = _as_mapping(_state_value(task, "placement", "assignment", "bindings"))
+    metadata = _as_mapping(_state_value(task, "metadata", "labels"))
+    return str(
+        _state_value(
+            task,
+            "node_id",
+            "assigned_node",
+            "host_id",
+            default=_state_value(
+                placement,
+                "node",
+                "node_id",
+                "host",
+                default=_state_value(metadata, "node_id", default=""),
+            ),
+        )
+    )
+
+
+def _task_alive(task: Any, default: bool = True) -> bool:
+    status = _as_mapping(_state_value(task, "status"))
+    return _coerce_bool(
+        _state_value(task, "alive", "running", "healthy", default=_state_value(status, "alive", "running", "healthy")),
+        default,
+    )
+
+
+def _task_urgency(task: Any) -> float:
+    metadata = _as_mapping(_state_value(task, "metadata", "labels"))
+    return _normalize_ratio(
+        _state_value(task, "urgency", "priority_score", default=_state_value(metadata, "urgency", default=0.5)),
+        0.5,
+    )
+
+
+def _task_queue_priority(task: Any) -> int:
+    metadata = _as_mapping(_state_value(task, "metadata", "labels"))
+    return max(
+        0,
+        _coerce_int(
+            _state_value(
+                task,
+                "queue_priority",
+                "priority",
+                default=_state_value(metadata, "queue_priority", "priority", default=1),
+            ),
+            1,
+        ),
+    )
+
+
+def _normalize_score_map(raw_scores: Any) -> dict[str, float]:
+    if isinstance(raw_scores, dict):
+        return {str(k): max(0.0, min(1.0, _coerce_float(v, 0.0))) for k, v in raw_scores.items()}
+
+    scores: dict[str, float] = {}
+    for mapping_key, value in _iter_state_items(raw_scores):
+        if not isinstance(value, dict):
+            continue
+        node_id = str(
+            _state_value(value, "node_id", "id", "machine_id", "name", default=mapping_key or "unknown-node")
+        )
+        score = _state_value(value, "score", "value", "risk", "probability")
+        scores[node_id] = max(0.0, min(1.0, _coerce_float(score, 0.0)))
+    return scores
+
+
+def trace_row_to_observation(row: dict[str, Any], *, fallback_timestamp: int = 0) -> Observation:
+    return state_to_observation(row, fallback_timestamp=fallback_timestamp)
+
+
+def _clone_observation(obs: Observation) -> Observation:
+    return Observation(
+        timestamp=obs.timestamp,
+        nodes=[
+            NodeState(
+                node_id=node.node_id,
+                cpu_util=node.cpu_util,
+                mem_util=node.mem_util,
+                disk_util=node.disk_util,
+                net_util=node.net_util,
+                power_state=node.power_state,
+            )
+            for node in obs.nodes
+        ],
+        tasks=[
+            TaskState(
+                task_id=task.task_id,
+                node_id=task.node_id,
+                urgency=task.urgency,
+                queue_priority=task.queue_priority,
+                alive=task.alive,
+            )
+            for task in obs.tasks
+        ],
+        p_fail_scores=dict(obs.p_fail_scores),
+        demand_projection=dict(obs.demand_projection),
+        queue_length=obs.queue_length,
+        energy_price=obs.energy_price,
+    )
+
+
+def _apply_action_deltas(current_obs: Observation, simulated_obs: Observation, baseline_obs: Observation) -> Observation:
+    merged = _clone_observation(baseline_obs)
+    current_nodes = {node.node_id: node for node in current_obs.nodes}
+    merged_nodes = {node.node_id: node for node in merged.nodes}
+
+    for simulated_node in simulated_obs.nodes:
+        current_node = current_nodes.get(simulated_node.node_id)
+        merged_node = merged_nodes.get(simulated_node.node_id)
+        if merged_node is None:
+            merged_node = NodeState(
+                node_id=simulated_node.node_id,
+                cpu_util=simulated_node.cpu_util,
+                mem_util=simulated_node.mem_util,
+                disk_util=simulated_node.disk_util,
+                net_util=simulated_node.net_util,
+                power_state=simulated_node.power_state,
+            )
+            merged.nodes.append(merged_node)
+            merged_nodes[simulated_node.node_id] = merged_node
+            continue
+
+        if current_node is None:
+            merged_node.cpu_util = simulated_node.cpu_util
+            merged_node.mem_util = simulated_node.mem_util
+            merged_node.disk_util = simulated_node.disk_util
+            merged_node.net_util = simulated_node.net_util
+        else:
+            merged_node.cpu_util = max(0.0, min(1.0, merged_node.cpu_util + (simulated_node.cpu_util - current_node.cpu_util)))
+            merged_node.mem_util = max(0.0, min(1.0, merged_node.mem_util + (simulated_node.mem_util - current_node.mem_util)))
+            merged_node.disk_util = max(0.0, min(1.0, merged_node.disk_util + (simulated_node.disk_util - current_node.disk_util)))
+            merged_node.net_util = max(0.0, min(1.0, merged_node.net_util + (simulated_node.net_util - current_node.net_util)))
+        merged_node.power_state = simulated_node.power_state
+
+    merged_tasks = {task.task_id: task for task in merged.tasks}
+    for simulated_task in simulated_obs.tasks:
+        merged_task = merged_tasks.get(simulated_task.task_id)
+        if merged_task is None:
+            merged.tasks.append(
+                TaskState(
+                    task_id=simulated_task.task_id,
+                    node_id=simulated_task.node_id,
+                    urgency=simulated_task.urgency,
+                    queue_priority=simulated_task.queue_priority,
+                    alive=simulated_task.alive,
+                )
+            )
+            continue
+        merged_task.node_id = simulated_task.node_id
+        merged_task.urgency = simulated_task.urgency
+        merged_task.queue_priority = simulated_task.queue_priority
+        merged_task.alive = simulated_task.alive
+
+    merged.queue_length = simulated_obs.queue_length
+    merged.energy_price = max(0.0, (baseline_obs.energy_price + simulated_obs.energy_price) / 2.0)
+    merged.p_fail_scores = {
+        node.node_id: max(
+            0.0,
+            min(
+                1.0,
+                0.6 * simulated_obs.p_fail_scores.get(node.node_id, 0.0)
+                + 0.4 * baseline_obs.p_fail_scores.get(node.node_id, simulated_obs.p_fail_scores.get(node.node_id, 0.0)),
+            ),
+        )
+        for node in merged.nodes
+    }
+    merged.demand_projection = {
+        node.node_id: max(
+            0.0,
+            min(
+                1.0,
+                0.6 * simulated_obs.demand_projection.get(node.node_id, 0.0)
+                + 0.4 * baseline_obs.demand_projection.get(node.node_id, simulated_obs.demand_projection.get(node.node_id, 0.0)),
+            ),
+        )
+        for node in merged.nodes
+    }
+    merged.timestamp = max(simulated_obs.timestamp, baseline_obs.timestamp)
+    return merged
+
+
+def _simulate_observation_transition(obs: Observation, action: AgentAction) -> Observation:
+    next_timestamp = obs.timestamp + 1
+    queue_length = obs.queue_length
+    nodes = [
+        NodeState(
+            node_id=node.node_id,
+            cpu_util=node.cpu_util,
+            mem_util=node.mem_util,
+            disk_util=node.disk_util,
+            net_util=node.net_util,
+            power_state=node.power_state,
+        )
+        for node in obs.nodes
+    ]
+    tasks = [
+        TaskState(
+            task_id=task.task_id,
+            node_id=task.node_id,
+            urgency=task.urgency,
+            queue_priority=task.queue_priority,
+            alive=task.alive,
+        )
+        for task in obs.tasks
+    ]
+
+    node_by_id = {node.node_id: node for node in nodes}
+    active_tasks = [task for task in tasks if task.node_id in node_by_id and task.alive]
+
+    if action.kind == ActionKind.MIGRATE and action.target in node_by_id and active_tasks:
+        src_candidates = [node for node in nodes if node.node_id != action.target and node.power_state == "on"]
+        src = max(src_candidates, key=lambda item: item.cpu_util + item.mem_util, default=None)
+        if src is not None:
+            task = next((item for item in active_tasks if item.node_id == src.node_id), None)
+            if task is not None:
+                task.node_id = action.target
+                src.cpu_util = max(0.0, src.cpu_util - 0.12)
+                src.mem_util = max(0.0, src.mem_util - 0.1)
+                target = node_by_id[action.target]
+                target.cpu_util = min(1.0, target.cpu_util + 0.08)
+                target.mem_util = min(1.0, target.mem_util + 0.07)
+
+    if action.kind == ActionKind.POWER_STATE and action.target in node_by_id:
+        target = node_by_id[action.target]
+        state = str(action.payload.get("state", target.power_state))
+        target.power_state = state
+        if state in {"sleep", "off"}:
+            target.cpu_util = max(0.0, target.cpu_util * 0.35)
+            target.mem_util = max(0.0, target.mem_util * 0.5)
+        elif state == "on":
+            target.cpu_util = min(1.0, target.cpu_util + 0.1)
+            target.mem_util = min(1.0, target.mem_util + 0.08)
+
+    if action.kind == ActionKind.ADMISSION:
+        decision = str(action.payload.get("decision", "admit"))
+        if decision == "queue":
+            queue_length += 1
+        elif decision == "reject":
+            queue_length = max(0, queue_length - 1)
+        else:
+            queue_length = max(0, queue_length - 2)
+
+    avg_cpu = sum(node.cpu_util for node in nodes) / max(1, len(nodes))
+    next_energy_price = max(0.05, min(0.2, obs.energy_price + ((avg_cpu - 0.5) * 0.015)))
+    p_fail_scores = {
+        node.node_id: max(0.0, min(1.0, 0.55 * node.cpu_util + 0.35 * node.mem_util + 0.1 * (queue_length / 100.0)))
+        for node in nodes
+    }
+    demand_projection = {
+        node.node_id: max(
+            0.0,
+            min(1.0, 0.45 * node.cpu_util + 0.35 * node.mem_util + 0.1 * node.net_util + 0.1 * avg_cpu),
+        )
+        for node in nodes
+    }
+
+    return Observation(
+        timestamp=next_timestamp,
+        nodes=nodes,
+        tasks=tasks,
+        p_fail_scores=p_fail_scores,
+        demand_projection=demand_projection,
+        queue_length=queue_length,
+        energy_price=next_energy_price,
+    )
+
+
+def state_to_observation(state: Any, *, fallback_timestamp: int = 0, default_energy_price: float = 0.1) -> Observation:
+    payload = _normalize_state_payload(state)
+    if isinstance(payload, Observation):
+        return payload
+    if isinstance(payload, list):
+        trace_rows = prometheus_rows_to_trace(payload)
+        if not trace_rows:
+            raise ValueError("Simulator state list did not produce any trace rows.")
+        return state_to_observation(
+            trace_rows[-1],
+            fallback_timestamp=fallback_timestamp,
+            default_energy_price=default_energy_price,
+        )
+    if not isinstance(payload, dict):
+        raise TypeError(f"Unsupported simulator state payload: {type(payload).__name__}.")
+
+    if "rows" in payload and isinstance(payload["rows"], list):
+        return state_to_observation(payload["rows"], fallback_timestamp=fallback_timestamp, default_energy_price=default_energy_price)
+    if "records" in payload and isinstance(payload["records"], list):
+        return state_to_observation(
+            payload["records"],
+            fallback_timestamp=fallback_timestamp,
+            default_energy_price=default_energy_price,
+        )
+
+    raw_nodes = _iter_state_items(
+        _state_value(payload, "nodes")
+        or _state_value(payload, "node_pool")
+        or _state_value(payload, "machines")
+        or _state_value(payload, "hosts")
+        or _state_value(payload, "servers")
+    )
+    raw_tasks = _iter_state_items(
+        _state_value(payload, "tasks")
+        or _state_value(payload, "instances")
+        or _state_value(payload, "pods")
+        or _state_value(payload, "jobs")
+        or _state_value(payload, "workloads")
+    )
+    metrics = _state_value(payload, "metrics", default={}) or {}
+    power_by_node = _state_value(payload, "power_by_node", default={}) or {}
+
+    if not raw_nodes and ("node_id" in payload or "cpu_util" in payload or "cpu" in payload):
+        raw_nodes = [(None, payload)]
+    if not raw_tasks and ("task_id" in payload or "instance_id" in payload):
+        raw_tasks = [(None, payload)]
+
+    nodes = []
+    for idx, (mapping_key, node) in enumerate(raw_nodes):
+        node_id = str(
+            _state_value(node, "node_id", "id", "name", "hostname", default=mapping_key or f"node-{idx + 1}")
+        )
+        cpu_util = _node_metric(node, "cpu_util", "cpu", "cpu_load", "cpu_usage")
+        mem_util = _node_metric(node, "mem_util", "memory_util", "mem", "memory_usage", "memory")
+        disk_util = _node_metric(node, "disk_util", "disk", "disk_usage")
+        net_util = _node_metric(node, "net_util", "network_util", "network", "network_usage")
+        power_state = str(
+            _state_value(node, "power_state", "power", "state", default=power_by_node.get(node_id, "on"))
+        )
+        nodes.append(
+            NodeState(
+                node_id=node_id,
+                cpu_util=max(0.0, min(1.0, cpu_util)),
+                mem_util=max(0.0, min(1.0, mem_util)),
+                disk_util=max(0.0, min(1.0, disk_util)),
+                net_util=max(0.0, min(1.0, net_util)),
+                power_state=power_state,
+            )
+        )
+
+    node_ids = {node.node_id for node in nodes}
+    tasks = []
+    queued_tasks = 0
+    for idx, (mapping_key, task) in enumerate(raw_tasks):
+        node_id = _task_node_id(task)
+        queued = _coerce_bool(_state_value(task, "queued", "pending"), False)
+        alive = _task_alive(task, default=not queued)
+        if not node_id or node_id not in node_ids:
+            queued_tasks += 1
+            node_id = "queue"
+            alive = False if queued else alive
+        tasks.append(
+            TaskState(
+                task_id=str(
+                    _state_value(task, "task_id", "instance_id", "job_id", "pod_id", "id", "name", default=mapping_key or f"task-{idx + 1}")
+                ),
+                node_id=node_id,
+                urgency=_task_urgency(task),
+                queue_priority=_task_queue_priority(task),
+                alive=alive,
+            )
+        )
+
+    queue_length = _coerce_int(
+        _state_value(
+            payload,
+            "queue_length",
+            "pending_queue_length",
+            "queueSize",
+            "pending",
+            default=_state_value(metrics, "queue_length", "pending_queue_length", "queueSize", "pending", default=queued_tasks),
+        ),
+        queued_tasks,
+    )
+    energy_price = _coerce_float(
+        _state_value(
+            payload,
+            "energy_price",
+            "energyPrice",
+            "power_price",
+            default=_state_value(metrics, "energy_price", "energyPrice", "power_price", default=default_energy_price),
+        ),
+        default_energy_price,
+    )
+    timestamp = _coerce_int(_state_value(payload, "timestamp", "ts", "time"), fallback_timestamp)
+
+    raw_p_fail = (
+        _state_value(payload, "p_fail_scores", "risk_scores", "failure_risk", "p_fail")
+        or _state_value(metrics, "p_fail_scores", "risk_scores", "failure_risk")
+        or {}
+    )
+    raw_demand = (
+        _state_value(payload, "demand_projection", "demand_scores", "resource_projection", "resource_demand")
+        or _state_value(metrics, "demand_projection", "demand_scores", "resource_projection")
+        or {}
+    )
+    p_fail_scores = _normalize_score_map(raw_p_fail)
+    demand_projection = _normalize_score_map(raw_demand)
+    for mapping_key, node in raw_nodes:
+        node_id = str(_state_value(node, "node_id", "id", "machine_id", "name", default=mapping_key or "unknown-node"))
+        if node_id not in p_fail_scores:
+            raw_node_risk = _state_value(node, "p_fail_score", "risk_score", "failure_risk", "risk")
+            p_fail_scores[node_id] = _normalize_ratio(raw_node_risk, 0.0)
+        if node_id not in demand_projection:
+            raw_node_demand = _state_value(node, "demand_projection", "demand_score", "resource_demand", "projection")
+            demand_projection[node_id] = _normalize_ratio(raw_node_demand, 0.0)
+
+    return Observation(
+        timestamp=timestamp,
+        nodes=nodes,
+        tasks=tasks,
+        p_fail_scores=p_fail_scores,
+        demand_projection=demand_projection,
+        queue_length=max(0, queue_length),
+        energy_price=max(0.0, energy_price),
+    )
 
 
 @dataclass(slots=True)
@@ -23,11 +564,19 @@ class TraceDrivenTwinBackend:
 
     def step(self, action: AgentAction) -> StepResult:
         current = self.rows[self.index]
+        current_obs = self._to_observation(current)
         applied = self._apply_action(current, action)
-        rewards = self._reward_from_action(current, action, applied)
+        rewards = self._reward_from_action(current_obs, action, applied)
 
-        self.index = min(self.index + 1, len(self.rows) - 1)
-        next_obs = self._to_observation(self.rows[self.index])
+        next_index = min(self.index + 1, len(self.rows) - 1)
+        simulated_next = _simulate_observation_transition(current_obs, action)
+        if next_index == self.index:
+            next_obs = simulated_next
+        else:
+            baseline_next = self._to_observation(self.rows[next_index])
+            next_obs = _apply_action_deltas(current_obs, simulated_next, baseline_next)
+
+        self.index = next_index
         done = self.index >= len(self.rows) - 1
 
         info = {
@@ -42,36 +591,7 @@ class TraceDrivenTwinBackend:
         return StepResult(next_observation=next_obs, reward_by_agent=rewards, done=done, info=info)
 
     def _to_observation(self, row: dict) -> Observation:
-        nodes = [
-            NodeState(
-                node_id=n["node_id"],
-                cpu_util=float(n["cpu_util"]),
-                mem_util=float(n["mem_util"]),
-                disk_util=float(n.get("disk_util", 0.0)),
-                net_util=float(n.get("net_util", 0.0)),
-                power_state=n.get("power_state", "on"),
-            )
-            for n in row["nodes"]
-        ]
-        tasks = [
-            TaskState(
-                task_id=t["task_id"],
-                node_id=t["node_id"],
-                urgency=float(t.get("urgency", 0.5)),
-                queue_priority=int(t.get("queue_priority", 1)),
-                alive=bool(t.get("alive", True)),
-            )
-            for t in row.get("tasks", [])
-        ]
-        return Observation(
-            timestamp=int(row["timestamp"]),
-            nodes=nodes,
-            tasks=tasks,
-            p_fail_scores=row.get("p_fail_scores", {}),
-            demand_projection=row.get("demand_projection", {}),
-            queue_length=int(row.get("queue_length", 0)),
-            energy_price=float(row.get("energy_price", 0.1)),
-        )
+        return state_to_observation(row)
 
     def _apply_action(self, row: dict, action: AgentAction) -> dict[str, bool]:
         applied = {
@@ -96,10 +616,10 @@ class TraceDrivenTwinBackend:
                 applied["admitted"] = True
         return applied
 
-    def _reward_from_action(self, row: dict, action: AgentAction, applied: dict[str, bool]) -> dict[str, float]:
+    def _reward_from_action(self, obs: Observation, action: AgentAction, applied: dict[str, bool]) -> dict[str, float]:
         rewards = {"AgentA": 1.0, "AgentB": 1.0, "AgentC": 1.0}
-        p_fail = max(row.get("p_fail_scores", {"x": 0.0}).values(), default=0.0)
-        demand = max(row.get("demand_projection", {"x": 0.0}).values(), default=0.0)
+        p_fail = max(obs.p_fail_scores.values(), default=0.0)
+        demand = max(obs.demand_projection.values(), default=0.0)
 
         if action.agent_name == "AgentA":
             if applied["migrated"] and p_fail > 0.75:
@@ -112,7 +632,7 @@ class TraceDrivenTwinBackend:
             if applied["powered"] and demand > 0.75:
                 rewards["AgentB"] -= 30.0
         if action.agent_name == "AgentC":
-            qlen = int(row.get("queue_length", 0))
+            qlen = int(obs.queue_length)
             if applied["admitted"] and qlen < 80:
                 rewards["AgentC"] += 5.0
             if applied["rejected"] and qlen < 60:
@@ -120,7 +640,7 @@ class TraceDrivenTwinBackend:
             if applied["admitted"] and qlen > 120:
                 rewards["AgentC"] -= 50.0
 
-        if row.get("task_death", False):
+        if any(not task.alive for task in obs.tasks):
             rewards["AgentA"] -= 100.0
         return rewards
 
@@ -143,62 +663,192 @@ class AIOpsLabBackend(SimulatorBackend):
     Connects the 6-layer orchestrator to a live Microsoft AIOpsLab environment.
     """
 
-    def __init__(self, problem_id: str, max_steps: int = 50):
+    def __init__(self, problem_id: str, max_steps: int = 50, orchestrator: Any | None = None):
         self.problem_id = problem_id
         self.max_steps = max_steps
         self.current_step = 0
-        self._orch = None
+        self._orch = orchestrator
         self._session = None
+        self._obs = self._mock_observation()
 
     def reset(self) -> Observation:
-        if not HAS_AIOPSLAB:
-            logger.warning("aiopslab package not found. Returning empty mock observation.")
-            return self._mock_observation()
+        if self._orch is None and not HAS_AIOPSLAB:
+            logger.warning("aiopslab package not found. Falling back to local AIOpsLab-style simulation.")
+            self.current_step = 0
+            self._obs = self._mock_observation()
+            return self._obs
 
-        # In a real scenario, this would be:
-        # self._orch = aiopslab.orchestrator.Orchestrator()
-        # problem_desc, instructs, apis = self._orch.init_problem(self.problem_id)
-        # return self._to_observation(self._orch.get_current_state())
-        
         self.current_step = 0
-        return self._mock_observation()
+        if self._orch is None:
+            self._orch = self._build_orchestrator()
+
+        state = self._invoke_orchestrator_reset()
+        if state is None:
+            self._obs = self._mock_observation()
+            return self._obs
+
+        self._obs = self._to_observation(state)
+        return self._obs
 
     def step(self, action: AgentAction) -> StepResult:
         self.current_step += 1
         done = self.current_step >= self.max_steps
 
-        if not HAS_AIOPSLAB:
+        if self._orch is None and not HAS_AIOPSLAB:
+            previous = self._obs
+            rewards = self._reward_from_observation(previous, action)
+            self._obs = self._simulate_transition(previous, action)
             return StepResult(
-                next_observation=self._mock_observation(),
-                reward_by_agent={"AgentA": 0.0, "AgentB": 0.0, "AgentC": 0.0},
+                next_observation=self._obs,
+                reward_by_agent=rewards,
                 done=done,
-                info={"status": "mocked", "reason": "no_aiopslab_pkg"}
+                info={
+                    "status": "mocked",
+                    "reason": "no_aiopslab_pkg",
+                    "applied": action.kind.value,
+                    "target": action.target,
+                },
             )
 
-        # Map AgentAction to AIOpsLab API calls
-        # command = self._map_action_to_cmd(action)
-        # obs_str = self._orch.execute(command)
-        # next_obs = self._to_observation(obs_str)
-        # reward = self._calculate_reward(next_obs)
-        
+        if self._orch is None:
+            self._orch = self._build_orchestrator()
+        if self._orch is None:
+            previous = self._obs
+            rewards = self._reward_from_observation(previous, action)
+            self._obs = self._simulate_transition(previous, action)
+            return StepResult(
+                next_observation=self._obs,
+                reward_by_agent=rewards,
+                done=done,
+                info={"status": "mocked", "reason": "missing_orchestrator", "applied": action.kind.value},
+            )
+
+        previous = self._obs
+        next_state = self._invoke_orchestrator_step(action)
+        if next_state is None:
+            self._obs = self._simulate_transition(previous, action)
+            status = "adapter_fallback"
+        else:
+            self._obs = self._to_observation(next_state)
+            status = "live_adapter"
+
         return StepResult(
-            next_observation=self._mock_observation(),
-            reward_by_agent={"AgentA": 1.0, "AgentB": 1.0, "AgentC": 1.0},
+            next_observation=self._obs,
+            reward_by_agent=self._reward_from_observation(previous, action),
             done=done,
-            info={"status": "live_stub"}
+            info={"status": status, "applied": action.kind.value, "target": action.target},
         )
 
     def _to_observation(self, state: Any) -> Observation:
         # Convert AIOpsLab state (JSON/String/Prometheus) to orchestrator Observation
-        return self._mock_observation()
+        return state_to_observation(state, fallback_timestamp=self.current_step)
+
+    def _build_orchestrator(self) -> Any | None:
+        if not HAS_AIOPSLAB:
+            return None
+
+        orchestrator_module = getattr(aiopslab, "orchestrator", None)
+        orchestrator_cls = getattr(orchestrator_module, "Orchestrator", None)
+        if orchestrator_cls is None:
+            logger.warning("aiopslab package is available but Orchestrator class was not found.")
+            return None
+
+        try:
+            orch = orchestrator_cls()
+        except Exception as exc:  # pragma: no cover
+            logger.warning("Failed to create aiopslab orchestrator: %s", exc)
+            return None
+
+        init_problem = getattr(orch, "init_problem", None)
+        if callable(init_problem):
+            try:
+                self._session = init_problem(self.problem_id)
+            except Exception as exc:  # pragma: no cover
+                logger.warning("aiopslab init_problem failed for %s: %s", self.problem_id, exc)
+        return orch
+
+    def _invoke_orchestrator_reset(self) -> Any | None:
+        if self._orch is None:
+            return None
+
+        for method_name in ("get_current_state", "observe", "current_state"):
+            method = getattr(self._orch, method_name, None)
+            if callable(method):
+                return method()
+
+        reset_method = getattr(self._orch, "reset", None)
+        if callable(reset_method):
+            try:
+                state = reset_method()
+            except TypeError:
+                state = reset_method(self.problem_id)
+            if state is not None:
+                return state
+
+        return None
+
+    def _invoke_orchestrator_step(self, action: AgentAction) -> Any | None:
+        if self._orch is None:
+            return None
+
+        command = self._map_action_to_cmd(action)
+        for method_name in ("execute_action", "execute", "step", "act"):
+            method = getattr(self._orch, method_name, None)
+            if callable(method):
+                result = method(command)
+                if result is not None:
+                    return result
+
+        return self._invoke_orchestrator_reset()
+
+    def _map_action_to_cmd(self, action: AgentAction) -> dict[str, Any]:
+        return {
+            "agent": action.agent_name,
+            "kind": action.kind.value,
+            "target": action.target,
+            "payload": dict(action.payload),
+            "score": float(action.score),
+            "priority": int(action.priority),
+        }
+
+    def _reward_from_observation(self, obs: Observation, action: AgentAction) -> dict[str, float]:
+        rewards = {"AgentA": 1.0, "AgentB": 1.0, "AgentC": 1.0}
+        max_risk = max(obs.p_fail_scores.values(), default=max((n.cpu_util + n.mem_util) / 2.0 for n in obs.nodes) if obs.nodes else 0.0)
+        min_demand = min(obs.demand_projection.values(), default=min((n.cpu_util + n.mem_util) / 2.0 for n in obs.nodes) if obs.nodes else 0.0)
+
+        if action.agent_name == "AgentA" and action.kind == ActionKind.MIGRATE:
+            rewards["AgentA"] += 10.0 if max_risk >= 0.75 else -20.0
+        if action.agent_name == "AgentB" and action.kind == ActionKind.POWER_STATE:
+            rewards["AgentB"] += 5.0 if min_demand < 0.35 else -30.0
+        if action.agent_name == "AgentC" and action.kind == ActionKind.ADMISSION:
+            decision = action.payload.get("decision", "admit")
+            if decision == "admit":
+                rewards["AgentC"] += 5.0 if obs.queue_length < 80 else -50.0
+            elif decision == "reject" and obs.queue_length < 60:
+                rewards["AgentC"] -= 20.0
+
+        if any(not task.alive for task in obs.tasks):
+            rewards["AgentA"] -= 100.0
+        return rewards
+
+    def _simulate_transition(self, obs: Observation, action: AgentAction) -> Observation:
+        return _simulate_observation_transition(obs, action)
 
     def _mock_observation(self) -> Observation:
         return Observation(
             timestamp=0,
-            nodes=[],
-            tasks=[],
-            p_fail_scores={},
-            demand_projection={},
-            queue_length=0,
-            energy_price=0.1,
+            nodes=[
+                NodeState("node-1", cpu_util=0.82, mem_util=0.78, disk_util=0.45, net_util=0.36, power_state="on"),
+                NodeState("node-2", cpu_util=0.34, mem_util=0.41, disk_util=0.31, net_util=0.22, power_state="on"),
+                NodeState("node-3", cpu_util=0.19, mem_util=0.28, disk_util=0.25, net_util=0.18, power_state="sleep"),
+            ],
+            tasks=[
+                TaskState("task-1", "node-1", urgency=0.9, queue_priority=3, alive=True),
+                TaskState("task-2", "node-1", urgency=0.7, queue_priority=2, alive=True),
+                TaskState("task-3", "node-2", urgency=0.4, queue_priority=1, alive=True),
+            ],
+            p_fail_scores={"node-1": 0.86, "node-2": 0.32, "node-3": 0.12},
+            demand_projection={"node-1": 0.88, "node-2": 0.41, "node-3": 0.16},
+            queue_length=7,
+            energy_price=0.12,
         )
