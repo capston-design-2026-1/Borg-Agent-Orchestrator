@@ -87,6 +87,8 @@ Layer 1 ingestion now enforces strict contracts for `.json` and `.jsonl` trace s
 
 See `orchestrator_stack/examples/README.md` for the concise schema contract.
 
+Layer 2 now normalizes AIOpsLab-style nested payloads into the shared `Observation` contract before simulator replay and feature extraction. Supported adapter-friendly shapes include nested wrappers such as `snapshot/state/observation`, dict-backed `machines`/`pods`, and alternate score fields such as `risk_scores` and `demand_scores`.
+
 ### 5. Train the Predictor Models (Layer 3)
 Train the XGBoost safety-risk and resource-demand models from the generated trace:
 ```bash
