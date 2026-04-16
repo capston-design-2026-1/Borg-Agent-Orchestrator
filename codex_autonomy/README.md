@@ -36,17 +36,20 @@ cp codex_autonomy/config/autonomy.example.yaml codex_autonomy/config/autonomy.lo
 2. Edit `command_template` for your Codex CLI form.
    For current Codex CLI, use: `codex exec - < {prompt_file}`
    Optional: set `session.rate_limit_cooldown_seconds` to control automatic wait time after Codex quota/rate-limit failures.
-3. Configure GitHub flow in `github:` block (`repo`, auto issue/PR/merge policy).
-4. If using GitHub automation, install/authenticate GitHub CLI:
+3. Create a real local repo virtualenv before installing dependencies.
+   The repo-root `.venv` must be an actual virtualenv directory, not a committed symlink or alias.
+4. Configure GitHub flow in `github:` block (`repo`, auto issue/PR/merge policy).
+5. If using GitHub automation, install/authenticate GitHub CLI:
 
 ```bash
 gh auth status
 ```
 
-3. Install dependencies:
+6. Install dependencies:
 
 ```bash
-./.venv/bin/python -m pip install pyyaml
+python3 -m venv .venv
+./.venv/bin/python -m pip install -r codex_autonomy/requirements.txt
 ```
 
 ## Run
@@ -66,6 +69,8 @@ Install macOS launchd service for always-on guardian:
 ```bash
 ./.venv/bin/python codex_autonomy/scripts/install_guardian_launchd.py --config codex_autonomy/config/autonomy.local.yaml
 ```
+
+The launchd installer prefers `./.venv/bin/python` when it is valid, and otherwise falls back to the current interpreter if it can import `PyYAML`.
 
 Enqueue task manually:
 

@@ -9,28 +9,36 @@ cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 git pull origin main
 ```
 
-## 1) Install dependencies
+## 1) Build the local virtualenv
+
+```bash
+cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
+test -L .venv && rm .venv
+test -x ./.venv/bin/python || python3 -m venv .venv
+```
+
+## 2) Install dependencies
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 ./.venv/bin/python -m pip install -r orchestrator_stack/requirements.txt -r codex_autonomy/requirements.txt
 ```
 
-## 2) Create local config safely (recommended: copy example)
+## 3) Create local config safely (recommended: copy example)
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 cp codex_autonomy/config/autonomy.example.yaml codex_autonomy/config/autonomy.local.yaml
 ```
 
-## 3) Set Codex command template (required)
+## 4) Set Codex command template (required)
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 sed -i '' 's|^  command_template:.*$|  command_template: "codex exec - < {prompt_file}"|' codex_autonomy/config/autonomy.local.yaml
 ```
 
-## 4) Enable GitHub flow and set repository
+## 5) Enable GitHub flow and set repository
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
@@ -38,7 +46,7 @@ sed -i '' 's/^  enabled: false$/  enabled: true/' codex_autonomy/config/autonomy
 sed -i '' 's|^  repo: "owner/repo"$|  repo: "capston-design-2026-1/Borg-Agent-Orchestrator"|' codex_autonomy/config/autonomy.local.yaml
 ```
 
-## 5) Set cooldown for Codex limit windows (optional)
+## 6) Set cooldown for Codex limit windows (optional)
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
@@ -46,14 +54,14 @@ grep -q "rate_limit_cooldown_seconds" codex_autonomy/config/autonomy.local.yaml 
   rate_limit_cooldown_seconds: 1800' codex_autonomy/config/autonomy.local.yaml
 ```
 
-## 6) Verify config
+## 7) Verify config
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 cat codex_autonomy/config/autonomy.local.yaml
 ```
 
-## 7) Verify GitHub CLI auth
+## 8) Verify GitHub CLI auth
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
@@ -66,33 +74,33 @@ If not logged in:
 gh auth login --web
 ```
 
-## 8) Start autonomy manager
+## 9) Start autonomy manager
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 ./.venv/bin/python codex_autonomy/scripts/run_daemon.py run --config codex_autonomy/config/autonomy.local.yaml
 ```
 
-## 9) One-line command: enqueue full finish task + check status
+## 10) One-line command: enqueue full finish task + check status
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator && cp -f codex_autonomy/tasks/templates/full_orchestrator_finish.yaml codex_autonomy/tasks/queue/full-orchestrator-e2e-finish.yaml && ./.venv/bin/python codex_autonomy/scripts/run_daemon.py status --config codex_autonomy/config/autonomy.local.yaml
 ```
 
-## 10) One-line command: enqueue full finish task + start manager
+## 11) One-line command: enqueue full finish task + start manager
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator && cp -f codex_autonomy/tasks/templates/full_orchestrator_finish.yaml codex_autonomy/tasks/queue/full-orchestrator-e2e-finish.yaml && ./.venv/bin/python codex_autonomy/scripts/run_daemon.py run --config codex_autonomy/config/autonomy.local.yaml
 ```
 
-## 11) In another terminal, check status
+## 12) In another terminal, check status
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 ./.venv/bin/python codex_autonomy/scripts/run_daemon.py status --config codex_autonomy/config/autonomy.local.yaml
 ```
 
-## 12) Track processes continuously (copy-safe)
+## 13) Track processes continuously (copy-safe)
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
@@ -104,7 +112,7 @@ while true; do
 done
 ```
 
-## 13) Track recent runtime events from SQLite
+## 14) Track recent runtime events from SQLite
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
@@ -112,7 +120,7 @@ sqlite3 codex_autonomy/runtime/state.db "SELECT task_id,event_type,message,ts FR
 sqlite3 codex_autonomy/runtime/state.db "SELECT task_id,branch_name,return_code,duration_seconds,ts FROM sessions ORDER BY id DESC LIMIT 30;"
 ```
 
-## 13.1) Live append-only event stream (new events at bottom)
+## 14.1) Live append-only event stream (new events at bottom)
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator

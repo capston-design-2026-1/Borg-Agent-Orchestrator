@@ -23,6 +23,7 @@
 - If context/session budget is exhausted, re-queue task and continue automatically.
 - If Codex quota/rate limits are detected, set cooldown and resume automatically after cooldown.
 - Persist progress in queue YAML and SQLite logs.
+- Keep repo-root `.venv` as a local virtualenv directory only; do not commit or preserve a symlinked `.venv` artifact in git state.
 
 ## Git Discipline
 
@@ -45,3 +46,4 @@
 - Store runnable commands in tracked Markdown runbooks under `codex_autonomy/` (copy-safe formatting).
 - In chat replies, point to the runbook path and provide only the numbered step sequence to execute.
 - Use `codex_autonomy/TRACKING_STEPS.md` as the canonical live-monitoring and recovery runbook.
+- When repairing launchd/guardian startup, prefer rebuilding `.venv` locally and reinstalling `codex_autonomy/requirements.txt` before restarting services.
