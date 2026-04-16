@@ -13,7 +13,7 @@ except Exception:  # pragma: no cover
     MultiAgentEnv = object  # type: ignore[misc,assignment]
 
 from orchestrator.layer4.policy import POLICY_SPACES, decode_agent_action, default_policy_actions
-from orchestrator.layer4.referee import resolve
+from orchestrator.layer4.referee import resolve_with_context
 from orchestrator.layer6.scoreboard import Scoreboard
 from orchestrator.types import Observation, StepResult
 
@@ -62,8 +62,8 @@ class OrchestratorMultiAgentEnv(MultiAgentEnv):  # type: ignore[misc]
             decode_agent_action("AgentB", action_ids["AgentB"], self._obs),
             decode_agent_action("AgentC", action_ids["AgentC"], self._obs),
         ]
-        validated = resolve(proposals)
-        result: StepResult = self.backend.step(validated)
+        decision = resolve_with_context(proposals)
+        result: StepResult = self.backend.step(decision.action)
         self._obs = result.next_observation
 
         score = self.scoreboard.update(result.reward_by_agent)
@@ -74,7 +74,34 @@ class OrchestratorMultiAgentEnv(MultiAgentEnv):  # type: ignore[misc]
         }
         terminated = {"__all__": result.done, "AgentA": result.done, "AgentB": result.done, "AgentC": result.done}
         truncated = {"__all__": False, "AgentA": False, "AgentB": False, "AgentC": False}
-        infos = {"AgentA": result.info, "AgentB": result.info, "AgentC": result.info}
+        proposal_info = {
+            proposal.agent_name: {
+                "kind": proposal.kind.value,
+                "target": proposal.target,
+                "payload": dict(proposal.payload),
+                "score": float(proposal.score),
+                "priority": int(proposal.priority),
+                "overridden": proposal.agent_name in decision.overridden,
+                "override_reason": decision.overridden.get(proposal.agent_name),
+            }
+            for proposal in proposals
+        }
+        infos = {
+            agent_name: {
+                **dict(result.info),
+                "proposal": proposal_info[agent_name],
+                "resolved_action": {
+                    "agent_name": decision.action.agent_name,
+                    "kind": decision.action.kind.value,
+                    "target": decision.action.target,
+                    "payload": dict(decision.action.payload),
+                    "score": float(decision.action.score),
+                },
+                "referee_rationale": decision.rationale,
+                "global_score_total": score.total,
+            }
+            for agent_name in self.possible_agents
+        }
         return self._pack_obs(self._obs), rewards, terminated, truncated, infos
 
     def _pack_obs(self, obs: Observation) -> dict[str, np.ndarray]:

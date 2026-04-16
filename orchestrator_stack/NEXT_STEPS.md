@@ -6,7 +6,20 @@
 4. Add model calibration and threshold optimization for `SafetyRiskForecast`.
 5. Add curriculum training schedule for RLlib PPO multi-agent agents.
 
-## Latest Session Note (2026-04-16 KST)
+## Latest Session Note (2026-04-16 KST, RLlib/referee slice)
+
+- Layer 4 referee resolution is now explicit and deterministic instead of a simple priority sort:
+  - `resolve_with_context()` records the chosen action, rationale, and overridden proposals while keeping `resolve()` as the single-action backend adapter.
+  - Agent A migration now preempts other actions, Agent C protective admission (`queue`/`reject`) now preempts efficiency actions, and idle/noop fallback stays deterministic.
+- `OrchestratorMultiAgentEnv` now includes RLlib-facing referee metadata in per-agent `infos`:
+  - each agent sees its decoded proposal, whether it was overridden, the override reason, the resolved backend action, and the current weighted global score.
+- Added focused Layer 4 tests in `orchestrator_stack/tests/test_referee.py` and `orchestrator_stack/tests/test_rllib_env.py`.
+- Validation run status:
+  - `PYTHONPATH=orchestrator_stack .venv/bin/python -m compileall orchestrator_stack/orchestrator/layer4 orchestrator_stack/tests/test_referee.py orchestrator_stack/tests/test_rllib_env.py`: success
+  - `PYTHONPATH=orchestrator_stack .venv/bin/python` smoke invoking `test_policy_decode`, `test_referee`, and `test_rllib_env`: success (`layer4-smoke-ok`)
+  - `.venv/bin/python -m pytest ...`: failed because `pytest` is not installed in the repo virtualenv
+
+## Previous Session Note (2026-04-16 KST, Layer 2 slice)
 
 - Layer 2 simulator + feature extraction were expanded to use a shared AIOpsLab-style normalization path:
   - `state_to_observation()` now accepts nested state wrappers, dict-backed node/task collections, queued-task placement, and common alternate field names (`machines`, `pods`, `risk_scores`, `demand_scores`, etc.).
