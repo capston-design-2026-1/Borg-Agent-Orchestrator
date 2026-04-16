@@ -19,3 +19,12 @@
 reports/tuning/202604142305_optuna_orchestrator_reward_weights.md
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:17:54Z | Session 1 | heartbeat
+
+- elapsed_seconds: 24
+- stdout_chars: 0
+- stderr_chars: 19649
+- excerpt: till assume a valid repo-root virtualenv.
+12. Extend `status` output to show active-queue vs deferred-cooldown counts so operators can distinguish blocked cooldown work from runnable work at a glance.
+- worktree_status:
+-   ?? .venv
