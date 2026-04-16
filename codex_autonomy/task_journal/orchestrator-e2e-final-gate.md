@@ -91,3 +91,11 @@ PermissionError: [Errno 1] Operation not permitted: '/Users/theokim/ray_results/
 orchestrator_stack/orchestrator/config.py:43:            optuna_storage_path=Path(raw.get("optuna_storage_path", "orchestrator_stack/runtime/optuna/orchestrator.db")),
 - worktree_status:
 -   ?? reports/traces/202604161038_episode_trace.log
+## 2026-04-16T01:38:56Z | Session 1 | heartbeat
+
+- elapsed_seconds: 89
+- stdout_chars: 0
+- stderr_chars: 140005
+- excerpt: irectory, so `build_algo()` still targets `~/ray_results`. I’m checking the installed Ray API surface in this runtime and then I’ll patch the trainer to force repo-local storage in a version-safe way.
+- worktree_status:
+-   ?? reports/traces/202604161038_episode_trace.log
