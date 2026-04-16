@@ -115,6 +115,7 @@ After completion, check `reports/` for a KST-timestamped Optuna report (e.g., `2
 ```bash
 ./.venv/bin/python orchestrator_stack/run.py run --config orchestrator_stack/config/orchestrator.example.json
 ```
+If the configured trace exists but the configured XGBoost model files do not, the run path now trains both example models automatically before starting the episode.
 
 ### 3. Run Optuna Tuning Only
 ```bash
@@ -143,3 +144,4 @@ To see more training logs from Ray RLlib, increase the `"rllib_train_iters"` val
 - The default config uses `rllib_train_iters=1` for fast local smoke tests.
 - Optuna studies are persisted at `orchestrator_stack/runtime/optuna/orchestrator.db`.
 - PPO checkpoints are written under `orchestrator_stack/runtime/rllib`.
+- In sandboxed or permission-limited environments, RLlib PPO training may return a structured `status=skipped` result instead of aborting `full-process`; reward tuning and heuristic evaluation still complete.

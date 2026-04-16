@@ -6,7 +6,23 @@
 4. Add model calibration and threshold optimization for `SafetyRiskForecast`.
 5. Add curriculum training schedule for RLlib PPO multi-agent agents.
 
-## Latest Session Note (2026-04-16 KST, RLlib/referee slice)
+## Latest Session Note (2026-04-16 KST, targeted fixups/resiliency slice)
+
+- `run.py run --config orchestrator_stack/config/orchestrator.example.json` no longer crashes when the configured trace exists but the configured XGBoost model artifacts are missing:
+  - `ensure_brain_models_exist()` now trains both predictor models from the configured trace before the episode starts.
+  - Added focused coverage in `orchestrator_stack/tests/test_main.py` for missing-model bootstrap behavior.
+- `run.py full-process --config orchestrator_stack/config/orchestrator.example.json --trials 1` now completes end to end in this sandboxed worktree instead of aborting during RLlib startup:
+  - Layer 4 now redirects Ray trial storage into `orchestrator_stack/runtime/rllib`.
+  - If RLlib cannot initialize because the environment blocks Ray internals (observed here: macOS `sysctl`/`psutil` permission failure during `ray.init()`), PPO returns a structured `status=skipped` payload and the remaining full-process stages continue.
+- Validation run status:
+  - `PYTHONPATH=orchestrator_stack .venv/bin/python -m compileall orchestrator_stack/orchestrator/main.py orchestrator_stack/orchestrator/layer4/ppo_trainer.py orchestrator_stack/tests/test_main.py`: success
+  - `PYTHONPATH=orchestrator_stack .venv/bin/python orchestrator_stack/run.py run --config <temp-config-with-missing-model-paths>`: success; auto-trained models and completed 5-step episode
+  - `PYTHONPATH=orchestrator_stack .venv/bin/python orchestrator_stack/run.py full-process --config orchestrator_stack/config/orchestrator.example.json --trials 1`: success; PPO returned `status=skipped`, reward tuning and policy+reward tuning completed
+  - `.venv/bin/python -m pytest ...`: still unavailable because `pytest` is not installed in the repo virtualenv
+- Follow-up still needed outside this sandbox:
+  - validate PPO training on an unrestricted host where Ray can initialize normally and confirm the `status=trained` path still works
+
+## Previous Session Note (2026-04-16 KST, RLlib/referee slice)
 
 - Layer 4 referee resolution is now explicit and deterministic instead of a simple priority sort:
   - `resolve_with_context()` records the chosen action, rationale, and overridden proposals while keeping `resolve()` as the single-action backend adapter.
