@@ -5,6 +5,7 @@ import time
 from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
+import re
 from typing import Any
 
 import yaml
@@ -103,6 +104,18 @@ def _worktree_status_lines(worktree_path: Path) -> list[str]:
         return ["git status unavailable"]
     lines = [line.strip() for line in proc.stdout.splitlines() if line.strip()]
     return lines or ["clean"]
+
+
+def _heartbeat_commit_message(excerpt: str) -> str:
+    cleaned = re.sub(r"\s+", " ", excerpt).strip().replace("`", "'")
+    if not cleaned:
+        return "trace : heartbeat"
+    words = cleaned.split()
+    summary = " ".join(words[:30])
+    max_len = 72 - len("trace : ")
+    if len(summary) > max_len:
+        summary = summary[: max_len - 3].rstrip(" ,.;:-") + "..."
+    return f"trace : {summary}"
 
 
 def _commit_paths_and_push(
@@ -329,7 +342,7 @@ def run_task(config: ManagerConfig, task: TaskSpec) -> WorkerResult:
                     worktree_path,
                     branch_name,
                     paths=[journal_relpath],
-                    message=f"auto(trace): {task.task_id} session {idx + 1} heartbeat",
+                    message=_heartbeat_commit_message(excerpt),
                 )
 
             result = adapter.run(
