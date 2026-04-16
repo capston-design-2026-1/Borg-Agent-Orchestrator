@@ -423,3 +423,18 @@ codex
 -   M orchestrator_stack/tests/test_referee.py
 -   ?? .venv
 -   ?? orchestrator_stack/tests/test_rllib_env.py
+## 2026-04-16T01:27:43Z | Session 1 | heartbeat
+
+- elapsed_seconds: 211
+- stdout_chars: 0
+- stderr_chars: 322158
+- excerpt: +    assert infos["AgentA"]["referee_rationale"] == "agent-a migration preempts lower-priority actions"
++    assert infos["AgentA"]["global_score_total"] == 14.8
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
+-   M orchestrator_stack/orchestrator/layer4/__init__.py
+-   M orchestrator_stack/orchestrator/layer4/referee.py
+-   M orchestrator_stack/orchestrator/layer4/rllib_env.py
+-   M orchestrator_stack/tests/test_referee.py
+-   ?? .venv
+-   ?? orchestrator_stack/tests/test_rllib_env.py
