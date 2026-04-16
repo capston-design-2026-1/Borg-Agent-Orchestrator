@@ -37,3 +37,11 @@ reports/tuning/202604142305_optuna_orchestrator_reward_weights.md
 # Orchestrator Simulator + Feature Integration (Session 5, 2026-04-16 KST)
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:18:11Z | Session 1 | heartbeat
+
+- elapsed_seconds: 40
+- stdout_chars: 0
+- stderr_chars: 44052
+- excerpt: on for this slice yet in the journal itself. The next step is reading the code hits for `scoreboard`, `feedback`, `referee`, and `reward` so I can map the missing state flow end to end before editing.
+- worktree_status:
+-   ?? .venv
