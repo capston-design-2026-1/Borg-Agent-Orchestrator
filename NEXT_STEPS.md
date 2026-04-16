@@ -27,6 +27,7 @@ Read Agents.md, NEXT_STEPS.md, MAS_ARCHITECTURE.md, and README.md, inspect the l
 - Excluded by default: `a`, `h`
 - Orchestrator Layer 1 ingestion path now enforces stricter row-by-row schema validation for metrics -> trace build and trace `.json/.jsonl` load contracts, including bool-like coercion checks, non-negative queue fields, positive bucket interval checks, and missing-source detection (implemented 2026-04-15 KST in `orchestrator_stack/`).
 - Orchestrator Layer 2 now normalizes AIOpsLab-style nested simulator payloads into the shared `Observation` contract for replay and feature extraction, and the fallback AIOpsLab backend now simulates stateful steps locally; direct upstream package/session validation remains open, and this worktree runtime still cannot run repo pytest because `.venv` is a self-referential symlink while system `python3` is missing `numpy` and `pytest` (2026-04-16 KST).
+- Orchestrator Layer 5 now pushes sampled reward weights and PPO hyperparameters through the real policy-training path, with config support for PPO batch/epoch knobs and a dedicated unit test covering trainer invocation. Reward-only Optuna tuning is validated end-to-end in the repo `.venv`; PPO-backed policy tuning reaches RLlib but still requires a non-sandboxed shell to complete because this macOS sandbox blocks Ray process enumeration during `ray.init()` (2026-04-16 KST).
 
 ## Pipeline Status
 
@@ -209,8 +210,8 @@ The immediate next engineering work is now to let the advanced flatten run compl
 Parallel immediate track:
 
 1. Continue `orchestrator_stack/` from `orchestrator_stack/NEXT_STEPS.md` by validating the live AIOpsLab adapter against the actual upstream package/session API and then replacing the current AIOpsLab-style fallback assumptions with a confirmed contract.
-2. Wire RLlib PPO policies into `orchestrator_stack/orchestrator/layer4/rllib_env.py` (replace current heuristic action source).
-3. Add timestamped orchestrator evaluation reports in `reports/` as Optuna studies begin.
+2. Replace the remaining heuristic post-training proxy in `orchestrator_stack/orchestrator/main.py` with evaluation of learned PPO policies/checkpoints.
+3. Re-run `orchestrator_stack/run.py tune-policy-rewards` in a non-sandboxed shell and capture a completed `orchestrator_policy_and_rewards` Optuna report under `reports/`.
 
 Recommended next sequence:
 

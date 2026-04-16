@@ -24,6 +24,10 @@ def train_multiagent_ppo(
     gamma: float,
     learning_rate: float,
     train_iters: int,
+    train_batch_size: int = 32,
+    minibatch_size: int = 16,
+    num_epochs: int = 1,
+    rollout_fragment_length: int = 8,
     output_dir: str | Path,
 ) -> dict[str, Any]:
     os.environ.setdefault("OMP_NUM_THREADS", "1")
@@ -33,6 +37,7 @@ def train_multiagent_ppo(
     os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
     os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
     os.environ.setdefault("KMP_INIT_AT_FORK", "FALSE")
+    os.environ.setdefault("RAY_ENABLE_UV_RUN_RUNTIME_ENV", "0")
 
     out = Path(output_dir).resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -49,6 +54,28 @@ def train_multiagent_ppo(
     # Delayed import avoids hard dependency when RLlib is not installed.
     from ray.tune.registry import register_env
 
+    try:
+        import ray
+        import ray.train.constants as ray_train_constants
+        import ray.tune.trainable.trainable as ray_trainable
+    except Exception as exc:
+        return {
+            "status": "skipped",
+            "reason": f"ray initialization modules unavailable: {exc}",
+            "output_dir": str(out),
+        }
+
+    ray_train_constants.DEFAULT_STORAGE_PATH = str(out)
+    ray_trainable.DEFAULT_STORAGE_PATH = str(out)
+    if not ray.is_initialized():
+        ray.init(
+            local_mode=True,
+            include_dashboard=False,
+            ignore_reinit_error=True,
+            num_cpus=1,
+            _temp_dir=str((out / "ray_cluster").resolve()),
+        )
+
     register_env(env_name, lambda cfg: OrchestratorMultiAgentEnv(cfg))
 
     policies = {"AgentA", "AgentB", "AgentC"}
@@ -59,16 +86,21 @@ def train_multiagent_ppo(
         .framework("torch")
         .training(
             lr=learning_rate,
-            train_batch_size=32,
-            minibatch_size=16,
-            num_epochs=1,
+            train_batch_size=train_batch_size,
+            minibatch_size=minibatch_size,
+            num_epochs=num_epochs,
         )
         .multi_agent(
             policies=policies,
             policy_mapping_fn=lambda agent_id, *args, **kwargs: agent_id,
         )
         .resources(num_gpus=0)
-        .env_runners(num_env_runners=0, num_envs_per_env_runner=1, rollout_fragment_length=8, batch_mode="truncate_episodes")
+        .env_runners(
+            num_env_runners=0,
+            num_envs_per_env_runner=1,
+            rollout_fragment_length=rollout_fragment_length,
+            batch_mode="truncate_episodes",
+        )
         .reporting(min_sample_timesteps_per_iteration=8, min_train_timesteps_per_iteration=8, min_time_s_per_iteration=0)
     )
 
@@ -86,17 +118,28 @@ def train_multiagent_ppo(
 
     algo.stop()
     try:
-        import ray
-
         ray.shutdown()
     except Exception:
         pass
+
+    env_runners = last_result.get("env_runners", {})
+    objective_reward = float(
+        last_result.get(
+            "episode_reward_mean",
+            env_runners.get("episode_return_mean", env_runners.get("agent_episode_returns_mean", 0.0)),
+        )
+    )
 
     return {
         "status": "trained",
         "checkpoint": checkpoint_path,
         "train_iters": int(train_iters),
-        "episode_reward_mean": float(last_result.get("episode_reward_mean", 0.0)),
+        "episode_reward_mean": objective_reward,
+        "train_batch_size": int(train_batch_size),
+        "minibatch_size": int(minibatch_size),
+        "num_epochs": int(num_epochs),
+        "rollout_fragment_length": int(rollout_fragment_length),
+        "learning_rate": float(learning_rate),
     }
 
 

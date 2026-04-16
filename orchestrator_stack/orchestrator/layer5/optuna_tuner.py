@@ -20,6 +20,10 @@ class TuningResult:
     gamma: float
     score: float
     learning_rate: float | None = None
+    train_batch_size: int | None = None
+    minibatch_size: int | None = None
+    num_epochs: int | None = None
+    rollout_fragment_length: int | None = None
 
 
 def export_study_report(study: optuna.Study, study_name: str) -> Path:
@@ -90,7 +94,7 @@ def tune_reward_weights(
 
 
 def tune_policy_and_rewards(
-    objective_fn: Callable[[float, float, float, float], float],
+    objective_fn: Callable[[float, float, float, float, int, int, int, int], float],
     *,
     n_trials: int,
     storage_path: str | Path,
@@ -115,9 +119,37 @@ def tune_policy_and_rewards(
         beta = trial.suggest_float("beta", 0.1, 2.0)
         gamma = trial.suggest_float("gamma", 0.1, 2.0)
         learning_rate = trial.suggest_float("learning_rate", 1e-5, 3e-3, log=True)
-        return objective_fn(alpha, beta, gamma, learning_rate)
+        train_batch_size = trial.suggest_categorical("train_batch_size", [32, 64, 96, 128])
+        minibatch_choices = [size for size in (16, 32, 48, 64) if size <= train_batch_size]
+        minibatch_size = trial.suggest_categorical("minibatch_size", minibatch_choices)
+        num_epochs = trial.suggest_int("num_epochs", 1, 3)
+        rollout_choices = [
+            size for size in (8, 16, 24, 32, 48, 64, 96, 128) if size <= train_batch_size and train_batch_size % size == 0
+        ]
+        rollout_fragment_length = trial.suggest_categorical("rollout_fragment_length", rollout_choices)
+        return objective_fn(
+            alpha,
+            beta,
+            gamma,
+            learning_rate,
+            int(train_batch_size),
+            int(minibatch_size),
+            int(num_epochs),
+            int(rollout_fragment_length),
+        )
 
-    study.optimize(objective, n_trials=max(1, n_trials))
+    study.optimize(objective, n_trials=max(1, n_trials), catch=(Exception,))
+    completed_trials = [trial for trial in study.trials if getattr(trial, "value", None) is not None]
+    if not completed_trials:
+        failed_reasons = []
+        for trial in study.trials:
+            if trial.state.name != "FAIL":
+                continue
+            message = str(trial.system_attrs.get("fail_reason", "")).strip()
+            if message:
+                failed_reasons.append(message)
+        detail = failed_reasons[-1] if failed_reasons else "no Optuna trials completed successfully"
+        raise RuntimeError(f"policy tuning did not complete any PPO-backed trials: {detail}")
     export_study_report(study, study_name)
     best = study.best_trial
     return TuningResult(
@@ -125,5 +157,9 @@ def tune_policy_and_rewards(
         beta=float(best.params["beta"]),
         gamma=float(best.params["gamma"]),
         learning_rate=float(best.params["learning_rate"]),
+        train_batch_size=int(best.params["train_batch_size"]),
+        minibatch_size=int(best.params["minibatch_size"]),
+        num_epochs=int(best.params["num_epochs"]),
+        rollout_fragment_length=int(best.params["rollout_fragment_length"]),
         score=float(best.value),
     )

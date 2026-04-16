@@ -121,6 +121,10 @@ After completion, check `reports/` for a KST-timestamped Optuna report (e.g., `2
 ./.venv/bin/python orchestrator_stack/run.py tune \
   --config orchestrator_stack/config/orchestrator.example.json \
   --trials 20
+
+./.venv/bin/python orchestrator_stack/run.py tune-policy-rewards \
+  --config orchestrator_stack/config/orchestrator.example.json \
+  --trials 20
 ```
 
 ### 4. Unit Tests
@@ -137,9 +141,12 @@ The orchestrator now provides verbose step-by-step logging of agent decisions. W
 - **Rewards:** The score impact for each agent (e.g., `AgentA:+11.0` indicates a successful preemptive migration).
 
 To see more training logs from Ray RLlib, increase the `"rllib_train_iters"` value in your `.json` config.
+The example config now also exposes PPO knobs used by both `train-policy` and `tune-policy-rewards`: `ppo_learning_rate`, `ppo_train_batch_size`, `ppo_minibatch_size`, `ppo_num_epochs`, and `ppo_rollout_fragment_length`.
 
 ## Notes
 
 - The default config uses `rllib_train_iters=1` for fast local smoke tests.
 - Optuna studies are persisted at `orchestrator_stack/runtime/optuna/orchestrator.db`.
 - PPO checkpoints are written under `orchestrator_stack/runtime/rllib`.
+- `tune-policy-rewards` now scores each Optuna trial with a real PPO training run plus a small heuristic stability term; it is no longer a learning-rate-only placeholder objective.
+- In restricted macOS sandboxes, Ray may fail during `ray.init()` with a `PermissionError` from process enumeration. The command now returns a structured `"status": "skipped"` result in that case instead of crashing.

@@ -10,5 +10,9 @@
   "gamma": 0.8,
   "rllib_train_iters": 1,
   "ppo_learning_rate": 0.0003,
+  "ppo_train_batch_size": 32,
+  "ppo_minibatch_size": 16,
+  "ppo_num_epochs": 1,
+  "ppo_rollout_fragment_length": 8,
   "optuna_storage_path": "orchestrator_stack/runtime/optuna/orchestrator.db"
 }

@@ -20,6 +20,10 @@ class OrchestratorConfig:
     gamma: float = 0.8
     rllib_train_iters: int = 5
     ppo_learning_rate: float = 3e-4
+    ppo_train_batch_size: int = 32
+    ppo_minibatch_size: int = 16
+    ppo_num_epochs: int = 1
+    ppo_rollout_fragment_length: int = 8
     optuna_storage_path: Path = Path("orchestrator_stack/runtime/optuna/orchestrator.db")
 
     @staticmethod
@@ -40,5 +44,9 @@ class OrchestratorConfig:
             gamma=float(raw.get("gamma", 0.8)),
             rllib_train_iters=int(raw.get("rllib_train_iters", 5)),
             ppo_learning_rate=float(raw.get("ppo_learning_rate", 3e-4)),
+            ppo_train_batch_size=int(raw.get("ppo_train_batch_size", 32)),
+            ppo_minibatch_size=int(raw.get("ppo_minibatch_size", 16)),
+            ppo_num_epochs=int(raw.get("ppo_num_epochs", 1)),
+            ppo_rollout_fragment_length=int(raw.get("ppo_rollout_fragment_length", 8)),
             optuna_storage_path=Path(raw.get("optuna_storage_path", "orchestrator_stack/runtime/optuna/orchestrator.db")),
         )
