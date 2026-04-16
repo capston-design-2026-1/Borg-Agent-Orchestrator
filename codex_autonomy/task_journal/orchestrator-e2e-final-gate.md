@@ -402,3 +402,23 @@ RuntimeError: Timed out waiting for file /tmp/raytmp-orch-gate3/session_2026-04-
 -   ?? reports/traces/202604161043_episode_trace.log
 -   ?? reports/tuning/202604161043_optuna_orchestrator_policy_and_rewards.md
 -   ?? reports/tuning/202604161043_optuna_orchestrator_reward_weights.md
+## 2026-04-16T01:45:02Z | Session 1 | heartbeat
+
+- elapsed_seconds: 455
+- stdout_chars: 0
+- stderr_chars: 396161
+- excerpt: e expected smoke outcome from `ppo.status="skipped"` back to `ppo.status="trained"`.
++2. Install `pytest` into the repo `.venv` and rerun the focused orchestrator test suite through the normal runner.
+- worktree_status:
+-   M NEXT_STEPS.md
+-   M README.md
+-   M orchestrator_stack/NEXT_STEPS.md
+-   M orchestrator_stack/README.md
+-   M orchestrator_stack/orchestrator/layer4/ppo_trainer.py
+-   ?? orchestrator_stack/tests/test_ppo_trainer.py
+-   ?? reports/milestones/202604161045_orchestrator_e2e_final_gate_session1.md
+-   ?? reports/traces/202604161038_episode_trace.log
+-   ?? reports/traces/202604161040_episode_trace.log
+-   ?? reports/traces/202604161041_episode_trace.log
+-   ?? reports/traces/202604161043_episode_trace.log
+-   ?? reports/tuning/202604161043_optuna_orchestrator_policy_and_rewards.md
