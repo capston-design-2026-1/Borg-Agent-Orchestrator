@@ -31,6 +31,45 @@ def test_state_to_observation_normalizes_nested_aiopslab_payload():
     assert obs.demand_projection["node-a"] == 0.66
 
 
+def test_state_to_observation_reads_nested_resource_metrics():
+    payload = {
+        "current_state": {
+            "timestamp": 17,
+            "machines": [
+                {
+                    "id": "node-a",
+                    "resources": {
+                        "cpu": {"percent": 72},
+                        "memory": {"utilization": "0.81"},
+                        "disk": {"used_ratio": "0.34"},
+                        "network": {"usage": 18},
+                    },
+                    "power": "sleep",
+                    "risk_score": "0.91",
+                    "demand_score": "0.63",
+                }
+            ],
+            "pods": [
+                {"pod_id": "pod-1", "placement": {"node": "node-a"}, "status": {"healthy": "false"}},
+                {"pod_id": "pod-2", "queued": True},
+            ],
+            "metrics": {"pending_queue_length": "3", "energyPrice": "0.14"},
+        }
+    }
+
+    obs = state_to_observation(json.dumps(payload))
+
+    assert obs.nodes[0].cpu_util == 0.72
+    assert obs.nodes[0].mem_util == 0.81
+    assert obs.nodes[0].disk_util == 0.34
+    assert obs.nodes[0].net_util == 0.18
+    assert obs.nodes[0].power_state == "sleep"
+    assert obs.p_fail_scores["node-a"] == 0.91
+    assert obs.demand_projection["node-a"] == 0.63
+    assert obs.tasks[1].node_id == "queue"
+    assert obs.tasks[1].alive is False
+
+
 def test_trace_driven_backend_applies_migration_before_advancing_trace():
     rows = [
         {
