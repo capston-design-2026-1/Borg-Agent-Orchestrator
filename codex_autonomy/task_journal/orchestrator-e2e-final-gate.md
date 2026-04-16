@@ -505,3 +505,12 @@ Everything up-to-date
    37ab72d..9b8304c  auto/orchestrator-e2e-final-gate -> auto/orchestrator-e2e-final-gate
 - worktree_status:
 -   clean
+## 2026-04-16T01:47:04Z | Session 1 | heartbeat
+
+- elapsed_seconds: 576
+- stdout_chars: 0
+- stderr_chars: 738162
+- excerpt: e expected smoke outcome from `ppo.status="skipped"` back to `ppo.status="trained"`.
++2. Install `pytest` into the repo `.venv` and rerun the focused orchestrator test suite through the normal runner.
+- worktree_status:
+-   clean
