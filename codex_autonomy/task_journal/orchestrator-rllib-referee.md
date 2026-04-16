@@ -62,3 +62,12 @@
 orchestrator_stack/tests/test_trace_ingestor.py
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:18:51Z | Session 1 | heartbeat
+
+- elapsed_seconds: 81
+- stdout_chars: 0
+- stderr_chars: 64683
+- excerpt: action = decode_agent_action("AgentA", 1, obs)
+    assert action.target == "n1"
+- worktree_status:
+-   ?? .venv
