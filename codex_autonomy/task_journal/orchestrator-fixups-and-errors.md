@@ -337,3 +337,13 @@ diff --git a/orchestrator_stack/orchestrator/layer4/ppo_trainer.py b/orchestrato
 -   M orchestrator_stack/orchestrator/layer4/ppo_trainer.py
 -   M orchestrator_stack/orchestrator/main.py
 -   ?? orchestrator_stack/tests/test_main.py
+## 2026-04-16T01:37:58Z | Session 1 | heartbeat
+
+- elapsed_seconds: 349
+- stdout_chars: 0
+- stderr_chars: 509332
+- excerpt: pecific: document the new bootstrap/skip behavior in the orchestrator README, and record this session’s validated outcomes plus the remaining live-validation gap in `orchestrator_stack/NEXT_STEPS.md`.
+- worktree_status:
+-   M orchestrator_stack/orchestrator/layer4/ppo_trainer.py
+-   M orchestrator_stack/orchestrator/main.py
+-   ?? orchestrator_stack/tests/test_main.py
