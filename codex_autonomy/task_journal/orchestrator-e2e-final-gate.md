@@ -484,3 +484,15 @@ Everything up-to-date
 -   ?? reports/traces/202604161043_episode_trace.log
 -   ?? reports/tuning/202604161043_optuna_orchestrator_policy_and_rewards.md
 -   ?? reports/tuning/202604161043_optuna_orchestrator_reward_weights.md
+## 2026-04-16T01:46:48Z | Session 1 | heartbeat
+
+- elapsed_seconds: 560
+- stdout_chars: 0
+- stderr_chars: 686641
+- excerpt: e expected smoke outcome from `ppo.status="skipped"` back to `ppo.status="trained"`.
++2. Install `pytest` into the repo `.venv` and rerun the focused orchestrator test suite through the normal runner.
+- worktree_status:
+-   ?? reports/milestones/202604161045_orchestrator_e2e_final_gate_session1.md
+-   ?? reports/traces/202604161043_episode_trace.log
+-   ?? reports/tuning/202604161043_optuna_orchestrator_policy_and_rewards.md
+-   ?? reports/tuning/202604161043_optuna_orchestrator_reward_weights.md
