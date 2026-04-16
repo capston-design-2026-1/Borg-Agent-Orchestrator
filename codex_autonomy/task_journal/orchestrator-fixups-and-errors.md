@@ -265,3 +265,19 @@ index 99bf5ebc52b852765dff9a83777bcc6858db9ec3..fdac9b5415254a0a5a69661c80d2cb5e
 -   ?? reports/traces/202604161036_episode_trace.log
 -   ?? reports/tuning/202604161036_optuna_orchestrator_policy_and_rewards.md
 -   ?? reports/tuning/202604161036_optuna_orchestrator_reward_weights.md
+## 2026-04-16T01:36:53Z | Session 1 | heartbeat
+
+- elapsed_seconds: 284
+- stdout_chars: 0
+- stderr_chars: 290389
+- excerpt: +    assert result["risk_model"] == str(cfg.risk_model_path)
++    assert result["demand_model"] == str(cfg.demand_model_path)
+- worktree_status:
+-   M orchestrator_stack/orchestrator/layer4/ppo_trainer.py
+-   M orchestrator_stack/orchestrator/main.py
+-   ?? orchestrator_stack/tests/test_main.py
+-   ?? reports/traces/202604161033_episode_trace.log
+-   ?? reports/traces/202604161035_episode_trace.log
+-   ?? reports/traces/202604161036_episode_trace.log
+-   ?? reports/tuning/202604161036_optuna_orchestrator_policy_and_rewards.md
+-   ?? reports/tuning/202604161036_optuna_orchestrator_reward_weights.md
