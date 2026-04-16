@@ -161,3 +161,14 @@ gymnasium missing ModuleNotFoundError No module named 'gymnasium'
 -   M orchestrator_stack/orchestrator/layer4/referee.py
 -   M orchestrator_stack/orchestrator/layer4/rllib_env.py
 -   ?? .venv
+## 2026-04-16T01:21:34Z | Session 1 | heartbeat
+
+- elapsed_seconds: 244
+- stdout_chars: 0
+- stderr_chars: 166234
+- excerpt: place. I’m doing one more Layer 4 pass to remove the hard `numpy` import from basic env loading in this stripped runtime, then I’ll add focused tests for referee safety rules and env action ownership.
+- worktree_status:
+-   M orchestrator_stack/orchestrator/layer4/ppo_trainer.py
+-   M orchestrator_stack/orchestrator/layer4/referee.py
+-   M orchestrator_stack/orchestrator/layer4/rllib_env.py
+-   ?? .venv
