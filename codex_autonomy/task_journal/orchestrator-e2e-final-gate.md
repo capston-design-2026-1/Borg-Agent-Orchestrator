@@ -27,3 +27,12 @@
 orchestrator_stack/AGENTS.md
 - worktree_status:
 -   clean
+## 2026-04-16T01:37:51Z | Session 1 | heartbeat
+
+- elapsed_seconds: 24
+- stdout_chars: 0
+- stderr_chars: 43425
+- excerpt: onical live-monitoring and recovery runbook.
+- When repairing launchd/guardian startup, prefer rebuilding `.venv` locally and reinstalling `codex_autonomy/requirements.txt` before restarting services.
+- worktree_status:
+-   clean
