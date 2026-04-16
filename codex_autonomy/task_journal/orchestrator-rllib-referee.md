@@ -502,3 +502,19 @@ PY" in /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator/codex_au
 -   ?? .venv
 -   ?? orchestrator_stack/tests/test_rllib_env.py
 -   ?? reports/milestones/202604161027_orchestrator_rllib_referee_session1.md
+## 2026-04-16T01:28:31Z | Session 1 | heartbeat
+
+- elapsed_seconds: 259
+- stdout_chars: 0
+- stderr_chars: 416104
+- excerpt: ` installed.
++2. Exercise `train_multiagent_ppo()` against the repo Ray runtime to validate that the new `infos` contract and multi-agent setup behave correctly under an actual PPO training iteration.
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
+-   M orchestrator_stack/orchestrator/layer4/__init__.py
+-   M orchestrator_stack/orchestrator/layer4/referee.py
+-   M orchestrator_stack/orchestrator/layer4/rllib_env.py
+-   M orchestrator_stack/tests/test_referee.py
+-   ?? .venv
+-   ?? orchestrator_stack/tests/test_rllib_env.py
+-   ?? reports/milestones/202604161027_orchestrator_rllib_referee_session1.md
