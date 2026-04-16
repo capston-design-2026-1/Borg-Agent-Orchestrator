@@ -1,0 +1,33 @@
+task_id: orchestrator-xgboost-observation
+title: 'Orchestrator: XGBoost predictor observation integration'
+prompt: 'Integrate XGBoost safety/resource predictors into orchestrator observations.
+
+  Ensure runtime wiring is active (no placeholders) and keep changes scoped to this
+  integration.
+
+  Commit and push only this slice.
+
+  '
+task_type: feature
+priority: 30
+dependencies: []
+scope_paths:
+- orchestrator_stack/
+- reports/
+- README.md
+- NEXT_STEPS.md
+done_when_commands: []
+max_sessions: 6
+max_retries: 4
+retries: 0
+status: pending
+review_prompt: Review branch changes for correctness and regressions.
+issue_number: 33
+issue_url: https://github.com/capston-design-2026-1/Borg-Agent-Orchestrator/issues/33
+pr_number: null
+pr_url: null
+metadata:
+  not_before_epoch: 1776302323
+  wait_reason: codex_limit_cooldown
+created_at: '2026-04-15T04:23:41.521740'
+updated_at: '2026-04-16T00:48:43.439066'

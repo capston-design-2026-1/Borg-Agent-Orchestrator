@@ -9,8 +9,7 @@ prompt: 'Implement and validate the global scoreboard and full feedback loop.
   '
 task_type: feature
 priority: 60
-dependencies:
-- orchestrator-optuna-meta-tuning
+dependencies: []
 scope_paths:
 - orchestrator_stack/
 - reports/
@@ -20,12 +19,12 @@ done_when_commands: []
 max_sessions: 6
 max_retries: 4
 retries: 0
-status: pending
+status: running
 review_prompt: Review branch changes for correctness and regressions.
-issue_number: null
-issue_url: null
+issue_number: 38
+issue_url: https://github.com/capston-design-2026-1/Borg-Agent-Orchestrator/issues/38
 pr_number: null
 pr_url: null
 metadata: {}
 created_at: '2026-04-15T04:23:41.528154'
-updated_at: '2026-04-15T04:23:41.528164'
+updated_at: '2026-04-16T01:17:28.990060'

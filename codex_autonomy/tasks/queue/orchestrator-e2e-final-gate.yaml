@@ -12,8 +12,7 @@ prompt: 'Run the full process gate command and ensure it passes.
   '
 task_type: chore
 priority: 80
-dependencies:
-- orchestrator-fixups-and-errors
+dependencies: []
 scope_paths:
 - orchestrator_stack/
 - codex_autonomy/

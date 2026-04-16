@@ -10,8 +10,7 @@ prompt: 'Run validation commands, fix concrete errors/regressions, and harden fr
   '
 task_type: bug
 priority: 70
-dependencies:
-- orchestrator-scoreboard-feedback
+dependencies: []
 scope_paths:
 - orchestrator_stack/
 - codex_autonomy/
