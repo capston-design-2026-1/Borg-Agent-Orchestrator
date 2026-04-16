@@ -301,3 +301,11 @@ ModuleNotFoundError: No module named 'orchestrator'
   • Update orchestrator continuity docs/report, then commit and push the validated slice in small commits
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:26:22Z | Session 1 | heartbeat
+
+- elapsed_seconds: 130
+- stdout_chars: 0
+- stderr_chars: 91276
+- excerpt: tack now. The code change is to make each Optuna policy trial launch PPO training with sampled RL settings and score the trial from the actual RLlib result, while keeping the reward-only tuner intact.
+- worktree_status:
+-   ?? .venv
