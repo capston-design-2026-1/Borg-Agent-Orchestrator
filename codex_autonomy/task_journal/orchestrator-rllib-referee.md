@@ -19,3 +19,12 @@
 ./orchestrator_stack/NEXT_STEPS.md
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:17:55Z | Session 1 | heartbeat
+
+- elapsed_seconds: 24
+- stdout_chars: 0
+- stderr_chars: 32960
+- excerpt: venting near-term workload failure while minimizing intervention cost.
+4. Translate the reward explanation into measurable replay or simulation metrics using existing Borg features and failure labels.
+- worktree_status:
+-   ?? .venv
