@@ -16,6 +16,18 @@ except Exception:  # pragma: no cover
     PPOConfig = None
 
 
+def _set_ray_storage_path(storage_path: Path) -> None:
+    try:
+        import ray.train.constants as ray_train_constants
+        import ray.tune.trainable.trainable as ray_trainable_module
+
+        resolved = str(storage_path)
+        ray_train_constants.DEFAULT_STORAGE_PATH = resolved
+        ray_trainable_module.DEFAULT_STORAGE_PATH = resolved
+    except Exception:
+        pass
+
+
 def train_multiagent_ppo(
     backend,
     *,
@@ -44,6 +56,8 @@ def train_multiagent_ppo(
             "output_dir": str(out),
         }
 
+    _set_ray_storage_path(out)
+
     env_name = "OrchestratorMultiAgentEnv"
 
     # Delayed import avoids hard dependency when RLlib is not installed.
@@ -67,37 +81,51 @@ def train_multiagent_ppo(
             policies=policies,
             policy_mapping_fn=lambda agent_id, *args, **kwargs: agent_id,
         )
+        .debugging(log_level="WARN")
         .resources(num_gpus=0)
         .env_runners(num_env_runners=0, num_envs_per_env_runner=1, rollout_fragment_length=8, batch_mode="truncate_episodes")
         .reporting(min_sample_timesteps_per_iteration=8, min_train_timesteps_per_iteration=8, min_time_s_per_iteration=0)
     )
 
-    algo = config.build_algo()
-    last_result: dict[str, Any] = {}
-    for _ in range(max(1, train_iters)):
-        last_result = algo.train()
-
-    checkpoint_result = algo.save(checkpoint_dir=str(out))
-    checkpoint_path = str(out)
+    algo = None
     try:
-        checkpoint_path = str(checkpoint_result.checkpoint.path)
-    except Exception:
-        checkpoint_path = str(checkpoint_result)
+        algo = config.build_algo()
+        last_result: dict[str, Any] = {}
+        for _ in range(max(1, train_iters)):
+            last_result = algo.train()
 
-    algo.stop()
-    try:
-        import ray
+        checkpoint_result = algo.save(checkpoint_dir=str(out))
+        checkpoint_path = str(out)
+        try:
+            checkpoint_path = str(checkpoint_result.checkpoint.path)
+        except Exception:
+            checkpoint_path = str(checkpoint_result)
 
-        ray.shutdown()
-    except Exception:
-        pass
+        return {
+            "status": "trained",
+            "checkpoint": checkpoint_path,
+            "train_iters": int(train_iters),
+            "episode_reward_mean": float(last_result.get("episode_reward_mean", 0.0)),
+        }
+    except Exception as exc:
+        return {
+            "status": "skipped",
+            "reason": f"rllib training unavailable: {exc.__class__.__name__}: {exc}",
+            "output_dir": str(out),
+            "train_iters": int(train_iters),
+        }
+    finally:
+        if algo is not None:
+            try:
+                algo.stop()
+            except Exception:
+                pass
+        try:
+            import ray
 
-    return {
-        "status": "trained",
-        "checkpoint": checkpoint_path,
-        "train_iters": int(train_iters),
-        "episode_reward_mean": float(last_result.get("episode_reward_mean", 0.0)),
-    }
+            ray.shutdown()
+        except Exception:
+            pass
 
 
 def evaluate_heuristic_policy(backend, *, alpha: float, beta: float, gamma: float, steps: int) -> dict[str, float | int]:
