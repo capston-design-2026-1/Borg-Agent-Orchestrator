@@ -142,3 +142,11 @@ codex
 gymnasium missing ModuleNotFoundError No module named 'gymnasium'
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:20:46Z | Session 1 | heartbeat
+
+- elapsed_seconds: 195
+- stdout_chars: 0
+- stderr_chars: 146914
+- excerpt: now. The first patch is the referee itself plus env/trainer call sites so conflict resolution can use the live observation and the RL env stops hiding missing policy actions behind heuristic defaults.
+- worktree_status:
+-   ?? .venv
