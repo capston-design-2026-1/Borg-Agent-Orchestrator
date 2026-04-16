@@ -421,3 +421,14 @@ NEXT_STEPS.md
 - excerpt:  centered on a reusable feedback-loop helper and scoreboard-derived observation features, then I’ll update the episode and RL paths to use the same loop instead of each carrying its own local variant.
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:32:07Z | Session 1 | heartbeat
+
+- elapsed_seconds: 162
+- stdout_chars: 0
+- stderr_chars: 143699
+- excerpt: +        return self.scoreboard.update(reward_by_agent)
+
+apply patch
+- worktree_status:
+-   M orchestrator_stack/orchestrator/layer6/scoreboard.py
+-   ?? .venv
