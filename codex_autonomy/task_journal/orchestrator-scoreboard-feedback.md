@@ -82,3 +82,11 @@ reports/tuning/202604142305_optuna_orchestrator_reward_weights.md
   • Run validation, update docs/report/next steps, then commit and push slices
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:19:24Z | Session 1 | heartbeat
+
+- elapsed_seconds: 113
+- stdout_chars: 0
+- stderr_chars: 95266
+- excerpt: ge is: `Scoreboard.update()` will return both the weighted global score and a bounded feedback signal, and Layer 4 will consume that feedback on the next decision instead of ignoring Layer 6 entirely.
+- worktree_status:
+-   ?? .venv
