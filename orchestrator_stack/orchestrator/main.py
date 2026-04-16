@@ -55,11 +55,23 @@ def train_brain_models(config: OrchestratorConfig) -> dict[str, str]:
 from datetime import datetime, timedelta, timezone
 
 
+def ensure_brain_models_exist(config: OrchestratorConfig) -> dict[str, str]:
+    risk_exists = config.risk_model_path.exists()
+    demand_exists = config.demand_model_path.exists()
+    if risk_exists and demand_exists:
+        return {
+            "risk_model": str(config.risk_model_path),
+            "demand_model": str(config.demand_model_path),
+        }
+    return train_brain_models(config)
+
+
 def run_episode(config: OrchestratorConfig, verbose: bool = True) -> RunSummary:
     trace_path = ensure_trace_exists(config)
     rows = load_trace_rows(trace_path)
     backend = _build_backend(rows, config)
 
+    ensure_brain_models_exist(config)
     risk_model = SafetyRiskForecast.load(config.risk_model_path)
     demand_model = ResourceDemandForecast.load(config.demand_model_path)
 
