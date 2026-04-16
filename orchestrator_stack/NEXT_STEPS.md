@@ -8,6 +8,16 @@
 
 ## Latest Session Note (2026-04-16 KST)
 
+- Layer 6 scoreboard/feedback integration is now routed through a shared `FeedbackLoop` helper instead of duplicated episode/eval/env bookkeeping:
+  - `run_episode()`, heuristic evaluation, and the RLlib env now all resolve referee actions against the latest scoreboard feedback and apply rewards through the same Layer 6 path.
+  - `Scoreboard` now exposes neutral current feedback before the first step plus bounded scoreboard-derived observation features for each agent.
+  - `OrchestratorMultiAgentEnv` observation width is now `10` (`6` simulator features + `4` scoreboard features), so PPO policies can condition on global score/balance context instead of only receiving shaped rewards after the fact.
+- Added Layer 6 regression coverage in `orchestrator_stack/tests/test_scoreboard.py` for neutral feedback bootstrapping and scoreboard-feature imbalance signals.
+- Validation run status for this slice:
+  - `python3 -m compileall orchestrator_stack/orchestrator/layer6 orchestrator_stack/orchestrator/layer4/rllib_env.py orchestrator_stack/orchestrator/layer4/ppo_trainer.py orchestrator_stack/orchestrator/main.py orchestrator_stack/tests/test_scoreboard.py`: success
+  - `PYTHONPATH=orchestrator_stack python3` scoreboard/referee smoke for `FeedbackLoop`, observation features, and weighted referee resolution: success (`scoreboard-feedback-smoke-ok`)
+  - `pytest` still could not be executed because this worktree `.venv` is a self-referential symlink and the fallback `python3` runtime is missing `numpy` and `pytest`
+
 - Layer 2 simulator + feature extraction were expanded to use a shared AIOpsLab-style normalization path:
   - `state_to_observation()` now accepts nested state wrappers, dict-backed node/task collections, queued-task placement, and common alternate field names (`machines`, `pods`, `risk_scores`, `demand_scores`, etc.).
   - `AIOpsLabBackend` now falls back to a stateful local twin-style simulation instead of returning an empty mock observation on every step, so Layer 4/5 loops can exercise Layer 2 behavior without the upstream package.

@@ -89,6 +89,8 @@ See `orchestrator_stack/examples/README.md` for the concise schema contract.
 
 Layer 2 now normalizes AIOpsLab-style nested payloads into the shared `Observation` contract before simulator replay and feature extraction. Supported adapter-friendly shapes include nested wrappers such as `snapshot/state/observation`, dict-backed `machines`/`pods`, and alternate score fields such as `risk_scores` and `demand_scores`.
 
+Layer 6 now runs through a shared feedback-loop helper instead of separate ad hoc episode/env logic. The RLlib environment appends 4 scoreboard-derived features per agent to the 6 base simulator features, so policy observations now carry current global-score, balance-gap, weight, and deficit context.
+
 ### 5. Train the Predictor Models (Layer 3)
 Train the XGBoost safety-risk and resource-demand models from the generated trace:
 ```bash
@@ -135,6 +137,7 @@ The orchestrator now provides verbose step-by-step logging of agent decisions. W
 - **Proposals:** The raw actions suggested by the Risk, Efficiency, and Admission agents.
 - **Referee:** The final action chosen after conflict resolution.
 - **Rewards:** The score impact for each agent (e.g., `AgentA:+11.0` indicates a successful preemptive migration).
+- **Global / Weights:** Layer 6 now logs the weighted global score and per-agent feedback weights on each step so referee and policy behavior can be traced against scoreboard state.
 
 To see more training logs from Ray RLlib, increase the `"rllib_train_iters"` value in your `.json` config.
 

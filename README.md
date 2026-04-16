@@ -24,6 +24,7 @@ An independent end-to-end orchestrator workspace now exists at `orchestrator_sta
 - Repo `.venv` has verified Ray PPO + Optuna runtime support for orchestrator smoke runs
 - Layer 1 ingestion/trace contracts are strict by default (row-indexed schema checks, `.json/.jsonl` contract validation, bool-like and non-negative queue guardrails)
 - Layer 2 now normalizes AIOpsLab-style nested state payloads into the shared `Observation`/feature contract used by simulator replay, live adapters, and XGBoost feature extraction
+- Layer 6 scoreboard feedback is now routed through a shared loop across manual episodes, heuristic evaluation, and the RLlib env, and RL observations now include scoreboard context features in addition to simulator state
 - `orchestrator_stack/examples/generate_synthetic_assets.py` now derives sample matrix width from Layer 2 `FEATURE_COUNT`, so synthetic assets stay aligned with simulator/feature changes
 
 ## New Isolated Track: Codex Autonomy Runner
