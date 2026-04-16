@@ -117,3 +117,17 @@ orchestrator_stack/examples/sample_trace.json
 - excerpt: e RLlib env scoreboard never resets between episodes. I’m fixing that while I wire the real PPO-backed Optuna objective, because otherwise any evaluation metric from repeated episodes is contaminated.
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:21:18Z | Session 1 | heartbeat
+
+- elapsed_seconds: 228
+- stdout_chars: 0
+- stderr_chars: 138199
+- excerpt: try:
+         result = tune_policy_and_rewards(
+- worktree_status:
+-   M orchestrator_stack/orchestrator/config.py
+-   M orchestrator_stack/orchestrator/layer4/ppo_trainer.py
+-   M orchestrator_stack/orchestrator/layer4/rllib_env.py
+-   M orchestrator_stack/orchestrator/layer5/optuna_tuner.py
+-   M orchestrator_stack/orchestrator/main.py
+-   ?? .venv
