@@ -16,6 +16,23 @@ except Exception:  # pragma: no cover
     PPOConfig = None
 
 
+def _pin_ray_storage_path(output_dir: Path) -> str:
+    storage_root = str(output_dir.resolve())
+    os.environ["RAY_AIR_LOCAL_CACHE_DIR"] = storage_root
+    os.environ["RAY_ENABLE_UV_RUN_RUNTIME_ENV"] = "0"
+    try:
+        from ray._private import ray_constants
+        import ray.train.constants as train_constants
+        from ray.tune.trainable import trainable as tune_trainable
+
+        ray_constants.RAY_ENABLE_UV_RUN_RUNTIME_ENV = False
+        train_constants.DEFAULT_STORAGE_PATH = storage_root
+        tune_trainable.DEFAULT_STORAGE_PATH = storage_root
+    except Exception:
+        pass
+    return storage_root
+
+
 def train_multiagent_ppo(
     backend,
     *,
@@ -36,6 +53,7 @@ def train_multiagent_ppo(
 
     out = Path(output_dir).resolve()
     out.mkdir(parents=True, exist_ok=True)
+    _pin_ray_storage_path(out)
 
     if PPOConfig is None:
         return {
@@ -72,32 +90,43 @@ def train_multiagent_ppo(
         .reporting(min_sample_timesteps_per_iteration=8, min_train_timesteps_per_iteration=8, min_time_s_per_iteration=0)
     )
 
-    algo = config.build_algo()
-    last_result: dict[str, Any] = {}
-    for _ in range(max(1, train_iters)):
-        last_result = algo.train()
-
-    checkpoint_result = algo.save(checkpoint_dir=str(out))
-    checkpoint_path = str(out)
     try:
-        checkpoint_path = str(checkpoint_result.checkpoint.path)
-    except Exception:
-        checkpoint_path = str(checkpoint_result)
+        algo = config.build_algo()
+        last_result: dict[str, Any] = {}
+        for _ in range(max(1, train_iters)):
+            last_result = algo.train()
 
-    algo.stop()
-    try:
-        import ray
+        checkpoint_result = algo.save(checkpoint_dir=str(out))
+        checkpoint_path = str(out)
+        try:
+            checkpoint_path = str(checkpoint_result.checkpoint.path)
+        except Exception:
+            checkpoint_path = str(checkpoint_result)
 
-        ray.shutdown()
-    except Exception:
-        pass
+        return {
+            "status": "trained",
+            "checkpoint": checkpoint_path,
+            "train_iters": int(train_iters),
+            "episode_reward_mean": float(last_result.get("episode_reward_mean", 0.0)),
+        }
+    except Exception as exc:
+        return {
+            "status": "skipped",
+            "reason": f"ray PPO runtime unavailable: {exc}",
+            "output_dir": str(out),
+            "train_iters": int(train_iters),
+        }
+    finally:
+        try:
+            algo.stop()
+        except Exception:
+            pass
+        try:
+            import ray
 
-    return {
-        "status": "trained",
-        "checkpoint": checkpoint_path,
-        "train_iters": int(train_iters),
-        "episode_reward_mean": float(last_result.get("episode_reward_mean", 0.0)),
-    }
+            ray.shutdown()
+        except Exception:
+            pass
 
 
 def evaluate_heuristic_policy(backend, *, alpha: float, beta: float, gamma: float, steps: int) -> dict[str, float | int]:
