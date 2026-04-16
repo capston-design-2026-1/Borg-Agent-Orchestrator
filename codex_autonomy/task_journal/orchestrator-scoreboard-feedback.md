@@ -45,3 +45,12 @@ reports/tuning/202604142305_optuna_orchestrator_reward_weights.md
 - excerpt: on for this slice yet in the journal itself. The next step is reading the code hits for `scoreboard`, `feedback`, `referee`, and `reward` so I can map the missing state flow end to end before editing.
 - worktree_status:
 -   ?? .venv
+## 2026-04-16T01:18:27Z | Session 1 | heartbeat
+
+- elapsed_seconds: 56
+- stdout_chars: 0
+- stderr_chars: 65254
+- excerpt: scoreboard.update({"AgentA": 10.0, "AgentB": 5.0, "AgentC": 2.0})
+    assert round(scoreboard.total(), 3) == 14.6
+- worktree_status:
+-   ?? .venv
