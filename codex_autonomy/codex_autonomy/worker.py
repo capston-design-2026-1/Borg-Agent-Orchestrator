@@ -91,6 +91,20 @@ def _append_task_journal(
     return relpath
 
 
+def _worktree_status_lines(worktree_path: Path) -> list[str]:
+    proc = subprocess.run(
+        ["git", "status", "--short", "--untracked-files=all"],
+        cwd=str(worktree_path),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        return ["git status unavailable"]
+    lines = [line.strip() for line in proc.stdout.splitlines() if line.strip()]
+    return lines or ["clean"]
+
+
 def _commit_paths_and_push(
     config: ManagerConfig,
     worktree_path: Path,
@@ -180,20 +194,16 @@ def _enqueue_followups(
 
 
 def _make_prompt(task: TaskSpec, session_idx: int, followups_file: Path) -> str:
-    journal_relpath = _journal_relpath(task.task_id)
     resume = (
         "Read Agents.md, NEXT_STEPS.md, and latest reports before coding. "
         "When context is exhausted, update task/report files and let supervisor continue next session. "
         "Do implementation, verification, commit, and push."
     )
     commit_rules = (
-        "Commit/push tracking protocol:\n"
-        f"- Keep a durable progress journal in `{journal_relpath}`.\n"
-        "- After every meaningful step, append a short timestamped note to that journal, commit it, and push it even if no code changed.\n"
-        "- When you edit code or docs, commit the changed file immediately after validating that specific file-level slice.\n"
-        "- Prefer one changed file per commit. Only group files when they are truly inseparable for correctness.\n"
-        "- Push after every commit so the remote branch shows the live operation trail.\n"
-        "- Do not wait until task completion to record progress.\n"
+        "Commit/push protocol:\n"
+        "- Commit code and docs in small validated slices while you work; prefer one changed file per commit when practical.\n"
+        "- Push after each meaningful commit so the branch stays current.\n"
+        "- Supervisor will publish heartbeat trace commits separately; do not spend task context writing bookkeeping notes unless needed for handoff clarity.\n"
     )
     expansion = (
         "Autonomous decomposition protocol:\n"
@@ -251,7 +261,7 @@ def run_task(config: ManagerConfig, task: TaskSpec) -> WorkerResult:
                 details=[
                     f"supervisor started session {idx + 1} of {task.max_sessions}",
                     f"prompt file: {logs_dir / f'session_{idx + 1:03d}.prompt.txt'}",
-                    "agent must commit each meaningful journal/code step and push immediately",
+                    "supervisor will publish heartbeat trace commits during execution",
                 ],
             )
             _commit_paths_and_push(
@@ -267,6 +277,7 @@ def run_task(config: ManagerConfig, task: TaskSpec) -> WorkerResult:
             stderr_file = logs_dir / f"session_{idx + 1:03d}.stderr.log"
             followups_file.unlink(missing_ok=True)
             prompt_file.write_text(prompt_text, encoding="utf-8")
+            last_trace_excerpt = ""
             def _on_progress(snapshot: dict[str, Any]) -> None:
                 tail = str(snapshot.get("stderr_tail") or snapshot.get("stdout_tail") or "").strip()
                 excerpt = tail[-int(config.session.progress_excerpt_chars) :] if tail else "(heartbeat)"
@@ -292,6 +303,33 @@ def run_task(config: ManagerConfig, task: TaskSpec) -> WorkerResult:
                         f"s{idx + 1}: elapsed={int(float(snapshot.get('elapsed_seconds', 0.0)))}s "
                         f"out={int(snapshot.get('stdout_chars', 0))} err={int(snapshot.get('stderr_chars', 0))}"
                     ),
+                )
+                nonlocal last_trace_excerpt
+                status_lines = _worktree_status_lines(worktree_path)
+                trace_signature = f"{excerpt}\n{status_lines[:8]}"
+                if trace_signature == last_trace_excerpt:
+                    return
+                last_trace_excerpt = trace_signature
+                journal_relpath = _append_task_journal(
+                    worktree_path,
+                    task,
+                    session_idx=idx,
+                    heading="heartbeat",
+                    details=[
+                        f"elapsed_seconds: {int(float(snapshot.get('elapsed_seconds', 0.0)))}",
+                        f"stdout_chars: {int(snapshot.get('stdout_chars', 0))}",
+                        f"stderr_chars: {int(snapshot.get('stderr_chars', 0))}",
+                        f"excerpt: {excerpt}",
+                        "worktree_status:",
+                        *[f"  {line}" for line in status_lines[:12]],
+                    ],
+                )
+                _commit_paths_and_push(
+                    config,
+                    worktree_path,
+                    branch_name,
+                    paths=[journal_relpath],
+                    message=f"auto(trace): {task.task_id} session {idx + 1} heartbeat",
                 )
 
             result = adapter.run(

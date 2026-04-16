@@ -57,7 +57,8 @@ tail -f "$LATEST_STDERR" "$LATEST_STDOUT"
 ## 7.1) Inspect remote-visible task journal progress
 
 - Each autonomous task branch should update `codex_autonomy/task_journal/<task-id>.md` during execution.
-- Session start/end markers are pushed by the supervisor; additional entries should appear as the agent commits intermediate steps.
+- Session start/end markers and heartbeat trace entries are pushed by the supervisor from outside the Codex session.
+- Journal entries include recent output excerpts plus a snapshot of `git status` so you can see work advancing without waiting for final commits.
 
 ## 8) Recovery if manager is down or task is stale
 
