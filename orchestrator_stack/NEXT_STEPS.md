@@ -6,7 +6,18 @@
 4. Add model calibration and threshold optimization for `SafetyRiskForecast`.
 5. Add curriculum training schedule for RLlib PPO multi-agent agents.
 
-## Latest Session Note (2026-04-17 KST, doc sync slice)
+## Latest Session Note (2026-04-17 KST, Layer 2 adapter/runtime slice)
+
+- Layer 2 `AIOpsLabBackend` now prefers an initialized problem/session object over the top-level orchestrator when both are present, and it unwraps tuple/list step results to recover the state payload instead of falling through to the local simulator.
+- `state_to_observation()` no longer writes synthetic zero-valued node risk/demand entries when upstream payloads omit them, so Layer 2 feature targets can still fall back to future node utilization instead of being pinned to zero.
+- `feature_extractor.py` now remains importable when `numpy` is unavailable by using a minimal array compatibility wrapper for Layer 2 smoke/tests; model-training code still expects the normal orchestrator dependency set in environments that run XGBoost.
+- Added focused validation for session-first adapter stepping in `orchestrator_stack/tests/test_simulator.py` and refreshed feature expectations in `orchestrator_stack/tests/test_feature_extractor.py` to match the existing future-state label semantics.
+- Validation run status:
+  - `PYTHONPATH=orchestrator_stack python3 -m compileall orchestrator_stack/orchestrator/layer2 orchestrator_stack/tests/test_simulator.py orchestrator_stack/tests/test_feature_extractor.py`: success
+  - `PYTHONPATH=orchestrator_stack python3` direct execution of all `test_simulator.py` and `test_feature_extractor.py` test functions: success (`layer2-focused-tests-ok`)
+  - `PYTHONPATH=orchestrator_stack python3 -m pytest ...`: still unavailable because `pytest` is not installed in the fallback runtime
+- Remaining validation gap:
+  - Confirm the adapter against the real upstream AIOpsLab package/session API in an environment where `aiopslab` is installed, so the current session-first probing can be reduced to a documented contract instead of compatibility heuristics.
 
 - Synced orchestrator-facing docs to the latest tested behavior from the 2026-04-16 validation sessions so README and handoff files now distinguish:
   - completed reward-weight tuning validation (`reports/tuning/202604161029_optuna_orchestrator_reward_weights.md`)
