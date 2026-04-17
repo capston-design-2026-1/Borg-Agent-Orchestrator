@@ -141,6 +141,7 @@ For a single copy-safe numbered tracking/recovery checklist, use:
 - Supervisor also writes heartbeat trace entries from live session output plus `git status` snapshots and pushes them during execution.
 - Worker prompts now stay lightweight and focus on implementation; heartbeat bookkeeping is handled outside the Codex session.
 - For code edits, the default rule is one changed file per commit when practical so remote history exposes file-level progress.
+- Journal/report commits alone are not enough to complete a `feature`, `bug`, or `upgrade` task; those task types now require a substantive non-doc branch diff before PR creation/merge.
 
 ## Self-Healing Recovery Rules
 

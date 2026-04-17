@@ -38,6 +38,7 @@
 - Commit and push after meaningful changes.
 - During active execution, supervisor publishes tracked progress notes to `codex_autonomy/task_journal/<task-id>.md` from session heartbeats so the remote branch shows live operation history even when no code changed.
 - During active execution, commit code/doc changes immediately at file granularity when practical; do not batch unrelated files until session end.
+- Feature/bug/upgrade tasks must not be treated as complete if the branch delta versus base is journal/docs-only; those tasks need substantive non-doc changes before PR merge.
 - Archive task files after completion/failure.
 - For autonomy-runner code changes, keep near per-file commits where practical.
 
