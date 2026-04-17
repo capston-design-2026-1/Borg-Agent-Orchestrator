@@ -906,3 +906,14 @@ codex
 I’m writing the session-7 continuity entries now. This is limited to the new milestone report, the new trace artifact, and the top session note in `orchestrator_stack/NEXT_STEPS.md`.
 - worktree_status:
 -   ?? reports/traces/202604171042_episode_trace.log
+## 2026-04-17T01:43:22Z | Session 7 | heartbeat
+
+- elapsed_seconds: 64
+- stdout_chars: 0
+- stderr_chars: 65429
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
+-   ?? reports/milestones/202604171042_orchestrator_e2e_gate_runtime_session7.md
+-   ?? reports/traces/202604171042_episode_trace.log
