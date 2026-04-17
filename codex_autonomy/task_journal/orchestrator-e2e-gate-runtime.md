@@ -347,3 +347,12 @@ exec
 - worktree_status:
 -   M orchestrator_stack/NEXT_STEPS.md
 -   ?? reports/milestones/202604171032_orchestrator_e2e_gate_runtime_session2.md
+## 2026-04-17T01:33:15Z | Session 2 | heartbeat
+
+- elapsed_seconds: 113
+- stdout_chars: 0
+- stderr_chars: 69171
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   clean
