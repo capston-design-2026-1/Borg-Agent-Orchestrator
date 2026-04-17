@@ -449,3 +449,18 @@ index 8a217bfd43850513daf44195b8121dcba5e8b1dd..70a4a1454ab5ab7cbe133c409fe35a4b
 -   M orchestrator_stack/orchestrator/layer3/predictors.py
 -   M orchestrator_stack/orchestrator/main.py
 -   ?? orchestrator_stack/tests/test_predictor_runtime.py
+## 2026-04-17T06:19:17Z | Session 1 | heartbeat
+
+- elapsed_seconds: 244
+- stdout_chars: 0
+- stderr_chars: 329440
+- excerpt: ned `Observation` objects in place by design so downstream reward and policy code sees the enriched scores immediately; if a future backend returns immutable snapshots, this seam will need revisiting.
+- worktree_status:
+-   M README.md
+-   M orchestrator_stack/NEXT_STEPS.md
+-   M orchestrator_stack/README.md
+-   M orchestrator_stack/orchestrator/layer3/__init__.py
+-   M orchestrator_stack/orchestrator/layer3/predictors.py
+-   M orchestrator_stack/orchestrator/main.py
+-   ?? orchestrator_stack/tests/test_predictor_runtime.py
+-   ?? reports/milestones/202604171517_orchestrator_xgboost_observation_session1.md
