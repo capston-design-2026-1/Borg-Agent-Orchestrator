@@ -494,3 +494,19 @@ index 8a217bfd43850513daf44195b8121dcba5e8b1dd..70a4a1454ab5ab7cbe133c409fe35a4b
 -   M orchestrator_stack/orchestrator/main.py
 -   ?? orchestrator_stack/tests/test_predictor_runtime.py
 -   ?? reports/milestones/202604171517_orchestrator_xgboost_observation_session1.md
+## 2026-04-17T06:19:50Z | Session 1 | heartbeat
+
+- elapsed_seconds: 276
+- stdout_chars: 0
+- stderr_chars: 412421
+- excerpt: x
+The import path is fixed. The remaining validation issue is just test shape: `unittest` won’t collect the plain function, so I’m converting that focused check to a small `TestCase` and rerunning it.
+- worktree_status:
+-   M README.md
+-   M orchestrator_stack/NEXT_STEPS.md
+-   M orchestrator_stack/README.md
+-   M orchestrator_stack/orchestrator/layer3/__init__.py
+-   M orchestrator_stack/orchestrator/layer3/predictors.py
+-   M orchestrator_stack/orchestrator/main.py
+-   ?? orchestrator_stack/tests/test_predictor_runtime.py
+-   ?? reports/milestones/202604171517_orchestrator_xgboost_observation_session1.md
