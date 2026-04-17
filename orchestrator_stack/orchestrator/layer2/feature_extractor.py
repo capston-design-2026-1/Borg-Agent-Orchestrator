@@ -3,7 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-import numpy as np
+try:
+    import numpy as np
+except ImportError:  # pragma: no cover
+    np = None
 
 from orchestrator.layer1.collector import prometheus_rows_to_trace
 from orchestrator.layer2.simulator import state_to_observation
@@ -12,11 +15,45 @@ from orchestrator.types import Observation
 FEATURE_COUNT = 8
 
 
+class _CompatArray:
+    def __init__(self, values: list[Any]):
+        self._values = values
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        if self._values and isinstance(self._values[0], list):
+            return (len(self._values), len(self._values[0]))
+        return (len(self._values),)
+
+    def tolist(self) -> list[Any]:
+        return [
+            list(value) if isinstance(value, list) else value
+            for value in self._values
+        ]
+
+    def __iter__(self):
+        return iter(self._values)
+
+    def __len__(self) -> int:
+        return len(self._values)
+
+    def __getitem__(self, index: int) -> Any:
+        return self._values[index]
+
+
+def _as_array(values: list[Any], *, dtype: Any) -> Any:
+    if np is not None:
+        return np.asarray(values, dtype=dtype)
+    if values and isinstance(values[0], list):
+        return _CompatArray([list(row) for row in values])
+    return _CompatArray(list(values))
+
+
 @dataclass(slots=True)
 class TrainingMatrices:
-    x: np.ndarray
-    y_risk: np.ndarray
-    y_demand: np.ndarray
+    x: Any
+    y_risk: Any
+    y_demand: Any
 
 
 def _node_lookup(obs: Observation) -> dict[str, Any]:
@@ -71,13 +108,13 @@ def node_feature_vector(obs: Observation, node_id: str) -> list[float]:
     ]
 
 
-def observation_matrix(obs: Observation) -> tuple[np.ndarray, list[str]]:
+def observation_matrix(obs: Observation) -> tuple[Any, list[str]]:
     node_ids = [n.node_id for n in obs.nodes]
     rows = [node_feature_vector(obs, node_id) for node_id in node_ids]
     if not rows:
         rows = [[0.0] * (FEATURE_COUNT - 2) + [float(obs.energy_price), 0.0]]
         node_ids = ["unknown-node"]
-    return np.asarray(rows, dtype=np.float32), node_ids
+    return _as_array(rows, dtype=np.float32 if np is not None else "float32"), node_ids
 
 
 def _normalize_training_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -118,7 +155,7 @@ def trace_rows_to_training_matrices(rows: list[dict[str, Any]]) -> TrainingMatri
         demand_targets = [0.0]
 
     return TrainingMatrices(
-        x=np.asarray(x_rows, dtype=np.float32),
-        y_risk=np.asarray(risk_labels, dtype=np.int32),
-        y_demand=np.asarray(demand_targets, dtype=np.float32),
+        x=_as_array(x_rows, dtype=np.float32 if np is not None else "float32"),
+        y_risk=_as_array(risk_labels, dtype=np.int32 if np is not None else "int32"),
+        y_demand=_as_array(demand_targets, dtype=np.float32 if np is not None else "float32"),
     )
