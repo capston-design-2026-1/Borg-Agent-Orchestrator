@@ -1010,3 +1010,14 @@ codex
 -   M orchestrator_stack/NEXT_STEPS.md
 -   ?? reports/milestones/202604171044_orchestrator_e2e_gate_runtime_session8.md
 -   ?? reports/traces/202604171044_episode_trace.log
+## 2026-04-17T01:45:27Z | Session 8 | heartbeat
+
+- elapsed_seconds: 56
+- stdout_chars: 0
+- stderr_chars: 77575
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
+-   ?? reports/milestones/202604171044_orchestrator_e2e_gate_runtime_session8.md
+-   ?? reports/traces/202604171044_episode_trace.log
