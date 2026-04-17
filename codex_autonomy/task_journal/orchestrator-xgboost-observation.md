@@ -327,3 +327,11 @@ test_trace_ingestor.py
 pytest False
 - worktree_status:
 -   clean
+## 2026-04-17T06:16:58Z | Session 1 | heartbeat
+
+- elapsed_seconds: 105
+- stdout_chars: 0
+- stderr_chars: 132824
+- excerpt: ds real PPO hyperparameters into RLlib-backed trials instead of scoring a placeholder learning-rate proxy; in restricted sandboxes it returns a structured skip when Ray process permissions are blocked
+- worktree_status:
+-   clean
