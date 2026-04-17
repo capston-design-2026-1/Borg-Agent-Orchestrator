@@ -730,3 +730,12 @@ The first commit is in. Iâ€™m pushing it now; if the sandbox blocks network, Iâ€
    4e3d18f..74150d4  auto/orchestrator-e2e-gate-runtime -> auto/orchestrator-e2e-gate-runtime
 - worktree_status:
 -   clean
+## 2026-04-17T01:40:25Z | Session 5 | heartbeat
+
+- elapsed_seconds: 106
+- stdout_chars: 0
+- stderr_chars: 117330
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   clean
