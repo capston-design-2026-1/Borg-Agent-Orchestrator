@@ -115,3 +115,12 @@ ERROR: Reconnecting... 3/5
 ERROR: Reconnecting... 4/5
 - worktree_status:
 -   clean
+## 2026-04-17T05:40:43Z | Session 4 | heartbeat
+
+- elapsed_seconds: 1068
+- stdout_chars: 0
+- stderr_chars: 4380
+- excerpt: led to connect to websocket: IO error: failed to lookup address information: nodename nor servname provided, or not known, url: wss://chatgpt.com/backend-api/codex/responses
+ERROR: Reconnecting... 1/5
+- worktree_status:
+-   clean
