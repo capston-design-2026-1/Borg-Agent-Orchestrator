@@ -116,3 +116,16 @@ pytest missing ModuleNotFoundError No module named 'pytest'
 - excerpt:  layer, switch the orchestrator to use it where `numpy` was only needed for basic containers, and add a lightweight JSON predictor fallback so `full-process` can complete without external ML packages.
 - worktree_status:
 -   clean
+## 2026-04-17T01:28:30Z | Session 1 | heartbeat
+
+- elapsed_seconds: 154
+- stdout_chars: 0
+- stderr_chars: 123486
+- excerpt: try:
+     from gymnasium.spaces import Box, Discrete
+- worktree_status:
+-   M orchestrator_stack/orchestrator/cli.py
+-   M orchestrator_stack/orchestrator/layer2/feature_extractor.py
+-   M orchestrator_stack/orchestrator/layer3/predictors.py
+-   M orchestrator_stack/orchestrator/layer4/rllib_env.py
+-   ?? orchestrator_stack/orchestrator/array_compat.py
