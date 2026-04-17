@@ -1,0 +1,12 @@
+# Task Journal: orchestrator-fixups-and-errors
+
+- Title: Orchestrator: targeted bug fixes and resiliency
+- Task type: bug
+- Issue: https://github.com/capston-design-2026-1/Borg-Agent-Orchestrator/issues/41
+- Scope: orchestrator_stack/, codex_autonomy/, reports/, README.md, NEXT_STEPS.md
+
+## 2026-04-17T01:49:24Z | Session 1 | session_started
+
+- supervisor started session 1 of 8
+- prompt file: /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator/codex_autonomy/runtime/logs/orchestrator-fixups-and-errors/session_001.prompt.txt
+- supervisor will publish heartbeat trace commits during execution
