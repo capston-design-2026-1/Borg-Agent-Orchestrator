@@ -115,3 +115,11 @@ reports/milestones/202604142032_orchestrator_mermaid_full_process_completed.md:3
 updated_at: '2026-04-16T01:17:28.963982'
 - worktree_status:
 -   clean
+## 2026-04-17T01:27:58Z | Session 1 | heartbeat
+
+- elapsed_seconds: 122
+- stdout_chars: 0
+- stderr_chars: 277786
+- excerpt: followups.yaml`; that path is outside this worktree’s writable sandbox. The follow-up tasks are recorded in the milestone report instead: unrestricted RLlib PPO validation and `.venv` `pytest` repair.
+- worktree_status:
+-   clean
