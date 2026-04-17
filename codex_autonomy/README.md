@@ -52,7 +52,7 @@ gh auth status
 
 ```bash
 python3 -m venv .venv
-./.venv/bin/python -m pip install -r codex_autonomy/requirements.txt
+./.venv/bin/python -m pip install -r codex_autonomy/requirements.txt -r orchestrator_stack/requirements.txt
 ```
 
 ## Run

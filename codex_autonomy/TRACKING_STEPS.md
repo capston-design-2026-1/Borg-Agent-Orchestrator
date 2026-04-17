@@ -68,7 +68,7 @@ tail -f "$LATEST_STDERR" "$LATEST_STDOUT"
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 test -L .venv && rm .venv
 test -x ./.venv/bin/python || python3 -m venv .venv
-./.venv/bin/python -m pip install -r codex_autonomy/requirements.txt
+./.venv/bin/python -m pip install -r codex_autonomy/requirements.txt -r orchestrator_stack/requirements.txt
 ./.venv/bin/python codex_autonomy/scripts/install_guardian_launchd.py --config codex_autonomy/config/autonomy.local.yaml
 ./.venv/bin/python codex_autonomy/scripts/run_daemon.py status --config codex_autonomy/config/autonomy.local.yaml --limit 30
 ```
