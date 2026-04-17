@@ -1111,3 +1111,14 @@ Everything up-to-date
 - excerpt: 9 milestone report and one continuity note in `orchestrator_stack/NEXT_STEPS.md`. There’s still no code change because the gate passed cleanly and the only new runtime artifact is the fresh trace log.
 - worktree_status:
 -   ?? reports/traces/202604171046_episode_trace.log
+## 2026-04-17T01:47:02Z | Session 9 | heartbeat
+
+- elapsed_seconds: 65
+- stdout_chars: 0
+- stderr_chars: 85855
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
+-   ?? reports/milestones/202604171046_orchestrator_e2e_gate_runtime_session9.md
+-   ?? reports/traces/202604171046_episode_trace.log
