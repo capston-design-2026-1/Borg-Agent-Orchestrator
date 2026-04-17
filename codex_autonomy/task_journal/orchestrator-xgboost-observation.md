@@ -236,3 +236,9 @@ I’m editing the predictor/runtime seam now. The change will be limited to Laye
 I’m editing the predictor/runtime seam now. The change will be limited to Layer 3/backend wiring plus focused tests for reset/step enrichment.
 - worktree_status:
 -   M orchestrator_stack/orchestrator/layer3/predictors.py
+## 2026-04-17T06:02:36Z | Session 5 | session_finished
+
+- return_code: -15
+- duration_seconds: 445.4
+- timed_out: False
+- result: session_failed_or_incomplete
