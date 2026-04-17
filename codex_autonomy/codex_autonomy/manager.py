@@ -9,7 +9,7 @@ import subprocess
 import yaml
 
 from codex_autonomy.config import ManagerConfig
-from codex_autonomy.github_flow import pr_merge_state, refresh_pr_branch, try_merge_pr
+from codex_autonomy.github_flow import pr_merge_state, pr_state, refresh_pr_branch, try_merge_pr
 from codex_autonomy.health import run_health_checks
 from codex_autonomy.models import TaskSpec, TaskStatus
 from codex_autonomy.state_db import init_db, log_event
@@ -247,6 +247,25 @@ class AutonomyManager:
                 message=f"merged PR #{task.pr_number}",
             )
 
+    def _archive_already_merged_tasks(self, tasks: list[TaskSpec]) -> None:
+        for task in tasks:
+            if task.pr_number is None:
+                continue
+            if task.status == TaskStatus.COMPLETED:
+                continue
+            if pr_state(self.config, task.pr_number) != "MERGED":
+                continue
+            task.status = TaskStatus.COMPLETED
+            save_task(self.config.queue_dir, task)
+            archive_task(self.config.queue_dir, self.config.archive_dir, task.task_id)
+            log_event(
+                self.config.state_db_path,
+                ts=datetime.utcnow().isoformat(),
+                task_id=task.task_id,
+                event_type="task_archived_from_merged_pr",
+                message=f"archived from already-merged PR #{task.pr_number}",
+            )
+
     def run_forever(self) -> None:
         init_db(self.config.state_db_path)
         self.config.queue_dir.mkdir(parents=True, exist_ok=True)
@@ -278,6 +297,8 @@ class AutonomyManager:
             self._revive_deferred_tasks()
             tasks = load_tasks(self.config.queue_dir)
             self._recover_stuck_or_orphan_running(tasks)
+            tasks = load_tasks(self.config.queue_dir)
+            self._archive_already_merged_tasks(tasks)
             tasks = load_tasks(self.config.queue_dir)
             self._advance_review_tasks(tasks)
             tasks = load_tasks(self.config.queue_dir)

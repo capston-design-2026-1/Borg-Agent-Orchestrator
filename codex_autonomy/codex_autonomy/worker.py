@@ -106,6 +106,43 @@ def _worktree_status_lines(worktree_path: Path) -> list[str]:
     return lines or ["clean"]
 
 
+def _branch_changed_paths(worktree_path: Path, base_ref: str) -> list[str]:
+    proc = subprocess.run(
+        ["git", "diff", "--name-only", f"{base_ref}...HEAD"],
+        cwd=str(worktree_path),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        return []
+    return [line.strip() for line in proc.stdout.splitlines() if line.strip()]
+
+
+def _is_doc_only_path(path: str) -> bool:
+    lowered = path.lower()
+    if lowered == ".venv":
+        return True
+    if lowered.startswith("codex_autonomy/task_journal/"):
+        return True
+    if lowered.startswith("reports/"):
+        return True
+    if lowered in {"readme.md", "next_steps.md", "agents.md"}:
+        return True
+    if lowered.endswith(".md"):
+        return True
+    return False
+
+
+def _has_substantive_branch_changes(task: TaskSpec, worktree_path: Path, base_branch: str) -> bool:
+    changed_paths = _branch_changed_paths(worktree_path, f"origin/{base_branch}")
+    if not changed_paths:
+        return False
+    if task.task_type not in {"feature", "bug", "upgrade"}:
+        return True
+    return any(not _is_doc_only_path(path) for path in changed_paths)
+
+
 def _heartbeat_commit_message(excerpt: str) -> str:
     return _trace_subject_from_excerpt(excerpt, fallback="heartbeat")
 
@@ -553,6 +590,23 @@ def run_task(config: ManagerConfig, task: TaskSpec) -> WorkerResult:
                 )
 
             if _check_done(task, worktree_path):
+                if not _has_substantive_branch_changes(task, worktree_path, config.base_branch):
+                    task = replace(task, status=TaskStatus.FAILED)
+                    save_task(config.queue_dir, task)
+                    log_event(
+                        config.state_db_path,
+                        ts=now,
+                        task_id=task.task_id,
+                        event_type="task_blocked_non_substantive",
+                        message="branch contains no substantive non-doc changes relative to base",
+                    )
+                    return WorkerResult(
+                        task_id=task.task_id,
+                        branch_name=branch_name,
+                        status=TaskStatus.FAILED,
+                        message="no substantive non-doc changes relative to base branch",
+                        sessions_used=sessions_used,
+                    )
                 _auto_commit_and_push(config, worktree_path, branch_name, task)
                 pr_number, pr_url = ensure_pr(config, task, branch_name)
                 task = replace(task, pr_number=pr_number, pr_url=pr_url)
