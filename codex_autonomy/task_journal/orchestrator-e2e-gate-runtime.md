@@ -263,3 +263,9 @@ exec
 ---- Episode End ---
 - worktree_status:
 -   clean
+## 2026-04-17T01:31:19Z | Session 1 | session_finished
+
+- return_code: 0
+- duration_seconds: 324.0
+- timed_out: False
+- result: session_completed
