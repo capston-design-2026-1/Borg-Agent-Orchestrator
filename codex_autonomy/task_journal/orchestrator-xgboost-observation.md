@@ -124,3 +124,9 @@ ERROR: Reconnecting... 4/5
 ERROR: Reconnecting... 1/5
 - worktree_status:
 -   clean
+## 2026-04-17T05:55:11Z | Session 4 | session_finished
+
+- return_code: 124
+- duration_seconds: 1936.6
+- timed_out: True
+- result: session_failed_or_incomplete
