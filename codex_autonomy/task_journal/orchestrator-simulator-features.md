@@ -250,3 +250,11 @@ index d25dcd55aea71853dbc0ca1ffd0db0a58ab8b98c..dbe3f1ae8667a3b80eedbe5f37bb146a
 +    assert result.info["status"] == "live_adapter"
 - worktree_status:
 -   clean
+## 2026-04-17T01:57:04Z | Session 1 | heartbeat
+
+- elapsed_seconds: 438
+- stdout_chars: 0
+- stderr_chars: 556180
+- excerpt:  2 status instead of the stale “blocked on numpy” note. I’m also writing the one follow-up task this slice surfaced: live upstream AIOpsLab contract validation in an environment with the real package.
+- worktree_status:
+-   clean
