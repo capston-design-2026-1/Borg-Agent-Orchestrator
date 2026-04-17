@@ -13,6 +13,7 @@
 - One `task_id` must map to exactly one queue YAML file (canonical filename `<task_id>.yaml`).
 - Cooldown-waiting tasks should move out of `tasks/queue` into `tasks/deferred` so only runnable/review-active work remains in the hot queue.
 - Default to no task dependencies; add dependencies only when one task is truly blocked on another task's merged outcome.
+- Do not use catch-all endgame tasks that mix runtime fixes, docs, reports, and follow-up issue creation in one PR; split finalization work into narrow validation/docs/follow-up slices.
 - Keep task prompts concrete and outcome-based.
 - Prefer bundle-driven decomposition for large initiatives so each minor feature/bugfix is its own task/branch/PR.
 - Avoid single mega-task prompts for multi-layer architecture work when a dependency chain can split the work.

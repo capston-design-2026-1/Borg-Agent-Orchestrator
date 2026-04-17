@@ -120,24 +120,52 @@ tasks:
     max_sessions: 8
     max_retries: 5
 
-  - task_id: orchestrator-e2e-final-gate
-    title: "Orchestrator: end-to-end final gate and docs sync"
+  - task_id: orchestrator-e2e-gate-runtime
+    title: "Orchestrator: end-to-end gate runtime validation"
     task_type: chore
     priority: 80
     dependencies: []
     scope_paths:
       - orchestrator_stack/
-      - codex_autonomy/
+      - reports/
+    prompt: |
+      Run the full process gate command and ensure it passes.
+      Keep this PR focused on runtime validation, generated artifacts, and the smallest direct fixes needed to make the gate pass.
+      Do not batch unrelated documentation cleanup into this task.
+    done_when_commands:
+      - "./.venv/bin/python orchestrator_stack/run.py full-process --config orchestrator_stack/config/orchestrator.example.json --trials 1"
+    max_sessions: 10
+    max_retries: 5
+
+  - task_id: orchestrator-e2e-gate-doc-sync
+    title: "Orchestrator: end-to-end gate documentation sync"
+    task_type: chore
+    priority: 81
+    dependencies: []
+    scope_paths:
+      - orchestrator_stack/
       - reports/
       - README.md
       - NEXT_STEPS.md
       - Agents.md
     prompt: |
-      Run the full process gate command and ensure it passes.
-      Synchronize README/NEXT_STEPS/report docs with exact tested behavior and known residual risks.
-      Open follow-up issues for anything out of scope.
-      Keep this final PR focused on final validation and documentation alignment.
-    done_when_commands:
-      - "./.venv/bin/python orchestrator_stack/run.py full-process --config orchestrator_stack/config/orchestrator.example.json --trials 1"
-    max_sessions: 10
-    max_retries: 5
+      Synchronize README/NEXT_STEPS/report docs with exact tested behavior and known residual risks from the latest orchestrator validation runs.
+      Keep this PR documentation-only unless a tiny directly coupled doc-support file must move with it.
+    max_sessions: 6
+    max_retries: 4
+
+  - task_id: orchestrator-e2e-gate-followups
+    title: "Orchestrator: end-to-end gate follow-up issue split"
+    task_type: chore
+    priority: 82
+    dependencies: []
+    scope_paths:
+      - codex_autonomy/
+      - reports/
+      - README.md
+      - NEXT_STEPS.md
+    prompt: |
+      Open or enqueue narrowly scoped follow-up issues/tasks for anything discovered during final validation that should not stay in a catch-all PR.
+      Keep this PR limited to follow-up task specs, issue links, and minimal continuity-file updates.
+    max_sessions: 6
+    max_retries: 4

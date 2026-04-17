@@ -1,0 +1,31 @@
+task_id: orchestrator-e2e-gate-doc-sync
+title: 'Orchestrator: end-to-end gate documentation sync'
+prompt: 'Synchronize README/NEXT_STEPS/report docs with exact tested behavior and
+  known residual risks from the latest orchestrator validation runs.
+
+  Keep this PR documentation-only unless a tiny directly coupled doc-support file
+  must move with it.
+
+  '
+task_type: chore
+priority: 81
+dependencies: []
+scope_paths:
+- orchestrator_stack/
+- reports/
+- README.md
+- NEXT_STEPS.md
+- Agents.md
+done_when_commands: []
+max_sessions: 6
+max_retries: 4
+retries: 0
+status: running
+review_prompt: Review branch changes for correctness and regressions.
+issue_number: 49
+issue_url: https://github.com/capston-design-2026-1/Borg-Agent-Orchestrator/issues/49
+pr_number: null
+pr_url: null
+metadata: {}
+created_at: '2026-04-17T10:25:00'
+updated_at: '2026-04-17T01:25:54.670711'
