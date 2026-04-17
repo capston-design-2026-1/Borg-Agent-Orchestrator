@@ -476,3 +476,12 @@ reports/tuning/202604161029_optuna_orchestrator_reward_weights.md
    b1b52cb..e046304  auto/orchestrator-e2e-gate-runtime -> auto/orchestrator-e2e-gate-runtime
 - worktree_status:
 -   clean
+## 2026-04-17T01:35:56Z | Session 3 | heartbeat
+
+- elapsed_seconds: 105
+- stdout_chars: 0
+- stderr_chars: 73378
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   clean
