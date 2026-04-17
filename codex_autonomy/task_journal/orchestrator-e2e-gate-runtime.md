@@ -485,3 +485,9 @@ reports/tuning/202604161029_optuna_orchestrator_reward_weights.md
 +- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
 - worktree_status:
 -   clean
+## 2026-04-17T01:36:17Z | Session 3 | session_finished
+
+- return_code: 0
+- duration_seconds: 126.8
+- timed_out: False
+- result: session_completed
