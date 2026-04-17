@@ -352,3 +352,12 @@ pytest False
 - excerpt: applying the Layer 3 seam change now: a predictor-backed backend wrapper that enriches observations on both `reset()` and `step()`, plus lazy XGBoost imports so the focused test can run in this shell.
 - worktree_status:
 -   clean
+## 2026-04-17T06:17:48Z | Session 1 | heartbeat
+
+- elapsed_seconds: 154
+- stdout_chars: 0
+- stderr_chars: 142845
+- excerpt: demand_path = train_demand_model(matrices.x, matrices.y_demand, demand_out)
+     return risk_path, demand_path
+- worktree_status:
+-   M orchestrator_stack/orchestrator/layer3/predictors.py
