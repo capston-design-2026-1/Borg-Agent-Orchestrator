@@ -976,3 +976,9 @@ exec
 - supervisor started session 1 of 8
 - prompt file: /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator/codex_autonomy/runtime/logs/orchestrator-optuna-meta-tuning/session_001.prompt.txt
 - supervisor will publish heartbeat trace commits during execution
+## 2026-04-17T01:55:15Z | Session 1 | session_finished
+
+- return_code: 1
+- duration_seconds: 3.2
+- timed_out: False
+- result: session_failed_or_incomplete
