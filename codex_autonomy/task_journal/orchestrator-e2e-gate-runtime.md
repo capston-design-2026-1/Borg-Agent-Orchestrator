@@ -1039,3 +1039,12 @@ The validation artifact commit is on the branch. I’m pushing the continuity up
 Everything up-to-date
 - worktree_status:
 -   clean
+## 2026-04-17T01:45:51Z | Session 8 | heartbeat
+
+- elapsed_seconds: 80
+- stdout_chars: 0
+- stderr_chars: 98145
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   clean
