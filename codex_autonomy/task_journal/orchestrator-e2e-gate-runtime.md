@@ -567,3 +567,12 @@ codex
 - excerpt: e committed the new trace plus the milestone report as one validation slice. Next I’m pushing that, then I’ll commit the `NEXT_STEPS.md` handoff update separately so the session note remains isolated.
 - worktree_status:
 -   M orchestrator_stack/NEXT_STEPS.md
+## 2026-04-17T01:37:42Z | Session 4 | heartbeat
+
+- elapsed_seconds: 81
+- stdout_chars: 0
+- stderr_chars: 80906
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
