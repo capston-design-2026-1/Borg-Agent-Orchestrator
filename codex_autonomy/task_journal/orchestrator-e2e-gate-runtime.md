@@ -189,3 +189,19 @@ codex
 -   ?? reports/milestones/202604171031_orchestrator_e2e_gate_runtime_session1.md
 -   ?? reports/traces/202604171028_episode_trace.log
 -   ?? reports/traces/202604171029_episode_trace.log
+## 2026-04-17T01:30:08Z | Session 1 | heartbeat
+
+- elapsed_seconds: 252
+- stdout_chars: 0
+- stderr_chars: 242521
+- excerpt: an the gate with the direct `python3.13` binary and got a clean second pass, so I’m normalizing the continuity notes to that final verification path and trimming the superseded earlier trace artifact.
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
+-   M orchestrator_stack/orchestrator/cli.py
+-   M orchestrator_stack/orchestrator/layer2/feature_extractor.py
+-   M orchestrator_stack/orchestrator/layer3/predictors.py
+-   M orchestrator_stack/orchestrator/layer4/rllib_env.py
+-   ?? orchestrator_stack/orchestrator/array_compat.py
+-   ?? reports/milestones/202604171031_orchestrator_e2e_gate_runtime_session1.md
+-   ?? reports/traces/202604171028_episode_trace.log
+-   ?? reports/traces/202604171029_episode_trace.log
