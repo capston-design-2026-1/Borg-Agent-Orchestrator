@@ -691,3 +691,14 @@ Everything up-to-date
 - excerpt: gate is clean in this environment. The only edits now are the session-5 milestone report and the orchestrator handoff note so the next session can resume without re-deriving today’s validation result.
 - worktree_status:
 -   ?? reports/traces/202604171039_episode_trace.log
+## 2026-04-17T01:39:45Z | Session 5 | heartbeat
+
+- elapsed_seconds: 65
+- stdout_chars: 0
+- stderr_chars: 79403
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
+-   ?? reports/milestones/202604171040_orchestrator_e2e_gate_runtime_session5.md
+-   ?? reports/traces/202604171039_episode_trace.log
