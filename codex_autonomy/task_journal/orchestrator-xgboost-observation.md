@@ -674,3 +674,9 @@ codex
 - excerpt: ned `Observation` objects in place by design so downstream reward and policy code sees the enriched scores immediately; if a future backend returns immutable snapshots, this seam will need revisiting.
 - worktree_status:
 -   clean
+## 2026-04-17T06:23:15Z | Session 1 | session_finished
+
+- return_code: 0
+- duration_seconds: 482.8
+- timed_out: False
+- result: session_completed
