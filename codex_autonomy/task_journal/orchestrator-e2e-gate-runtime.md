@@ -998,3 +998,15 @@ error: failed to push some refs to 'https://github.com/capston-design-2026-1/Bor
 - excerpt: . I’m updating only the runtime-validation continuity artifacts for session 8: a new timestamped milestone report and the orchestrator next-steps note, then I’ll commit and push those in small slices.
 - worktree_status:
 -   ?? reports/traces/202604171044_episode_trace.log
+## 2026-04-17T01:45:19Z | Session 8 | heartbeat
+
+- elapsed_seconds: 48
+- stdout_chars: 0
+- stderr_chars: 64150
+- excerpt: +- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+
+codex
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
+-   ?? reports/milestones/202604171044_orchestrator_e2e_gate_runtime_session8.md
+-   ?? reports/traces/202604171044_episode_trace.log
