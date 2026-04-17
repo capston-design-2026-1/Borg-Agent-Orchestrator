@@ -200,3 +200,12 @@ orchestrator_stack/orchestrator/layer2/__init__.py:18:    if name in {"TrainingM
         )
 - worktree_status:
 -   clean
+## 2026-04-17T06:01:52Z | Session 5 | heartbeat
+
+- elapsed_seconds: 400
+- stdout_chars: 0
+- stderr_chars: 95816
+- excerpt: assert infos["AgentA"]["referee_rationale"] == "agent-a migration preempts lower-priority actions"
+    assert infos["AgentA"]["global_score_total"] == 14.8
+- worktree_status:
+-   clean
