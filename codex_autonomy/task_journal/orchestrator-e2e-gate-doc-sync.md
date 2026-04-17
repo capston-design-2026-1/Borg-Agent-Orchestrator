@@ -138,3 +138,15 @@ I’m syncing the orchestrator handoff file next so the next session starts from
 -   M README.md
 -   M orchestrator_stack/NEXT_STEPS.md
 -   M orchestrator_stack/README.md
+## 2026-04-17T01:28:14Z | Session 1 | heartbeat
+
+- elapsed_seconds: 138
+- stdout_chars: 0
+- stderr_chars: 176643
+- excerpt: m this doc-only PR: unsandboxed PPO-tuning validation and restoring standard `pytest` validation in the orchestrator runtime. I’m recording them in the requested YAML queue before I verify and commit.
+- worktree_status:
+-   M NEXT_STEPS.md
+-   M README.md
+-   M orchestrator_stack/NEXT_STEPS.md
+-   M orchestrator_stack/README.md
+-   ?? reports/milestones/202604171027_orchestrator_e2e_gate_doc_sync_session1.md
