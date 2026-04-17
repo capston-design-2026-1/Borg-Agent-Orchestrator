@@ -81,13 +81,13 @@ cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 ./.venv/bin/python codex_autonomy/scripts/run_daemon.py run --config codex_autonomy/config/autonomy.local.yaml
 ```
 
-## 10) One-line command: enqueue full finish task + check status
+## 10) One-line command: enqueue one broad orchestrator task + check status
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator && cp -f codex_autonomy/tasks/templates/full_orchestrator_finish.yaml codex_autonomy/tasks/queue/full-orchestrator-e2e-finish.yaml && ./.venv/bin/python codex_autonomy/scripts/run_daemon.py status --config codex_autonomy/config/autonomy.local.yaml
 ```
 
-## 11) One-line command: enqueue full finish task + start manager
+## 11) One-line command: enqueue one broad orchestrator task + start manager
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator && cp -f codex_autonomy/tasks/templates/full_orchestrator_finish.yaml codex_autonomy/tasks/queue/full-orchestrator-e2e-finish.yaml && ./.venv/bin/python codex_autonomy/scripts/run_daemon.py run --config codex_autonomy/config/autonomy.local.yaml
@@ -168,14 +168,14 @@ cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
   --task-type feature
 ```
 
-## 17) Start full orchestrator-finish task (recommended)
+## 17) Start one broad orchestrator-finish task (recommended default)
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
 cp -f codex_autonomy/tasks/templates/full_orchestrator_finish.yaml codex_autonomy/tasks/queue/full-orchestrator-e2e-finish.yaml
 ```
 
-## 27) Start decomposed orchestrator bundle (recommended for many small PRs)
+## 27) Optional: start a pre-sharded orchestrator bundle
 
 ```bash
 cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
@@ -183,6 +183,9 @@ cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator
   --config codex_autonomy/config/autonomy.local.yaml \
   --bundle codex_autonomy/tasks/templates/orchestrator_finish_bundle.yaml
 ```
+
+Use this only if you explicitly want to seed fixed initial work items yourself.
+The default workflow is section `17`, then let Codex enqueue follow-up tasks dynamically.
 
 ## 28) Start guardian loop (recommended instead of direct manager run)
 

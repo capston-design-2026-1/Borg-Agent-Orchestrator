@@ -258,12 +258,15 @@ def _make_prompt(task: TaskSpec, session_idx: int, followups_file: Path) -> str:
     )
     expansion = (
         "Autonomous decomposition protocol:\n"
+        "- Treat the current task as intake, not as permission to batch every discovered change into one PR.\n"
         "- If you discover additional feature slices or bugs that should be separate PRs/issues, write follow-up tasks "
         f"to YAML file: {followups_file}\n"
         "- Output schema: top-level 'tasks' list; each item should include task_id, title, task_type, prompt, "
         "priority, dependencies (optional), scope_paths (optional), done_when_commands (optional), max_sessions, "
         "max_retries, metadata (optional).\n"
         "- Keep follow-up tasks narrowly scoped so each can become a small independent PR.\n"
+        "- Prefer emitting follow-up tasks instead of expanding the current PR when the newly discovered work is not an immediate blocker for the current slice.\n"
+        "- Only keep directly blocking fixes in the current task; enqueue adjacent features, cleanup, docs-only work, and newly discovered bugs as follow-ups.\n"
     )
     return (
         f"Task ID: {task.task_id}\n"

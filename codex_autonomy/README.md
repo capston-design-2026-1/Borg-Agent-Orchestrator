@@ -85,7 +85,14 @@ Enqueue task manually:
   --priority 10
 ```
 
-Enqueue a decomposed multi-task bundle (recommended for small PR granularity):
+Recommended default: enqueue one broad task and let Codex emit follow-up tasks/issues/PRs dynamically as it discovers smaller slices:
+
+```bash
+cp codex_autonomy/tasks/templates/full_orchestrator_finish.yaml \
+  codex_autonomy/tasks/queue/full-orchestrator-e2e-finish.yaml
+```
+
+Optional only when you explicitly want a fixed pre-sharded starting set:
 
 ```bash
 ./.venv/bin/python codex_autonomy/scripts/run_daemon.py enqueue-bundle \
@@ -120,9 +127,11 @@ For a single copy-safe numbered tracking/recovery checklist, use:
 
 ## Dynamic Task/PR Decomposition
 
+- Default operating model: start from one broad objective and let the worker generate narrower follow-up tasks during execution.
 - Worker prompts instruct Codex to generate follow-up task specs when it discovers new feature slices or bugs.
 - Follow-up specs are read from runtime log YAML and enqueued automatically.
 - Each generated follow-up task gets its own branch/issue/PR lifecycle, enabling incremental small PRs over time.
+- Bundles are optional bootstrap convenience only; they are not required for Codex to split work.
 
 ## Live Commit Trail
 

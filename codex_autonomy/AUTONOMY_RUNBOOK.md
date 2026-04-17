@@ -10,21 +10,22 @@ This file is the canonical command source for Codex autonomy operations.
 Execute these numbered sections from `SETUP_COPY_SAFE.md` in this exact order:
 
 1. `0) Pull latest repository changes`
-2. `1) Install dependencies`
-3. `2) Create local config safely (recommended: copy example)`
-4. `3) Set Codex command template (required)`
-5. `4) Enable GitHub flow and set repository`
-6. `7) Verify GitHub CLI auth`
-7. `15) Cleanup duplicate task files with same task_id`
-8. `27) Start decomposed orchestrator bundle (recommended for many small PRs)`
-9. `29) Install always-on macOS launchd guardian service`
-10. `30) Verify guardian and manager runtime state`
-11. Legacy single-task option only: `17)` then `18)`
-12. `12) Track processes continuously (copy-safe)`
-13. `14) Track GitHub issue/PR flow`
-14. Optional monitor: `13.1) Live append-only event stream (new events at bottom)`
-15. Optional monitor: `13.2) Live append-only session stream (new rc lines at bottom)`
-16. Optional monitor: `13.3) Live append-only in-session progress stream (heartbeat + excerpt)`
+2. `1) Build the local virtualenv`
+3. `2) Install dependencies`
+4. `3) Create local config safely (recommended: copy example)`
+5. `4) Set Codex command template (required)`
+6. `5) Enable GitHub flow and set repository`
+7. `8) Verify GitHub CLI auth`
+8. `15) Cleanup duplicate task files with same task_id`
+9. `17) Start one broad orchestrator-finish task (recommended default)`
+10. `29) Install always-on macOS launchd guardian service`
+11. `30) Verify guardian and manager runtime state`
+12. Optional manual pre-sharding only: `27)`
+13. `13) Track processes continuously (copy-safe)`
+14. `14) Track GitHub issue/PR flow`
+15. Optional monitor: `14.1) Live append-only event stream (new events at bottom)`
+16. Optional monitor: `13.2) Live append-only session stream (new rc lines at bottom)`
+17. Optional monitor: `13.3) Live append-only in-session progress stream (heartbeat + excerpt)`
 
 ## Recovery Flows
 
