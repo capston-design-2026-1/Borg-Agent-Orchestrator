@@ -79,3 +79,11 @@
 - excerpt: the broad “verified runtime support” implication and replace it with the narrower, evidence-backed validation status: what completed, what only smoke-tested, and what still needs an unsandboxed rerun.
 - worktree_status:
 -   clean
+## 2026-04-17T01:27:26Z | Session 1 | heartbeat
+
+- elapsed_seconds: 89
+- stdout_chars: 0
+- stderr_chars: 111832
+- excerpt:  The goal there is to make the latest orchestrator status unambiguous for the next session, especially around the stale pre-rewrite policy-tuning report versus the current post-rewrite validation gap.
+- worktree_status:
+-   M README.md
