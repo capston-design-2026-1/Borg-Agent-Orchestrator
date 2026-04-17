@@ -21,11 +21,12 @@ An independent end-to-end orchestrator workspace now exists at `orchestrator_sta
 - Keeps this work isolated from the existing baseline and advanced XGBoost tracks
 - Has dedicated handoff files: `orchestrator_stack/README.md`, `orchestrator_stack/AGENTS.md`, `orchestrator_stack/NEXT_STEPS.md`
 - Mermaid architecture source is tracked at `orchestrator_stack/ARCHITECTURE.md`
-- Repo `.venv` has verified Ray PPO + Optuna runtime support for orchestrator smoke runs
+- Repo `.venv` has verified orchestrator smoke support for reward-weight Optuna runs, Layer 4 referee/RLlib environment smoke checks, and sample predictor training
 - Layer 5 policy tuning now forwards real PPO hyperparameters into RLlib-backed trials instead of scoring a placeholder learning-rate proxy; in restricted sandboxes it returns a structured skip when Ray process permissions are blocked
 - Layer 1 ingestion/trace contracts are strict by default (row-indexed schema checks, `.json/.jsonl` contract validation, bool-like and non-negative queue guardrails)
 - Layer 2 now normalizes AIOpsLab-style nested state payloads into the shared `Observation`/feature contract used by simulator replay, live adapters, and XGBoost feature extraction
 - `orchestrator_stack/examples/generate_synthetic_assets.py` now derives sample matrix width from Layer 2 `FEATURE_COUNT`, so synthetic assets stay aligned with simulator/feature changes
+- The latest completed reward-only Optuna artifact is `reports/tuning/202604161029_optuna_orchestrator_reward_weights.md`; the older `reports/tuning/202604142305_optuna_orchestrator_policy_and_rewards.md` predates the PPO-backed tuning rewrite and should not be treated as current validation for `tune-policy-rewards`
 
 ## New Isolated Track: Codex Autonomy Runner
 

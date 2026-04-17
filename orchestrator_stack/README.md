@@ -132,6 +132,16 @@ After completion, check `reports/` for a KST-timestamped Optuna report (e.g., `2
 ./.venv/bin/pytest orchestrator_stack/tests/
 ```
 
+## Current Validation Status
+
+Latest checked behavior in this worktree is based on the 2026-04-16 KST validation slices:
+
+- Layer 1 contracts, Layer 2 normalization, Layer 4 referee/RLlib env behavior, and Layer 5 reward-weight tuning all passed compile and targeted smoke or unit validation in-session.
+- `tune` completed successfully after the PPO-tuning rewrite and emitted `reports/tuning/202604161029_optuna_orchestrator_reward_weights.md`.
+- `tune-policy-rewards` now reaches the PPO-backed RLlib trial path and fails closed with a structured `"status": "skipped"` result when macOS sandbox process-enumeration blocks `ray.init()`.
+- The older `reports/tuning/202604142305_optuna_orchestrator_policy_and_rewards.md` artifact predates the 2026-04-16 PPO-backed tuning rewrite and should be treated as historical, not as the current validation artifact for `tune-policy-rewards`.
+- Focused Layer 4 tests were smoke-invoked successfully, but `.venv/bin/pytest` could not run in-session because `pytest` is not installed in the repository virtualenv.
+
 ## Viewing Logs and Decision Traces
 
 The orchestrator now provides verbose step-by-step logging of agent decisions. When running the `run` or `full-process` commands, look for the following output in your terminal:
@@ -150,3 +160,4 @@ The example config now also exposes PPO knobs used by both `train-policy` and `t
 - PPO checkpoints are written under `orchestrator_stack/runtime/rllib`.
 - `tune-policy-rewards` now scores each Optuna trial with a real PPO training run plus a small heuristic stability term; it is no longer a learning-rate-only placeholder objective.
 - In restricted macOS sandboxes, Ray may fail during `ray.init()` with a `PermissionError` from process enumeration. The command now returns a structured `"status": "skipped"` result in that case instead of crashing.
+- Direct validation against the live upstream AIOpsLab package/session API is still open; the current adapter coverage is based on normalized payload handling plus the local stateful fallback backend.
