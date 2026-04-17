@@ -1,6 +1,6 @@
 import json
 
-from orchestrator.layer2.simulator import TraceDrivenTwinBackend, state_to_observation
+from orchestrator.layer2.simulator import AIOpsLabBackend, TraceDrivenTwinBackend, state_to_observation
 from orchestrator.types import ActionKind, AgentAction
 
 
@@ -112,3 +112,55 @@ def test_trace_driven_backend_applies_migration_before_advancing_trace():
     assert cpu_by_node["n1"] < 0.86
     assert cpu_by_node["n2"] > 0.35
     assert result.reward_by_agent["AgentA"] > 10.0
+
+
+def test_aiopslab_backend_prefers_initialized_session_and_unwraps_step_tuple():
+    class FakeSession:
+        def __init__(self) -> None:
+            self.step_calls = []
+
+        def reset(self):
+            return {
+                "state": {
+                    "timestamp": 5,
+                    "machines": [{"id": "node-a", "cpu": 0.82, "memory_usage": 0.76}],
+                    "pods": [{"id": "task-a", "assigned_node": "node-a", "running": True}],
+                }
+            }
+
+        def step(self, command):
+            self.step_calls.append(command)
+            return (
+                {
+                    "current_state": {
+                        "timestamp": 6,
+                        "machines": [{"id": "node-a", "cpu": 0.51, "memory_usage": 0.48}],
+                        "pods": [{"id": "task-a", "assigned_node": "node-a", "running": True}],
+                        "metrics": {"queue_length": 1, "energy_price": 0.11},
+                    }
+                },
+                {"reward": 1.0},
+                False,
+                {"source": "session"},
+            )
+
+    class FailingOrchestrator:
+        def reset(self):
+            raise AssertionError("session reset should be used first")
+
+        def step(self, command):
+            raise AssertionError("session step should be used first")
+
+    backend = AIOpsLabBackend("demo", max_steps=4, orchestrator=FailingOrchestrator())
+    backend._session = FakeSession()
+
+    reset_obs = backend.reset()
+    assert reset_obs.timestamp == 5
+    assert reset_obs.nodes[0].node_id == "node-a"
+
+    result = backend.step(AgentAction(agent_name="AgentA", kind=ActionKind.MIGRATE, target="node-a"))
+
+    assert backend._session.step_calls[0]["kind"] == ActionKind.MIGRATE.value
+    assert result.next_observation.timestamp == 6
+    assert result.next_observation.queue_length == 1
+    assert result.info["status"] == "live_adapter"

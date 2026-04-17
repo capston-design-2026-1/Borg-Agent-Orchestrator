@@ -85,6 +85,70 @@ def _normalize_state_payload(state: Any) -> Any:
     return state
 
 
+def _looks_like_state_payload(value: Any) -> bool:
+    if isinstance(value, Observation):
+        return True
+    if isinstance(value, list):
+        return bool(value) and all(isinstance(item, dict) for item in value)
+    if not isinstance(value, dict):
+        return False
+    state_keys = {
+        "observation",
+        "state",
+        "cluster",
+        "snapshot",
+        "telemetry",
+        "payload",
+        "data",
+        "current_state",
+        "next_state",
+        "rows",
+        "records",
+        "nodes",
+        "node_pool",
+        "machines",
+        "hosts",
+        "servers",
+        "tasks",
+        "instances",
+        "pods",
+        "jobs",
+        "workloads",
+        "timestamp",
+        "ts",
+        "time",
+        "metrics",
+        "queue_length",
+        "pending_queue_length",
+        "energy_price",
+        "energyPrice",
+        "p_fail_scores",
+        "risk_scores",
+        "demand_projection",
+        "demand_scores",
+        "node_id",
+        "cpu_util",
+        "cpu",
+    }
+    return any(key in value for key in state_keys)
+
+
+def _unwrap_adapter_state(result: Any) -> Any | None:
+    if result is None:
+        return None
+    if isinstance(result, StepResult):
+        return result.next_observation
+    if isinstance(result, (tuple, list)):
+        for item in result:
+            unwrapped = _unwrap_adapter_state(item)
+            if unwrapped is not None:
+                return unwrapped
+        return None
+    if _looks_like_state_payload(result):
+        return result
+    return None
+
+
 def _iter_state_items(collection: Any) -> list[tuple[str | None, Any]]:
     if collection is None:
         return []
@@ -539,11 +603,11 @@ def state_to_observation(state: Any, *, fallback_timestamp: int = 0, default_ene
     demand_projection = _normalize_score_map(raw_demand)
     for mapping_key, node in raw_nodes:
         node_id = str(_state_value(node, "node_id", "id", "machine_id", "name", default=mapping_key or "unknown-node"))
-        if node_id not in p_fail_scores:
-            raw_node_risk = _state_value(node, "p_fail_score", "risk_score", "failure_risk", "risk")
+        raw_node_risk = _state_value(node, "p_fail_score", "risk_score", "failure_risk", "risk")
+        if node_id not in p_fail_scores and raw_node_risk is not None:
             p_fail_scores[node_id] = _normalize_ratio(raw_node_risk, 0.0)
-        if node_id not in demand_projection:
-            raw_node_demand = _state_value(node, "demand_projection", "demand_score", "resource_demand", "projection")
+        raw_node_demand = _state_value(node, "demand_projection", "demand_score", "resource_demand", "projection")
+        if node_id not in demand_projection and raw_node_demand is not None:
             demand_projection[node_id] = _normalize_ratio(raw_node_demand, 0.0)
 
     return Observation(
@@ -771,35 +835,61 @@ class AIOpsLabBackend(SimulatorBackend):
                 logger.warning("aiopslab init_problem failed for %s: %s", self.problem_id, exc)
         return orch
 
-    def _invoke_orchestrator_reset(self) -> Any | None:
-        if self._orch is None:
+    def _adapter_targets(self) -> tuple[Any, ...]:
+        return tuple(target for target in (self._session, self._orch) if target is not None)
+
+    def _call_adapter_method(self, adapter: Any, method_name: str, *args: Any) -> Any | None:
+        method = getattr(adapter, method_name, None)
+        if not callable(method):
             return None
 
-        for method_name in ("get_current_state", "observe", "current_state"):
-            method = getattr(self._orch, method_name, None)
-            if callable(method):
+        try:
+            return method(*args)
+        except TypeError:
+            if len(args) == 1:
                 return method()
+            raise
+        except Exception as exc:  # pragma: no cover
+            logger.warning("aiopslab adapter %s.%s failed: %s", type(adapter).__name__, method_name, exc)
+            return None
 
-        reset_method = getattr(self._orch, "reset", None)
-        if callable(reset_method):
-            try:
-                state = reset_method()
-            except TypeError:
-                state = reset_method(self.problem_id)
+    def _invoke_orchestrator_reset(self) -> Any | None:
+        targets = self._adapter_targets()
+        if not targets:
+            return None
+
+        for adapter in targets:
+            for method_name in ("get_current_state", "observe", "current_state"):
+                state = _unwrap_adapter_state(self._call_adapter_method(adapter, method_name))
+                if state is not None:
+                    return state
+                attr_value = _unwrap_adapter_state(getattr(adapter, method_name, None))
+                if attr_value is not None:
+                    return attr_value
+
+        for adapter in targets:
+            state = _unwrap_adapter_state(self._call_adapter_method(adapter, "reset"))
             if state is not None:
                 return state
+            if adapter is self._orch:
+                state = _unwrap_adapter_state(self._call_adapter_method(adapter, "reset", self.problem_id))
+                if state is not None:
+                    return state
 
         return None
 
     def _invoke_orchestrator_step(self, action: AgentAction) -> Any | None:
-        if self._orch is None:
+        targets = self._adapter_targets()
+        if not targets:
             return None
 
         command = self._map_action_to_cmd(action)
-        for method_name in ("execute_action", "execute", "step", "act"):
-            method = getattr(self._orch, method_name, None)
-            if callable(method):
-                result = method(command)
+        for adapter in targets:
+            for method_name in ("execute_action", "execute", "step", "act"):
+                result = _unwrap_adapter_state(self._call_adapter_method(adapter, method_name, command))
+                if result is not None:
+                    return result
+                result = _unwrap_adapter_state(self._call_adapter_method(adapter, method_name, action))
                 if result is not None:
                     return result
 
