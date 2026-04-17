@@ -649,3 +649,11 @@ codex
 - excerpt: y exists and this sandbox blocks normal fetch/rebase, I’m rebuilding the push tip from the local `origin/auto/orchestrator-xgboost-observation` ref and cherry-picking just these three commits onto it.
 - worktree_status:
 -   clean
+## 2026-04-17T06:22:32Z | Session 1 | heartbeat
+
+- elapsed_seconds: 439
+- stdout_chars: 0
+- stderr_chars: 867825
+- excerpt: ned `Observation` objects in place by design so downstream reward and policy code sees the enriched scores immediately; if a future backend returns immutable snapshots, this seam will need revisiting.
+- worktree_status:
+-   clean
