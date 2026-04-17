@@ -365,3 +365,12 @@ exec
 Everything up-to-date
 - worktree_status:
 -   clean
+## 2026-04-17T01:33:48Z | Session 2 | heartbeat
+
+- elapsed_seconds: 146
+- stdout_chars: 0
+- stderr_chars: 78372
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   clean
