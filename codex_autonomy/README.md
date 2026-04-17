@@ -122,6 +122,8 @@ For a single copy-safe numbered tracking/recovery checklist, use:
 
 - Each task has `max_sessions`
 - If not done after one session, task is re-queued (`pending`) and resumed in next session
+- Rollover must preserve the existing task branch state; if the local task branch is missing, worker recreation should prefer `origin/auto/<task-id>` over `origin/main` so prior work is not discarded.
+- Each new session prompt includes a compact handoff assembled from the task journal and latest stdout/stderr tails so Codex resumes the last active slice instead of starting cold.
 - If retries exceed `max_retries`, task is marked failed and archived
 - If Codex returns quota/rate-limit errors, task is moved out of the active queue into `tasks/deferred` with a cooldown (`metadata.not_before_epoch`) and is revived automatically after wait time
 

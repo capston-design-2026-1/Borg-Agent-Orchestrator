@@ -1,5 +1,11 @@
 # Codex Autonomy Next Steps
 
+## Latest Session Note (2026-04-17 KST, continuity repair)
+
+- Fixed task-branch rollover so autonomy no longer force-resets an existing `auto/<task-id>` branch back to `origin/main` when a session restarts.
+- New worker prompts now include a compact continuation handoff from the latest task journal and prior session log tails, which should let rollover continue in-flight work after context exhaustion instead of re-discovering it.
+- Immediate follow-up check after restart: confirm cooled-down tasks resume from the prior branch state and close or reactivate stale `review` queue items that are no longer the active canonical path.
+
 ## Latest Session Note (2026-04-17 KST, targeted fixups slice)
 
 - Hardened autonomy CLI imports so parser/help flows no longer require `PyYAML` at module import time.

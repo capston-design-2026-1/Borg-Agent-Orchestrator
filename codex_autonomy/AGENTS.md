@@ -27,6 +27,8 @@
 - If context/session budget is exhausted, re-queue task and continue automatically.
 - If Codex quota/rate limits are detected, set cooldown and resume automatically after cooldown.
 - Persist progress in queue YAML and SQLite logs.
+- Never reset an existing task branch to `origin/main` during rollover; resume from the existing local branch, or recreate it from `origin/auto/<task-id>` if only the remote branch remains.
+- Include a compact continuation handoff in each new session prompt from the latest task journal plus prior stdout/stderr tails so rollover continues the active slice instead of rediscovering prior work.
 - Keep repo-root `.venv` as a local virtualenv directory only; do not commit or preserve a symlinked `.venv` artifact in git state.
 
 ## Git Discipline
