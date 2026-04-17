@@ -96,3 +96,12 @@
 apply patch
 - worktree_status:
 -   M README.md
+## 2026-04-17T01:27:42Z | Session 1 | heartbeat
+
+- elapsed_seconds: 106
+- stdout_chars: 0
+- stderr_chars: 121757
+- excerpt: or_stack` README now. That file is the most likely entry point for reviewers, so it needs an explicit validation-status section instead of relying on readers to infer limitations from scattered notes.
+- worktree_status:
+-   M NEXT_STEPS.md
+-   M README.md
