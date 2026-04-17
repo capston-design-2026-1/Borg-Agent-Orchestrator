@@ -3,7 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-import numpy as np
+try:
+    import numpy as np
+except Exception:  # pragma: no cover
+    from orchestrator import array_compat as np
 
 from orchestrator.layer1.collector import prometheus_rows_to_trace
 from orchestrator.layer2.simulator import state_to_observation

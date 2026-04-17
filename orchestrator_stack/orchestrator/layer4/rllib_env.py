@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-import numpy as np
+try:
+    import numpy as np
+except Exception:  # pragma: no cover
+    from orchestrator import array_compat as np
 
 try:
     from gymnasium.spaces import Box, Discrete

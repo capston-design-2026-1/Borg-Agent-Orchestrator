@@ -5,8 +5,6 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
-import numpy as np
-
 from orchestrator.config import OrchestratorConfig
 from orchestrator.layer1.collector import build_trace_file
 from orchestrator.layer1.trace_ingestor import load_trace_rows
@@ -14,7 +12,12 @@ from orchestrator.layer3.predictors import train_demand_model, train_models_from
 from orchestrator.main import run_episode, run_full_process, run_policy_training, train_brain_models
 
 
-def _load_npz(path: Path) -> tuple[np.ndarray, np.ndarray]:
+def _load_npz(path: Path):
+    try:
+        import numpy as np
+    except Exception as exc:  # pragma: no cover
+        raise RuntimeError("numpy is required for loading .npz datasets") from exc
+
     data = np.load(path)
     return data["x"], data["y"]
 
