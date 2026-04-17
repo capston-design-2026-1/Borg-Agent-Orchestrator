@@ -71,3 +71,11 @@
 - excerpt: entation-only slice across the root/orchestrator READMEs and next-step files, plus a new milestone report that captures the current evidence chain and residual risks from the April 16 validation runs.
 - worktree_status:
 -   clean
+## 2026-04-17T01:27:17Z | Session 1 | heartbeat
+
+- elapsed_seconds: 81
+- stdout_chars: 0
+- stderr_chars: 107680
+- excerpt: the broad “verified runtime support” implication and replace it with the narrower, evidence-backed validation status: what completed, what only smoke-tested, and what still needs an unsandboxed rerun.
+- worktree_status:
+-   clean
