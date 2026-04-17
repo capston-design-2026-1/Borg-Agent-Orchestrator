@@ -48,3 +48,12 @@
 - supervisor started session 3 of 6
 - prompt file: /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator/codex_autonomy/runtime/logs/orchestrator-xgboost-observation/session_003.prompt.txt
 - supervisor will publish heartbeat trace commits during execution
+## 2026-04-17T05:08:17Z | Session 3 | heartbeat
+
+- elapsed_seconds: 8
+- stdout_chars: 0
+- stderr_chars: 4353
+- excerpt: led to connect to websocket: IO error: failed to lookup address information: nodename nor servname provided, or not known, url: wss://chatgpt.com/backend-api/codex/responses
+ERROR: Reconnecting... 5/5
+- worktree_status:
+-   clean
