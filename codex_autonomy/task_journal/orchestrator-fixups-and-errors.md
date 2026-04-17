@@ -19,3 +19,12 @@
 ./NEXT_STEPS.md
 - worktree_status:
 -   clean
+## 2026-04-17T01:49:49Z | Session 1 | heartbeat
+
+- elapsed_seconds: 24
+- stdout_chars: 0
+- stderr_chars: 43202
+- excerpt: till assume a valid repo-root virtualenv.
+12. Extend `status` output to show active-queue vs deferred-cooldown counts so operators can distinguish blocked cooldown work from runnable work at a glance.
+- worktree_status:
+-   clean
