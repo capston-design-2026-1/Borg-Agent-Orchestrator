@@ -1,0 +1,39 @@
+task_id: orchestrator-e2e-pytest-runner-repair
+title: 'Orchestrator: repo .venv pytest gate repair'
+prompt: 'Repair the documented orchestrator test runner path so repo `.venv` can execute
+  pytest directly for the orchestrator gate.
+
+  Make the smallest defensible environment or doc changes needed so `./.venv/bin/pytest`
+  works for the focused Layer 4 tests and the broader `orchestrator_stack/tests`
+  suite, then sync the user-facing docs to the exact repaired behavior.
+
+  Keep this PR limited to pytest/runtime repair, direct validation, and doc sync.
+
+  '
+task_type: bug
+priority: 74
+dependencies: []
+scope_paths:
+- codex_autonomy/
+- orchestrator_stack/
+- reports/
+- README.md
+- NEXT_STEPS.md
+done_when_commands:
+- ./.venv/bin/python -m pytest orchestrator_stack/tests/test_ppo_trainer.py orchestrator_stack/tests/test_referee.py
+  orchestrator_stack/tests/test_rllib_env.py
+- ./.venv/bin/pytest orchestrator_stack/tests/
+max_sessions: 4
+max_retries: 3
+retries: 0
+status: pending
+review_prompt: Review branch changes for correctness and regressions.
+issue_number: null
+issue_url: null
+pr_number: null
+pr_url: null
+metadata:
+  discovered_in_task: orchestrator-e2e-final-gate
+  discovered_in_report: reports/milestones/202604171027_orchestrator_e2e_gate_followups_session1.md
+created_at: '2026-04-17T10:27:53'
+updated_at: '2026-04-17T10:27:53'
