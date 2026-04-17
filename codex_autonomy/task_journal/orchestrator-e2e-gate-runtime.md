@@ -156,3 +156,18 @@ pytest missing ModuleNotFoundError No module named 'pytest'
 -   M orchestrator_stack/orchestrator/layer4/rllib_env.py
 -   ?? orchestrator_stack/orchestrator/array_compat.py
 -   ?? reports/traces/202604171028_episode_trace.log
+## 2026-04-17T01:29:27Z | Session 1 | heartbeat
+
+- elapsed_seconds: 212
+- stdout_chars: 0
+- stderr_chars: 195385
+- excerpt: ll-process` command in an environment that actually has `ray[rllib]` and `optuna` installed if the objective is a fully trained PPO + Optuna pass rather than a successful runtime-safe gate completion.
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
+-   M orchestrator_stack/orchestrator/cli.py
+-   M orchestrator_stack/orchestrator/layer2/feature_extractor.py
+-   M orchestrator_stack/orchestrator/layer3/predictors.py
+-   M orchestrator_stack/orchestrator/layer4/rllib_env.py
+-   ?? orchestrator_stack/orchestrator/array_compat.py
+-   ?? reports/milestones/202604171031_orchestrator_e2e_gate_runtime_session1.md
+-   ?? reports/traces/202604171028_episode_trace.log
