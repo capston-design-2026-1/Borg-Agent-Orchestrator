@@ -29,3 +29,11 @@
 ./NEXT_STEPS.md
 - worktree_status:
 -   clean
+## 2026-04-17T01:26:20Z | Session 1 | heartbeat
+
+- elapsed_seconds: 24
+- stdout_chars: 0
+- stderr_chars: 50181
+- excerpt: macOS sandboxes, Ray may fail during `ray.init()` with a `PermissionError` from process enumeration. The command now returns a structured `"status": "skipped"` result in that case instead of crashing.
+- worktree_status:
+-   clean
