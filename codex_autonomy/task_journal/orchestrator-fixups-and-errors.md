@@ -81,3 +81,13 @@ Compiling 'codex_autonomy/scripts/stream_sessions.py'...
     return pid, command_substring in (proc.stdout or "")
 - worktree_status:
 -   clean
+## 2026-04-17T01:50:55Z | Session 1 | heartbeat
+
+- elapsed_seconds: 89
+- stdout_chars: 0
+- stderr_chars: 101677
+- excerpt: he environment is degraded.
+
+I’m patching both CLIs to defer optional/heavy imports until the matching command actually runs, and to fail with explicit dependency messages instead of raw stack traces.
+- worktree_status:
+-   clean
