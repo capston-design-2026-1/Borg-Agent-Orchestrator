@@ -944,3 +944,12 @@ I’m writing the session-7 continuity entries now. This is limited to the new m
 error: failed to push some refs to 'https://github.com/capston-design-2026-1/Borg-Agent-Orchestrator'
 - worktree_status:
 -   clean
+## 2026-04-17T01:44:02Z | Session 7 | heartbeat
+
+- elapsed_seconds: 105
+- stdout_chars: 0
+- stderr_chars: 93249
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   clean
