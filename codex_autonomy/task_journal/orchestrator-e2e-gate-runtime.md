@@ -1202,3 +1202,14 @@ Everything up-to-date
 - excerpt: m updating only the orchestrator runtime handoff state now: a new session-10 milestone note plus the latest session entry in `orchestrator_stack/NEXT_STEPS.md`, alongside the generated trace artifact.
 - worktree_status:
 -   ?? reports/traces/202604171048_episode_trace.log
+## 2026-04-17T01:48:57Z | Session 10 | heartbeat
+
+- elapsed_seconds: 65
+- stdout_chars: 0
+- stderr_chars: 71744
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
+-   ?? reports/milestones/202604171048_orchestrator_e2e_gate_runtime_session10.md
+-   ?? reports/traces/202604171048_episode_trace.log
