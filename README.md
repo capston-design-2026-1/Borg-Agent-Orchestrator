@@ -25,6 +25,7 @@ An independent end-to-end orchestrator workspace now exists at `orchestrator_sta
 - Layer 5 policy tuning now forwards real PPO hyperparameters into RLlib-backed trials instead of scoring a placeholder learning-rate proxy; in restricted sandboxes it returns a structured skip when Ray process permissions are blocked
 - Layer 1 ingestion/trace contracts are strict by default (row-indexed schema checks, `.json/.jsonl` contract validation, bool-like and non-negative queue guardrails)
 - Layer 2 now normalizes AIOpsLab-style nested state payloads into the shared `Observation`/feature contract used by simulator replay, live adapters, and XGBoost feature extraction
+- Layer 3 predictor inference is now attached at the backend seam so manual episodes, heuristic evaluation, RLlib training, and PPO-backed Optuna trials all consume the same XGBoost-enriched observations
 - `orchestrator_stack/examples/generate_synthetic_assets.py` now derives sample matrix width from Layer 2 `FEATURE_COUNT`, so synthetic assets stay aligned with simulator/feature changes
 - The latest completed reward-only Optuna artifact is `reports/tuning/202604161029_optuna_orchestrator_reward_weights.md`; the older `reports/tuning/202604142305_optuna_orchestrator_policy_and_rewards.md` predates the PPO-backed tuning rewrite and should not be treated as current validation for `tune-policy-rewards`
 
