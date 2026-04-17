@@ -21,12 +21,12 @@ Read Agents.md, NEXT_STEPS.md, MAS_ARCHITECTURE.md, and README.md, inspect the l
 - Isolated full orchestrator track: `orchestrator_stack/` (new, dedicated)
 - Orchestrator Mermaid architecture is now tracked at `orchestrator_stack/ARCHITECTURE.md`
 - Orchestrator CLI now supports full flow: `build-trace -> train-brains -> run -> full-process`
-- Orchestrator full-process now runs with real Ray PPO + Optuna in repo `.venv` (smoke profile)
+- Orchestrator full-process now passes in repo `.venv` with the smoke profile; in this macOS sandbox the PPO stage currently returns a structured `status="skipped"` result when Ray cannot inspect local processes or start a local runtime, so unrestricted PPO validation is queued as follow-up work (2026-04-17 KST).
 - Codex autonomy runner is now available under `codex_autonomy/` for continuous multi-session execution
 - Default working clusters: `b`, `c`, `d`, `e`, `f`, `g`
 - Excluded by default: `a`, `h`
 - Orchestrator Layer 1 ingestion path now enforces stricter row-by-row schema validation for metrics -> trace build and trace `.json/.jsonl` load contracts, including bool-like coercion checks, non-negative queue fields, positive bucket interval checks, and missing-source detection (implemented 2026-04-15 KST in `orchestrator_stack/`).
-- Orchestrator Layer 2 now normalizes AIOpsLab-style nested simulator payloads into the shared `Observation` contract for replay and feature extraction, and the fallback AIOpsLab backend now simulates stateful steps locally; direct upstream package/session validation remains open, and this worktree runtime still cannot run repo pytest because `.venv` is a self-referential symlink while system `python3` is missing `numpy` and `pytest` (2026-04-16 KST).
+- Orchestrator Layer 2 now normalizes AIOpsLab-style nested simulator payloads into the shared `Observation` contract for replay and feature extraction, and the fallback AIOpsLab backend now simulates stateful steps locally; direct upstream package/session validation remains open, and the documented repo `.venv` pytest gate path still needs repair because `pytest` is not currently installed there (2026-04-17 KST).
 - Orchestrator Layer 5 now pushes sampled reward weights and PPO hyperparameters through the real policy-training path, with config support for PPO batch/epoch knobs and a dedicated unit test covering trainer invocation. Reward-only Optuna tuning is validated end-to-end in the repo `.venv`; PPO-backed policy tuning reaches RLlib but still requires a non-sandboxed shell to complete because this macOS sandbox blocks Ray process enumeration during `ray.init()` (2026-04-16 KST).
 
 ## Pipeline Status
@@ -211,7 +211,7 @@ Parallel immediate track:
 
 1. Continue `orchestrator_stack/` from `orchestrator_stack/NEXT_STEPS.md` by validating the live AIOpsLab adapter against the actual upstream package/session API and then replacing the current AIOpsLab-style fallback assumptions with a confirmed contract.
 2. Replace the remaining heuristic post-training proxy in `orchestrator_stack/orchestrator/main.py` with evaluation of learned PPO policies/checkpoints.
-3. Re-run `orchestrator_stack/run.py tune-policy-rewards` in a non-sandboxed shell and capture a completed `orchestrator_policy_and_rewards` Optuna report under `reports/`.
+3. Run the queued follow-up tasks `orchestrator-e2e-ppo-trained-gate` and `orchestrator-e2e-pytest-runner-repair`, then capture the exact validated runtime behavior in `reports/`.
 
 Recommended next sequence:
 
