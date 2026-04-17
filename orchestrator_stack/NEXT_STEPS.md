@@ -6,6 +6,15 @@
 4. Add model calibration and threshold optimization for `SafetyRiskForecast`.
 5. Add curriculum training schedule for RLlib PPO multi-agent agents.
 
+## Latest Session Note (2026-04-17 KST, doc sync slice)
+
+- Synced orchestrator-facing docs to the latest tested behavior from the 2026-04-16 validation sessions so README and handoff files now distinguish:
+  - completed reward-weight tuning validation (`reports/tuning/202604161029_optuna_orchestrator_reward_weights.md`)
+  - PPO-backed `tune-policy-rewards` reaching RLlib but returning structured `"status": "skipped"` in this sandbox when `ray.init()` is blocked
+  - focused Layer 4 smoke validation succeeding while `pytest` remained unavailable in the repo virtualenv
+- Marked `reports/tuning/202604142305_optuna_orchestrator_policy_and_rewards.md` as a historical pre-rewrite artifact rather than current evidence for the post-2026-04-16 PPO-backed tuning path.
+- Added `reports/milestones/202604171027_orchestrator_e2e_gate_doc_sync_session1.md` as the documentation checkpoint for this synchronization pass.
+
 ## Latest Session Note (2026-04-16 KST, RLlib/referee slice)
 
 - Layer 4 referee resolution is now explicit and deterministic instead of a simple priority sort:
