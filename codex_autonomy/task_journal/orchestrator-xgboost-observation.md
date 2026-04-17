@@ -666,3 +666,11 @@ codex
  + e7ce8dd...44f9841 HEAD -> auto/orchestrator-xgboost-observation (forced update)
 - worktree_status:
 -   clean
+## 2026-04-17T06:22:57Z | Session 1 | heartbeat
+
+- elapsed_seconds: 464
+- stdout_chars: 0
+- stderr_chars: 908270
+- excerpt: ned `Observation` objects in place by design so downstream reward and policy code sees the enriched scores immediately; if a future backend returns immutable snapshots, this seam will need revisiting.
+- worktree_status:
+-   clean
