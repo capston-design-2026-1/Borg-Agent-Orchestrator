@@ -548,3 +548,14 @@ codex
 - excerpt: s and adding a session-4 milestone report. There’s no runtime fix to land, so the only tracked changes should be the fresh trace artifact plus the minimum continuity notes tied to this validation run.
 - worktree_status:
 -   ?? reports/traces/202604171036_episode_trace.log
+## 2026-04-17T01:37:26Z | Session 4 | heartbeat
+
+- elapsed_seconds: 65
+- stdout_chars: 0
+- stderr_chars: 55105
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
+-   ?? reports/milestones/202604171038_orchestrator_e2e_gate_runtime_session4.md
+-   ?? reports/traces/202604171036_episode_trace.log
