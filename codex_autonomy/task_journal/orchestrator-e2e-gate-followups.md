@@ -168,3 +168,14 @@ updated_at: '2026-04-16T01:17:28.963982'
 -   ?? codex_autonomy/tasks/queue/orchestrator-e2e-ppo-trained-gate.yaml
 -   ?? codex_autonomy/tasks/queue/orchestrator-e2e-pytest-runner-repair.yaml
 -   ?? reports/milestones/202604171027_orchestrator_e2e_gate_followups_session1.md
+## 2026-04-17T01:30:08Z | Session 1 | heartbeat
+
+- elapsed_seconds: 252
+- stdout_chars: 0
+- stderr_chars: 306738
+- excerpt: The follow-up split is now in place as tracked queue specs plus a milestone report. I’m validating the YAML and continuity text before I shard commits so the branch history stays small and reviewable.
+- worktree_status:
+-   M NEXT_STEPS.md
+-   ?? codex_autonomy/tasks/queue/orchestrator-e2e-ppo-trained-gate.yaml
+-   ?? codex_autonomy/tasks/queue/orchestrator-e2e-pytest-runner-repair.yaml
+-   ?? reports/milestones/202604171027_orchestrator_e2e_gate_followups_session1.md
