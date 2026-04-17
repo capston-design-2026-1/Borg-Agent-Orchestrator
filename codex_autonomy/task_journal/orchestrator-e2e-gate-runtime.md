@@ -318,3 +318,11 @@ exec
 -rw-r--r--@ 1 theokim  staff  15258 Apr 17 10:25 202604142305_episode_trace.log
 - worktree_status:
 -   ?? reports/traces/202604171031_episode_trace.log
+## 2026-04-17T01:32:18Z | Session 2 | heartbeat
+
+- elapsed_seconds: 56
+- stdout_chars: 0
+- stderr_chars: 46913
+- excerpt: These logs are execution traces for action/reward auditing, separate from Layer 1 trace datasets (`orchestrator_stack/examples/sample_trace.json`).
+- worktree_status:
+-   ?? reports/traces/202604171031_episode_trace.log
