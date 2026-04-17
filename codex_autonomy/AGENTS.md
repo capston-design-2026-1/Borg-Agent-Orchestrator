@@ -30,6 +30,8 @@
 - Never reset an existing task branch to `origin/main` during rollover; resume from the existing local branch, or recreate it from `origin/auto/<task-id>` if only the remote branch remains.
 - Include a compact continuation handoff in each new session prompt from the latest task journal plus prior stdout/stderr tails so rollover continues the active slice instead of rediscovering prior work.
 - Keep repo-root `.venv` as a local virtualenv directory only; do not commit or preserve a symlinked `.venv` artifact in git state.
+- `.gitignore` must ignore both `.venv` and `.venv/` because a symlinked `.venv` is a file entry, not a directory entry.
+- Worktree setup must automatically remove tracked `.venv` from task branches before creating the local worktree symlink so old branches cannot reintroduce the self-referential loop.
 
 ## Git Discipline
 

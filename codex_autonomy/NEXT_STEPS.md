@@ -6,6 +6,7 @@
 - New worker prompts now include a compact continuation handoff from the latest task journal and prior session log tails, which should let rollover continue in-flight work after context exhaustion instead of re-discovering it.
 - Immediate follow-up check after restart: confirm cooled-down tasks resume from the prior branch state and close or reactivate stale `review` queue items that are no longer the active canonical path.
 - Root-cause note from merged-history audit: some later reruns merged journal-only deltas for already-implemented feature tasks after the real code had landed in earlier PRs. Worker now needs a substantive non-doc branch diff for feature/bug/upgrade tasks, and manager should archive queue items whose linked PR is already merged.
+- Permanent `.venv` repair landed: root cause was that `.gitignore` only ignored `.venv/`, which does not ignore a symlink file named `.venv`. Main was still tracking `.venv` as a symlink, so task branches kept reviving it. The repo now ignores both forms and worktree setup strips tracked `.venv` from task branches before wiring the local virtualenv.
 
 ## Latest Session Note (2026-04-17 KST, targeted fixups slice)
 

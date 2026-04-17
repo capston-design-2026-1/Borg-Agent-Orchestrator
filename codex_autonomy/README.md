@@ -40,6 +40,7 @@ cp codex_autonomy/config/autonomy.example.yaml codex_autonomy/config/autonomy.lo
    Optional: set `session.rate_limit_cooldown_seconds` to control automatic wait time after Codex quota/rate-limit failures.
 3. Create a real local repo virtualenv before installing dependencies.
    The repo-root `.venv` must be an actual virtualenv directory, not a committed symlink or alias.
+   The repository ignore rules cover both `.venv` and `.venv/`; if you ever see `.venv` show up in `git ls-files`, remove it from the index immediately because that means a symlink/file entry slipped back into git history.
 4. Configure GitHub flow in `github:` block (`repo`, auto issue/PR/merge policy).
 5. If using GitHub automation, install/authenticate GitHub CLI:
 
@@ -126,6 +127,11 @@ For a single copy-safe numbered tracking/recovery checklist, use:
 - Each new session prompt includes a compact handoff assembled from the task journal and latest stdout/stderr tails so Codex resumes the last active slice instead of starting cold.
 - If retries exceed `max_retries`, task is marked failed and archived
 - If Codex returns quota/rate-limit errors, task is moved out of the active queue into `tasks/deferred` with a cooldown (`metadata.not_before_epoch`) and is revived automatically after wait time
+
+## Local Venv Guard
+
+- Worktree setup automatically strips tracked `.venv` from task branches before creating the local worktree symlink.
+- This prevents old branches from reintroducing the self-referential `.venv -> .../.venv` loop that breaks `./.venv/bin/python`.
 
 ## Dynamic Task/PR Decomposition
 
