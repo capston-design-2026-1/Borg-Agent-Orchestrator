@@ -125,3 +125,14 @@ I’m applying those edits now, then I’ll run focused validation and split com
 - worktree_status:
 -   M orchestrator_stack/orchestrator/layer2/feature_extractor.py
 -   M orchestrator_stack/orchestrator/layer2/simulator.py
+## 2026-04-17T01:52:45Z | Session 1 | heartbeat
+
+- elapsed_seconds: 178
+- stdout_chars: 0
+- stderr_chars: 183134
+- excerpt: +    assert result.next_observation.queue_length == 1
++    assert result.info["status"] == "live_adapter"
+- worktree_status:
+-   M orchestrator_stack/orchestrator/layer2/feature_extractor.py
+-   M orchestrator_stack/orchestrator/layer2/simulator.py
+-   M orchestrator_stack/tests/test_simulator.py
