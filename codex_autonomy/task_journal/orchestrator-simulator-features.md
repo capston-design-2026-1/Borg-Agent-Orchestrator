@@ -258,3 +258,12 @@ index d25dcd55aea71853dbc0ca1ffd0db0a58ab8b98c..dbe3f1ae8667a3b80eedbe5f37bb146a
 - excerpt:  2 status instead of the stale “blocked on numpy” note. I’m also writing the one follow-up task this slice surfaced: live upstream AIOpsLab contract validation in an environment with the real package.
 - worktree_status:
 -   clean
+## 2026-04-17T01:57:13Z | Session 1 | heartbeat
+
+- elapsed_seconds: 446
+- stdout_chars: 0
+- stderr_chars: 612965
+- excerpt: +    assert result.next_observation.queue_length == 1
++    assert result.info["status"] == "live_adapter"
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
