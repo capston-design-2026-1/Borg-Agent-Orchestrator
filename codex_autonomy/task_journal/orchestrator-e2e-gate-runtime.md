@@ -446,3 +446,14 @@ reports/tuning/202604161029_optuna_orchestrator_reward_weights.md
  succeeded in 0ms:
 - worktree_status:
 -   ?? reports/traces/202604171034_episode_trace.log
+## 2026-04-17T01:35:32Z | Session 3 | heartbeat
+
+- elapsed_seconds: 81
+- stdout_chars: 0
+- stderr_chars: 56071
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
+-   ?? reports/milestones/202604171034_orchestrator_e2e_gate_runtime_session3.md
+-   ?? reports/traces/202604171034_episode_trace.log
