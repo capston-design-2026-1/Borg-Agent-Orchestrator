@@ -510,3 +510,18 @@ The import path is fixed. The remaining validation issue is just test shape: `un
 -   M orchestrator_stack/orchestrator/main.py
 -   ?? orchestrator_stack/tests/test_predictor_runtime.py
 -   ?? reports/milestones/202604171517_orchestrator_xgboost_observation_session1.md
+## 2026-04-17T06:19:58Z | Session 1 | heartbeat
+
+- elapsed_seconds: 284
+- stdout_chars: 0
+- stderr_chars: 452412
+- excerpt: ned `Observation` objects in place by design so downstream reward and policy code sees the enriched scores immediately; if a future backend returns immutable snapshots, this seam will need revisiting.
+- worktree_status:
+-   M README.md
+-   M orchestrator_stack/NEXT_STEPS.md
+-   M orchestrator_stack/README.md
+-   M orchestrator_stack/orchestrator/layer3/__init__.py
+-   M orchestrator_stack/orchestrator/layer3/predictors.py
+-   M orchestrator_stack/orchestrator/main.py
+-   ?? orchestrator_stack/tests/test_predictor_runtime.py
+-   ?? reports/milestones/202604171517_orchestrator_xgboost_observation_session1.md
