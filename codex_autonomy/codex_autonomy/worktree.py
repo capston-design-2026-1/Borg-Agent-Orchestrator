@@ -25,6 +25,21 @@ def _resolve_startpoint(repo_root: Path, base_branch: str) -> str:
     return "HEAD"
 
 
+def _is_tracked(path: Path, relpath: str) -> bool:
+    probe = _try_run(["git", "ls-files", "--error-unmatch", "--", relpath], cwd=path)
+    return probe.returncode == 0
+
+
+def _sanitize_local_venv(worktree_path: Path) -> None:
+    relpath = ".venv"
+    venv_path = worktree_path / relpath
+    if not _is_tracked(worktree_path, relpath):
+        return
+    if venv_path.is_symlink() or venv_path.is_file():
+        venv_path.unlink(missing_ok=True)
+    _run(["git", "rm", "--cached", "--force", "--", relpath], cwd=worktree_path)
+
+
 def ensure_branch(repo_root: Path, base_branch: str, branch_name: str) -> None:
     _try_run(["git", "fetch", "origin", base_branch], cwd=repo_root)
     _try_run(["git", "fetch", "origin", branch_name], cwd=repo_root)
@@ -48,6 +63,7 @@ def ensure_worktree(repo_root: Path, branch_name: str, worktree_path: Path) -> N
         _run(["git", "worktree", "remove", "--force", str(worktree_path)], cwd=repo_root)
     worktree_path.parent.mkdir(parents=True, exist_ok=True)
     _run(["git", "worktree", "add", "--force", str(worktree_path), branch_name], cwd=repo_root)
+    _sanitize_local_venv(worktree_path)
     # Make repo-root virtualenv available inside worktree for relative commands like ./.venv/bin/python.
     root_venv = repo_root / ".venv"
     worktree_venv = worktree_path / ".venv"
