@@ -603,3 +603,12 @@ codex
 Everything up-to-date
 - worktree_status:
 -   clean
+## 2026-04-17T01:38:14Z | Session 4 | heartbeat
+
+- elapsed_seconds: 114
+- stdout_chars: 0
+- stderr_chars: 105353
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   clean
