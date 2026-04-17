@@ -304,3 +304,11 @@ index d25dcd55aea71853dbc0ca1ffd0db0a58ab8b98c..dbe3f1ae8667a3b80eedbe5f37bb146a
 error: failed to push some refs to 'https://github.com/capston-design-2026-1/Borg-Agent-Orchestrator'
 - worktree_status:
 -   clean
+## 2026-04-17T01:58:26Z | Session 1 | heartbeat
+
+- elapsed_seconds: 519
+- stdout_chars: 0
+- stderr_chars: 840753
+- excerpt: inst the real upstream AIOpsLab package/session API in an environment where `aiopslab` is installed and `pytest` is available, then replace the current compatibility probing with a confirmed contract.
+- worktree_status:
+-   clean
