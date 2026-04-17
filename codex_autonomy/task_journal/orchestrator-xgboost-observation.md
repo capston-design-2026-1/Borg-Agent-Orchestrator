@@ -130,3 +130,8 @@ ERROR: Reconnecting... 1/5
 - duration_seconds: 1936.6
 - timed_out: True
 - result: session_failed_or_incomplete
+## 2026-04-17T05:55:11Z | Session 5 | session_started
+
+- supervisor started session 5 of 6
+- prompt file: /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator/codex_autonomy/runtime/logs/orchestrator-xgboost-observation/session_005.prompt.txt
+- supervisor will publish heartbeat trace commits during execution
