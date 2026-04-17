@@ -107,11 +107,49 @@ def _worktree_status_lines(worktree_path: Path) -> list[str]:
 
 
 def _heartbeat_commit_message(excerpt: str) -> str:
-    cleaned = re.sub(r"\s+", " ", excerpt).strip().replace("`", "'")
-    if not cleaned:
-        return "trace : heartbeat"
+    return _trace_subject_from_excerpt(excerpt, fallback="heartbeat")
+
+
+def _trace_subject_from_excerpt(excerpt: str, *, fallback: str) -> str:
+    noise_prefixes = (
+        "to https://",
+        "remote:",
+        "hint:",
+        "everything up-to-date",
+        "succeeded in",
+        "## auto/",
+        "fatal:",
+        "error:",
+        "branch ",
+    )
+    candidates: list[str] = []
+    for raw_line in excerpt.splitlines():
+        line = raw_line.strip().replace("`", "'")
+        line = re.sub(r"^[+\-]+\s*", "", line)
+        line = re.sub(r"^\d+\.\s*", "", line)
+        line = re.sub(r"^\?\?\s*", "", line)
+        line = re.sub(r"^[MADRCU]{1,2}\s+", "", line)
+        line = re.sub(r"\s+", " ", line).strip(" .,:;|-")
+        if not line:
+            continue
+        lowered = line.lower()
+        if lowered.startswith(noise_prefixes):
+            continue
+        if re.fullmatch(r"[./\w-]+\.[A-Za-z0-9_]+", line):
+            continue
+        if "/" in line and " " not in line:
+            continue
+        if not re.search(r"[A-Za-z]", line):
+            continue
+        line = re.sub(r"^[^A-Za-z(]+", "", line)
+        if not line:
+            continue
+        candidates.append(line)
+
+    cleaned = candidates[0] if candidates else fallback
+    cleaned = cleaned[0].upper() + cleaned[1:] if cleaned and cleaned[0].isalpha() else cleaned
     words = cleaned.split()
-    summary = " ".join(words[:30])
+    summary = " ".join(words[:18])
     max_len = 72 - len("trace : ")
     if len(summary) > max_len:
         summary = summary[: max_len - 3].rstrip(" ,.;:-") + "..."
@@ -282,7 +320,7 @@ def run_task(config: ManagerConfig, task: TaskSpec) -> WorkerResult:
                 worktree_path,
                 branch_name,
                 paths=[journal_relpath],
-                message=f"auto(trace): {task.task_id} session {idx + 1} start",
+                message=f"trace : Session {idx + 1} started",
             )
             prompt_text = _make_prompt(task, idx, followups_file)
             prompt_file = logs_dir / f"session_{idx + 1:03d}.prompt.txt"
@@ -385,7 +423,7 @@ def run_task(config: ManagerConfig, task: TaskSpec) -> WorkerResult:
                 worktree_path,
                 branch_name,
                 paths=[journal_relpath],
-                message=f"auto(trace): {task.task_id} session {idx + 1} finish",
+                message=f"trace : Session {idx + 1} finished rc={result.return_code}",
             )
 
             if result.return_code != 0:
