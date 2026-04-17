@@ -267,3 +267,13 @@ index d25dcd55aea71853dbc0ca1ffd0db0a58ab8b98c..dbe3f1ae8667a3b80eedbe5f37bb146a
 +    assert result.info["status"] == "live_adapter"
 - worktree_status:
 -   M orchestrator_stack/NEXT_STEPS.md
+## 2026-04-17T01:57:21Z | Session 1 | heartbeat
+
+- elapsed_seconds: 454
+- stdout_chars: 0
+- stderr_chars: 684430
+- excerpt: +    assert result.next_observation.queue_length == 1
++    assert result.info["status"] == "live_adapter"
+- worktree_status:
+-   M NEXT_STEPS.md
+-   M orchestrator_stack/NEXT_STEPS.md
