@@ -563,3 +563,8 @@ exec
 - duration_seconds: 298.5
 - timed_out: False
 - result: session_completed
+## 2026-04-17T01:55:00Z | Session 1 | session_started
+
+- supervisor started session 1 of 8
+- prompt file: /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator/codex_autonomy/runtime/logs/orchestrator-rllib-referee/session_001.prompt.txt
+- supervisor will publish heartbeat trace commits during execution
