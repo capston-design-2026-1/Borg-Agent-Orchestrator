@@ -187,6 +187,46 @@ def ensure_pr(config: ManagerConfig, task: TaskSpec, branch_name: str) -> tuple[
     return pr_number, pr_url
 
 
+def pr_merge_state(config: ManagerConfig, pr_number: int) -> str:
+    if not github_enabled(config):
+        return ""
+    code, stdout, _ = _run(
+        [
+            "gh",
+            "pr",
+            "view",
+            str(pr_number),
+            "--repo",
+            config.github.repo,
+            "--json",
+            "mergeStateStatus",
+        ],
+        config.repo_root,
+    )
+    if code != 0 or not stdout:
+        return ""
+    raw = json.loads(stdout)
+    return str(raw.get("mergeStateStatus", "")).strip().upper()
+
+
+def refresh_pr_branch(config: ManagerConfig, pr_number: int) -> bool:
+    if not github_enabled(config):
+        return False
+    code, _, _ = _run(
+        [
+            "gh",
+            "pr",
+            "update-branch",
+            str(pr_number),
+            "--repo",
+            config.github.repo,
+            "--rebase",
+        ],
+        config.repo_root,
+    )
+    return code == 0
+
+
 def try_merge_pr(config: ManagerConfig, pr_number: int) -> bool:
     if not github_enabled(config):
         return False
@@ -206,6 +246,13 @@ def try_merge_pr(config: ManagerConfig, pr_number: int) -> bool:
         ],
         config.repo_root,
     )
+
+    state = pr_merge_state(config, pr_number)
+    if state in {"DIRTY", "BEHIND", "BLOCKED"}:
+        refresh_pr_branch(config, pr_number)
+        state = pr_merge_state(config, pr_number)
+    if state in {"DIRTY", "UNKNOWN"}:
+        return False
 
     method_flag = "--squash"
     if config.github.merge_method == "rebase":

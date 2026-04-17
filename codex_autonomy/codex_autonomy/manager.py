@@ -9,7 +9,7 @@ import subprocess
 import yaml
 
 from codex_autonomy.config import ManagerConfig
-from codex_autonomy.github_flow import try_merge_pr
+from codex_autonomy.github_flow import pr_merge_state, refresh_pr_branch, try_merge_pr
 from codex_autonomy.health import run_health_checks
 from codex_autonomy.models import TaskSpec, TaskStatus
 from codex_autonomy.state_db import init_db, log_event
@@ -223,6 +223,16 @@ class AutonomyManager:
                 continue
             if not self.config.github.auto_merge:
                 continue
+            state = pr_merge_state(self.config, task.pr_number)
+            if state in {"DIRTY", "BEHIND", "BLOCKED"}:
+                refreshed = refresh_pr_branch(self.config, task.pr_number)
+                log_event(
+                    self.config.state_db_path,
+                    ts=datetime.utcnow().isoformat(),
+                    task_id=task.task_id,
+                    event_type="pr_refresh_attempted",
+                    message=f"merge_state={state} refreshed={refreshed}",
+                )
             merged = try_merge_pr(self.config, task.pr_number)
             if not merged:
                 continue
