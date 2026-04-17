@@ -27,17 +27,19 @@ def _resolve_startpoint(repo_root: Path, base_branch: str) -> str:
 
 def ensure_branch(repo_root: Path, base_branch: str, branch_name: str) -> None:
     _try_run(["git", "fetch", "origin", base_branch], cwd=repo_root)
+    _try_run(["git", "fetch", "origin", branch_name], cwd=repo_root)
+
+    existing = _try_run(["git", "rev-parse", "--verify", branch_name], cwd=repo_root)
+    if existing.returncode == 0:
+        return
+
+    remote_branch = f"origin/{branch_name}"
+    remote_exists = _try_run(["git", "rev-parse", "--verify", remote_branch], cwd=repo_root)
+    if remote_exists.returncode == 0:
+        _run(["git", "branch", "--track", branch_name, remote_branch], cwd=repo_root)
+        return
+
     startpoint = _resolve_startpoint(repo_root, base_branch)
-    # If the branch is currently checked out in another worktree, avoid force-moving it.
-    move = _try_run(["git", "branch", "-f", branch_name, startpoint], cwd=repo_root)
-    if move.returncode == 0:
-        return
-    err = move.stderr.lower()
-    if "checked out" in err or "used by worktree" in err:
-        return
-    exists = _try_run(["git", "rev-parse", "--verify", branch_name], cwd=repo_root)
-    if exists.returncode == 0:
-        return
     _run(["git", "branch", branch_name, startpoint], cwd=repo_root)
 
 

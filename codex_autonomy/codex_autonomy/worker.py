@@ -244,7 +244,56 @@ def _enqueue_followups(
     return created
 
 
-def _make_prompt(task: TaskSpec, session_idx: int, followups_file: Path) -> str:
+def _tail_text(path: Path, max_chars: int) -> str:
+    if not path.exists():
+        return ""
+    text = path.read_text(encoding="utf-8", errors="replace")
+    return text[-max_chars:].strip()
+
+
+def _clean_prompt_excerpt(text: str, max_lines: int) -> str:
+    if not text:
+        return ""
+    lines = [line.rstrip() for line in text.splitlines() if line.strip()]
+    trimmed = lines[-max_lines:]
+    cleaned = "\n".join(trimmed).strip()
+    return cleaned[:1800].strip()
+
+
+def _latest_session_log_excerpt(logs_dir: Path, suffix: str, max_chars: int) -> str:
+    files = sorted(logs_dir.glob(f"session_*.{suffix}.log"))
+    if not files:
+        return ""
+    return _tail_text(files[-1], max_chars)
+
+
+def _continuation_context(task: TaskSpec, worktree_path: Path, logs_dir: Path) -> str:
+    sections: list[str] = []
+
+    journal_text = _clean_prompt_excerpt(_tail_text(worktree_path / _journal_relpath(task.task_id), 2200), 24)
+    if journal_text:
+        sections.append(f"Latest task journal tail:\n{journal_text}")
+
+    stderr_text = _clean_prompt_excerpt(_latest_session_log_excerpt(logs_dir, "stderr", 1400), 18)
+    if stderr_text:
+        sections.append(f"Latest stderr tail:\n{stderr_text}")
+
+    stdout_text = _clean_prompt_excerpt(_latest_session_log_excerpt(logs_dir, "stdout", 900), 12)
+    if stdout_text:
+        sections.append(f"Latest stdout tail:\n{stdout_text}")
+
+    if not sections:
+        return "No prior session handoff found."
+    return "\n\n".join(sections)
+
+
+def _make_prompt(
+    task: TaskSpec,
+    session_idx: int,
+    followups_file: Path,
+    *,
+    continuation_context: str,
+) -> str:
     resume = (
         "Read Agents.md, NEXT_STEPS.md, and latest reports before coding. "
         "When context is exhausted, update task/report files and let supervisor continue next session. "
@@ -274,6 +323,7 @@ def _make_prompt(task: TaskSpec, session_idx: int, followups_file: Path) -> str:
         f"Session: {session_idx + 1}/{task.max_sessions}\n"
         f"Scope paths: {', '.join(task.scope_paths) if task.scope_paths else 'not restricted'}\n\n"
         f"Primary objective:\n{task.prompt}\n\n"
+        f"Continuation handoff:\n{continuation_context}\n\n"
         f"Continuation protocol:\n{resume}\n"
         f"{commit_rules}\n"
         f"{expansion}\n"
@@ -325,7 +375,12 @@ def run_task(config: ManagerConfig, task: TaskSpec) -> WorkerResult:
                 paths=[journal_relpath],
                 message=f"trace : Session {idx + 1} started",
             )
-            prompt_text = _make_prompt(task, idx, followups_file)
+            prompt_text = _make_prompt(
+                task,
+                idx,
+                followups_file,
+                continuation_context=_continuation_context(task, worktree_path, logs_dir),
+            )
             prompt_file = logs_dir / f"session_{idx + 1:03d}.prompt.txt"
             stdout_file = logs_dir / f"session_{idx + 1:03d}.stdout.log"
             stderr_file = logs_dir / f"session_{idx + 1:03d}.stderr.log"
