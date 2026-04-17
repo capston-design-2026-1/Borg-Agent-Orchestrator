@@ -230,3 +230,12 @@ Everything up-to-date
 Everything up-to-date
 - worktree_status:
 -   clean
+## 2026-04-17T01:31:13Z | Session 1 | heartbeat
+
+- elapsed_seconds: 317
+- stdout_chars: 0
+- stderr_chars: 456553
+- excerpt: +
++Attempting to write that path returned macOS sandbox `operation not permitted`, so the same follow-up split is recorded here in git-tracked form and enqueued through queue YAML files instead.
+- worktree_status:
+-   clean
