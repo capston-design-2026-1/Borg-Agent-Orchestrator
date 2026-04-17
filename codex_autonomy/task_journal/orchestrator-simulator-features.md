@@ -277,3 +277,13 @@ index d25dcd55aea71853dbc0ca1ffd0db0a58ab8b98c..dbe3f1ae8667a3b80eedbe5f37bb146a
 - worktree_status:
 -   M NEXT_STEPS.md
 -   M orchestrator_stack/NEXT_STEPS.md
+## 2026-04-17T01:57:37Z | Session 1 | heartbeat
+
+- elapsed_seconds: 470
+- stdout_chars: 0
+- stderr_chars: 728201
+- excerpt: inst the real upstream AIOpsLab package/session API in an environment where `aiopslab` is installed and `pytest` is available, then replace the current compatibility probing with a confirmed contract.
+- worktree_status:
+-   M NEXT_STEPS.md
+-   M orchestrator_stack/NEXT_STEPS.md
+-   ?? reports/milestones/202604171056_orchestrator_simulator_features_session1.md
