@@ -10,8 +10,7 @@ prompt: 'Integrate XGBoost safety/resource predictors into orchestrator observat
   '
 task_type: feature
 priority: 30
-dependencies:
-- orchestrator-simulator-features
+dependencies: []
 scope_paths:
 - orchestrator_stack/
 - reports/
@@ -21,12 +20,13 @@ done_when_commands: []
 max_sessions: 6
 max_retries: 4
 retries: 0
-status: pending
+status: running
 review_prompt: Review branch changes for correctness and regressions.
-issue_number: null
-issue_url: null
+issue_number: 33
+issue_url: https://github.com/capston-design-2026-1/Borg-Agent-Orchestrator/issues/33
 pr_number: null
 pr_url: null
-metadata: {}
+metadata:
+  superseded_pr: 34
 created_at: '2026-04-15T04:23:41.521740'
-updated_at: '2026-04-15T04:23:41.521754'
+updated_at: '2026-04-17T01:31:54.441634'

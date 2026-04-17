@@ -25,6 +25,7 @@ issue_number: 38
 issue_url: https://github.com/capston-design-2026-1/Borg-Agent-Orchestrator/issues/38
 pr_number: null
 pr_url: null
-metadata: {}
+metadata:
+  superseded_pr: 42
 created_at: '2026-04-15T04:23:41.528154'
-updated_at: '2026-04-16T01:17:28.990060'
+updated_at: '2026-04-17T01:31:54.441036'
