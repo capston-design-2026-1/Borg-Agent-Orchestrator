@@ -585,3 +585,12 @@ codex
    573bc20..4105b52  auto/orchestrator-e2e-gate-runtime -> auto/orchestrator-e2e-gate-runtime
 - worktree_status:
 -   clean
+## 2026-04-17T01:37:58Z | Session 4 | heartbeat
+
+- elapsed_seconds: 98
+- stdout_chars: 0
+- stderr_chars: 92386
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   clean
