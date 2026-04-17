@@ -98,3 +98,13 @@ zsh:1: too many levels of symbolic links: .venv/bin/python
 orchestrator_stack/tests/test_feature_extractor.py:91:    matrices = trace_rows_to_training_matrices(rows)
 - worktree_status:
 -   clean
+## 2026-04-17T01:52:04Z | Session 1 | heartbeat
+
+- elapsed_seconds: 138
+- stdout_chars: 0
+- stderr_chars: 132054
+- excerpt:  importable without `numpy`, so the current runtime can actually execute simulator/feature smoke coverage.
+
+I’m applying those edits now, then I’ll run focused validation and split commits by concern.
+- worktree_status:
+-   clean
