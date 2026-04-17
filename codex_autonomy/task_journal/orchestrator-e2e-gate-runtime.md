@@ -326,3 +326,14 @@ exec
 - excerpt: These logs are execution traces for action/reward auditing, separate from Layer 1 trace datasets (`orchestrator_stack/examples/sample_trace.json`).
 - worktree_status:
 -   ?? reports/traces/202604171031_episode_trace.log
+## 2026-04-17T01:32:51Z | Session 2 | heartbeat
+
+- elapsed_seconds: 89
+- stdout_chars: 0
+- stderr_chars: 54255
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
+-   ?? reports/milestones/202604171032_orchestrator_e2e_gate_runtime_session2.md
+-   ?? reports/traces/202604171031_episode_trace.log
