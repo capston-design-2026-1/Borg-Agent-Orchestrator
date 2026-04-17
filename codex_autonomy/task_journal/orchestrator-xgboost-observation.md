@@ -96,3 +96,12 @@ ERROR: Reconnecting... 5/5
 - supervisor started session 4 of 6
 - prompt file: /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator/codex_autonomy/runtime/logs/orchestrator-xgboost-observation/session_004.prompt.txt
 - supervisor will publish heartbeat trace commits during execution
+## 2026-04-17T05:39:55Z | Session 4 | heartbeat
+
+- elapsed_seconds: 1020
+- stdout_chars: 0
+- stderr_chars: 3793
+- excerpt: led to connect to websocket: IO error: failed to lookup address information: nodename nor servname provided, or not known, url: wss://chatgpt.com/backend-api/codex/responses
+ERROR: Reconnecting... 3/5
+- worktree_status:
+-   clean
