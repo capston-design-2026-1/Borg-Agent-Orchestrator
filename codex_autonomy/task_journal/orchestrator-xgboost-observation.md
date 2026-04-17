@@ -85,3 +85,9 @@ ERROR: Reconnecting... 4/5
 ERROR: Reconnecting... 5/5
 - worktree_status:
 -   clean
+## 2026-04-17T05:22:54Z | Session 3 | session_finished
+
+- return_code: 1
+- duration_seconds: 885.0
+- timed_out: False
+- result: session_failed_or_incomplete
