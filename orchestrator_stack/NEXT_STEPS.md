@@ -1,10 +1,26 @@
 # Orchestrator Stack Next Steps
 
-1. Validate the live AIOpsLab adapter against the actual upstream package/session API and replace the current multi-method fallback probing with a confirmed contract.
-2. Extend PPO training beyond smoke profile (`rllib_train_iters=1`) and benchmark policy performance over longer episodes.
-3. Add SHAP diagnostics for XGBoost models to provide feature importance transparency.
-4. Add model calibration and threshold optimization for `SafetyRiskForecast`.
-5. Add curriculum training schedule for RLlib PPO multi-agent agents.
+1. Re-run `full-process` in a dependency-complete environment where `ray[rllib]` and `optuna` are installed so Layer 4 and Layer 5 execute real PPO/Optuna work instead of the runtime skip path.
+2. Validate the live AIOpsLab adapter against the actual upstream package/session API and replace the current multi-method fallback probing with a confirmed contract.
+3. Extend PPO training beyond smoke profile (`rllib_train_iters=1`) and benchmark policy performance over longer episodes.
+4. Add SHAP diagnostics for XGBoost models to provide feature importance transparency.
+5. Add model calibration and threshold optimization for `SafetyRiskForecast`.
+6. Add curriculum training schedule for RLlib PPO multi-agent agents.
+
+## Latest Session Note (2026-04-17 KST, end-to-end gate runtime slice)
+
+- `orchestrator_stack/run.py full-process --config orchestrator_stack/config/orchestrator.example.json --trials 1` now completes successfully in this sandboxed worktree when executed with `/opt/homebrew/opt/python@3.13/bin/python3.13`.
+- The repo now has a dependency-light fallback path for environments where `numpy` and `xgboost` are unavailable:
+  - added `orchestrator/array_compat.py` so the orchestrator can use list-backed array containers for feature extraction and RLlib observation packing without importing NumPy at module import time
+  - Layer 3 predictors now fall back to a JSON-backed heuristic model format for train/load/predict so the gate can still execute Layer 3 and the episode loop without XGBoost
+  - CLI dataset loading now imports NumPy only when `.npz` commands are invoked
+- Validation result for the full gate in this session:
+  - `ppo.status == "skipped"` with reason `ray[rllib] is not installed`
+  - `reward_tuning.status == "skipped"` with reason `optuna is not installed. Install optional dependency to run tuning.`
+  - `policy_reward_tuning.status == "skipped"` with the same missing-Optuna reason
+  - Episode trace artifact written to `reports/traces/202604171029_episode_trace.log`
+- Environment-specific note:
+  - the worktree-local `./.venv/bin/python` entrypoint still resolves poorly under this sandbox (`too many levels of symbolic links`), so the validated gate run used the direct Homebrew Python path above instead
 
 ## Latest Session Note (2026-04-16 KST, RLlib/referee slice)
 
