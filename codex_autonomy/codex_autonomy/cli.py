@@ -3,22 +3,21 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-import yaml
-
 from codex_autonomy.config import load_config
-from codex_autonomy.manager import AutonomyManager
 from codex_autonomy.models import TaskSpec
-from codex_autonomy.status import process_state, queue_snapshot, recent_events, recent_progress, recent_sessions
-from codex_autonomy.task_store import save_task
 
 
 def cmd_run(args: argparse.Namespace) -> None:
+    from codex_autonomy.manager import AutonomyManager
+
     config = load_config(args.config)
     manager = AutonomyManager(config)
     manager.run_forever()
 
 
 def cmd_enqueue(args: argparse.Namespace) -> None:
+    from codex_autonomy.task_store import save_task
+
     config = load_config(args.config)
     task = TaskSpec(
         task_id=args.task_id,
@@ -34,6 +33,14 @@ def cmd_enqueue(args: argparse.Namespace) -> None:
 
 
 def cmd_status(args: argparse.Namespace) -> None:
+    from codex_autonomy.status import (
+        process_state,
+        queue_snapshot,
+        recent_events,
+        recent_progress,
+        recent_sessions,
+    )
+
     config = load_config(args.config)
     guardian_pid, guardian_alive = process_state(
         config.runtime_dir / "guardian.pid",
@@ -73,6 +80,16 @@ def cmd_status(args: argparse.Namespace) -> None:
 
 
 def cmd_enqueue_bundle(args: argparse.Namespace) -> None:
+    try:
+        import yaml
+    except ModuleNotFoundError as exc:
+        raise SystemExit(
+            "missing dependency 'PyYAML'; install codex_autonomy requirements before using "
+            "enqueue-bundle or other YAML-backed commands"
+        ) from exc
+
+    from codex_autonomy.task_store import save_task
+
     config = load_config(args.config)
     bundle_path = Path(args.bundle).resolve()
     raw = yaml.safe_load(bundle_path.read_text(encoding="utf-8")) or {}

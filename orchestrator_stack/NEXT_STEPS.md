@@ -6,6 +6,13 @@
 4. Add model calibration and threshold optimization for `SafetyRiskForecast`.
 5. Add curriculum training schedule for RLlib PPO multi-agent agents.
 
+## Latest Session Note (2026-04-17 KST, targeted fixups slice)
+
+- Hardened `orchestrator_stack/orchestrator/cli.py` so parser/help flows and Layer 1-only commands no longer import `numpy`, XGBoost, or RL runtime modules eagerly.
+- Verified `python3 orchestrator_stack/run.py --help` now succeeds in the degraded system interpreter and `build-trace` still runs against `orchestrator_stack/examples/sample_metrics.json`.
+- Dataset-backed and RL-backed commands now fail closed with explicit missing-dependency messages such as `missing dependency 'numpy' ... install orchestrator_stack/requirements.txt` instead of raw `ModuleNotFoundError` tracebacks.
+- Validation gap remains unchanged: full Layer 3/4/5 execution still requires a repaired repo `.venv` or another interpreter with orchestrator dependencies installed.
+
 ## Latest Session Note (2026-04-17 KST, doc sync slice)
 
 - Synced orchestrator-facing docs to the latest tested behavior from the 2026-04-16 validation sessions so README and handoff files now distinguish:

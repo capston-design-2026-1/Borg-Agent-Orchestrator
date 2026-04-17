@@ -4,9 +4,18 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
-import yaml
-
 from codex_autonomy.models import TaskSpec, TaskStatus
+
+
+def _yaml_module():
+    try:
+        import yaml
+    except ModuleNotFoundError as exc:
+        raise SystemExit(
+            "missing dependency 'PyYAML'; install codex_autonomy requirements before reading "
+            "or writing task queue YAML files"
+        ) from exc
+    return yaml
 
 
 def _task_from_raw(raw: dict) -> TaskSpec:
@@ -45,6 +54,7 @@ def _prefer_task(current: TaskSpec, candidate: TaskSpec) -> TaskSpec:
 
 
 def load_tasks(queue_dir: Path) -> list[TaskSpec]:
+    yaml = _yaml_module()
     by_id: dict[str, TaskSpec] = {}
     for path in sorted(queue_dir.glob("*.yaml")):
         raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -55,6 +65,7 @@ def load_tasks(queue_dir: Path) -> list[TaskSpec]:
 
 
 def load_tasks_from_dir(task_dir: Path) -> list[TaskSpec]:
+    yaml = _yaml_module()
     by_id: dict[str, TaskSpec] = {}
     for path in sorted(task_dir.glob("*.yaml")):
         raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -65,6 +76,7 @@ def load_tasks_from_dir(task_dir: Path) -> list[TaskSpec]:
 
 
 def save_task(queue_dir: Path, task: TaskSpec) -> Path:
+    yaml = _yaml_module()
     queue_dir.mkdir(parents=True, exist_ok=True)
     task.updated_at = datetime.utcnow().isoformat()
     payload = asdict(task)
@@ -82,6 +94,7 @@ def save_task(queue_dir: Path, task: TaskSpec) -> Path:
 
 
 def save_task_to_dir(task_dir: Path, task: TaskSpec) -> Path:
+    yaml = _yaml_module()
     task_dir.mkdir(parents=True, exist_ok=True)
     task.updated_at = datetime.utcnow().isoformat()
     payload = asdict(task)

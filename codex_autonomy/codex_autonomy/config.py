@@ -4,8 +4,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 
 @dataclass(slots=True)
 class HealthCheckConfig:
@@ -84,6 +82,14 @@ def _path(base: Path, value: str) -> Path:
 
 
 def load_config(path: str | Path) -> ManagerConfig:
+    try:
+        import yaml
+    except ModuleNotFoundError as exc:
+        raise SystemExit(
+            "missing dependency 'PyYAML'; install codex_autonomy requirements before running "
+            "YAML-configured autonomy commands"
+        ) from exc
+
     config_path = Path(path).resolve()
     raw: dict[str, Any] = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     cwd = Path.cwd().resolve()

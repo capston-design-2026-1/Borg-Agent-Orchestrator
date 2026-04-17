@@ -1,5 +1,12 @@
 # Codex Autonomy Next Steps
 
+## Latest Session Note (2026-04-17 KST, targeted fixups slice)
+
+- Hardened autonomy CLI imports so parser/help flows no longer require `PyYAML` at module import time.
+- Verified `python3 codex_autonomy/scripts/run_daemon.py --help` and `python3 codex_autonomy/scripts/run_guardian.py --help` now succeed even when the repo `.venv` is broken and system `python3` lacks repo dependencies.
+- YAML-backed commands now exit with explicit dependency messages instead of tracebacks, for example `missing dependency 'PyYAML' ... install codex_autonomy requirements`.
+- Remaining operator gap: the worker path still assumes a valid repo-root `.venv`; add an explicit health/status signal for broken `.venv` state in a follow-up slice.
+
 1. Configure your local Codex CLI invocation in `autonomy.local.yaml` (`session.command_template`).
 2. Use bundle enqueue (`enqueue-bundle` + `orchestrator_finish_bundle.yaml`) as the default for orchestrator completion so each small slice lands as its own PR.
 3. Monitor auto-generated follow-up tasks (`followup_enqueued` events) and tune task prompts so generated scopes stay small and reviewable.
