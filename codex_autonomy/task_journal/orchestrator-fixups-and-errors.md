@@ -114,3 +114,14 @@ I’m patching both CLIs to defer optional/heavy imports until the matching comm
 -   M codex_autonomy/codex_autonomy/config.py
 -   M codex_autonomy/codex_autonomy/task_store.py
 -   M orchestrator_stack/orchestrator/cli.py
+## 2026-04-17T01:52:16Z | Session 1 | heartbeat
+
+- elapsed_seconds: 171
+- stdout_chars: 0
+- stderr_chars: 181564
+- excerpt: import now reaches the right module, but missing ML deps still surface as raw `ModuleNotFoundError` tracebacks. I’m tightening that so those commands exit cleanly with a direct dependency message too.
+- worktree_status:
+-   M codex_autonomy/codex_autonomy/cli.py
+-   M codex_autonomy/codex_autonomy/config.py
+-   M codex_autonomy/codex_autonomy/task_store.py
+-   M orchestrator_stack/orchestrator/cli.py
