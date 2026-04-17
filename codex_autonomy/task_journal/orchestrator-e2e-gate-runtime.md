@@ -803,3 +803,14 @@ Step 058 | Proposals: [AgentB:power_state, AgentC:admission] | Referee: AgentB:p
 I’m updating the orchestrator handoff note and adding a session-6 milestone report tied to the new trace file. There’s no code edit because the gate validated cleanly without a runtime regression.
 - worktree_status:
 -   ?? reports/traces/202604171041_episode_trace.log
+## 2026-04-17T01:41:47Z | Session 6 | heartbeat
+
+- elapsed_seconds: 73
+- stdout_chars: 0
+- stderr_chars: 86316
+- excerpt: +
++- For a non-skipped Layer 4/5 validation, re-run the same gate in an environment that has `ray[rllib]` and `optuna` installed and permits Ray runtime initialization.
+- worktree_status:
+-   M orchestrator_stack/NEXT_STEPS.md
+-   ?? reports/milestones/202604171041_orchestrator_e2e_gate_runtime_session6.md
+-   ?? reports/traces/202604171041_episode_trace.log
