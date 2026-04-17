@@ -6,6 +6,17 @@
 4. Add model calibration and threshold optimization for `SafetyRiskForecast`.
 5. Add curriculum training schedule for RLlib PPO multi-agent agents.
 
+## Latest Session Note (2026-04-17 KST, XGBoost observation integration slice)
+
+- Layer 3 predictor inference is now attached at the backend seam via `PredictorBackedBackend` rather than only inside `run_episode()`.
+- `run_episode()`, `run_policy_training()`, heuristic evaluation, and PPO-backed Optuna policy tuning now all consume predictor-enriched observations from both `reset()` and `step()`.
+- Added `orchestrator_stack/tests/test_predictor_runtime.py` to verify reset/step enrichment without requiring live XGBoost model files.
+- Validation run status:
+  - `python3 -m compileall orchestrator_stack/orchestrator/layer3 orchestrator_stack/orchestrator/main.py orchestrator_stack/tests/test_predictor_runtime.py`: success
+  - `PYTHONPATH=orchestrator_stack python3 -m unittest orchestrator_stack.tests.test_predictor_runtime`: success
+- Residual validation gap:
+  - End-to-end execution with real XGBoost boosters still requires a dependency-complete interpreter; this worktree shell does not currently include `numpy` or `xgboost`.
+
 ## Latest Session Note (2026-04-17 KST, targeted fixups slice)
 
 - Hardened `orchestrator_stack/orchestrator/cli.py` so parser/help flows and Layer 1-only commands no longer import `numpy`, XGBoost, or RL runtime modules eagerly.
