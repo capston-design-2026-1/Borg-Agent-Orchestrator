@@ -1,0 +1,42 @@
+task_id: orchestrator-e2e-ppo-trained-gate
+title: 'Orchestrator: unrestricted PPO gate validation'
+prompt: 'Re-run the orchestrator PPO-backed gate paths in an unrestricted runtime so Ray
+  can start normally.
+
+  Validate `tune-policy-rewards` and `full-process` with the smoke config, confirm
+  the observed result changes from `ppo.status=\"skipped\"` to a trained PPO outcome,
+  and capture the exact artifacts/report updates.
+
+  Keep this PR limited to PPO runtime validation, direct fallout fixes, and doc
+  sync for the exact tested behavior.
+
+  '
+task_type: chore
+priority: 76
+dependencies: []
+scope_paths:
+- orchestrator_stack/
+- reports/
+- README.md
+- NEXT_STEPS.md
+done_when_commands:
+- ./.venv/bin/python orchestrator_stack/run.py tune-policy-rewards --config orchestrator_stack/config/orchestrator.example.json
+  --trials 1
+- ./.venv/bin/python orchestrator_stack/run.py full-process --config orchestrator_stack/config/orchestrator.example.json
+  --trials 1
+max_sessions: 4
+max_retries: 3
+retries: 0
+status: pending
+review_prompt: Review branch changes for correctness and regressions.
+issue_number: null
+issue_url: null
+pr_number: null
+pr_url: null
+metadata:
+  discovered_in_task: orchestrator-e2e-final-gate
+  discovered_in_report: reports/milestones/202604171027_orchestrator_e2e_gate_followups_session1.md
+  related_issue: 39
+  related_issue_url: https://github.com/capston-design-2026-1/Borg-Agent-Orchestrator/issues/39
+created_at: '2026-04-17T10:27:53'
+updated_at: '2026-04-17T10:27:53'
