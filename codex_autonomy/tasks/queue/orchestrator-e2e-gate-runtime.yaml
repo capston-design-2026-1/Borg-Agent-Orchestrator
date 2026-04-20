@@ -19,13 +19,15 @@ done_when_commands:
   --trials 1
 max_sessions: 10
 max_retries: 5
-retries: 1
-status: pending
+retries: 2
+status: running
 review_prompt: Review branch changes for correctness and regressions.
 issue_number: 47
 issue_url: https://github.com/capston-design-2026-1/Borg-Agent-Orchestrator/issues/47
 pr_number: null
 pr_url: null
-metadata: {}
+metadata:
+  not_before_epoch: 1776579444
+  wait_reason: codex_limit_cooldown
 created_at: '2026-04-17T10:25:00'
-updated_at: '2026-04-17T06:00:41.259463'
+updated_at: '2026-04-19T07:32:49.816636'
