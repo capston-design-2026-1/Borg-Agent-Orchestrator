@@ -30,6 +30,8 @@ Read Agents.md, NEXT_STEPS.md, MAS_ARCHITECTURE.md, and README.md, inspect the l
 - Orchestrator Layer 5 now pushes sampled reward weights and PPO hyperparameters through the real policy-training path, with config support for PPO batch/epoch knobs and a dedicated unit test covering trainer invocation. Reward-only Optuna tuning is validated end-to-end in the repo `.venv`; PPO-backed policy tuning reaches RLlib but still requires a non-sandboxed shell to complete because this macOS sandbox blocks Ray process enumeration during `ray.init()` (2026-04-16 KST).
 - The latest completed orchestrator tuning artifact that matches the current validated path is `reports/tuning/202604161029_optuna_orchestrator_reward_weights.md`; the older `reports/tuning/202604142305_optuna_orchestrator_policy_and_rewards.md` was generated before the 2026-04-16 PPO-backed tuning rewrite and should be treated as historical only.
 - Documentation sync for the current gate state is recorded in `reports/milestones/202604171027_orchestrator_e2e_gate_doc_sync_session1.md`.
+- Architecture gap closure on 2026-04-28 KST added CSV ingestion, Prometheus export, PettingZoo parallel bridge, expanded agent action spaces, XGBoost diagnostics, PPO curriculum stages, and an explicit AIOpsLab onboarding contract adapter under `orchestrator_stack/`.
+- Current orchestrator validation: `PYTHONPATH=orchestrator_stack .venv/bin/python -m pytest orchestrator_stack/tests -q` passes with `42 passed`.
 
 ## Pipeline Status
 

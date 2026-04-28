@@ -1,10 +1,42 @@
 # Orchestrator Stack Next Steps
 
-1. Validate the live AIOpsLab adapter against the actual upstream package/session API and replace the current multi-method fallback probing with a confirmed contract.
-2. Extend PPO training beyond smoke profile (`rllib_train_iters=1`) and benchmark policy performance over longer episodes.
-3. Add SHAP diagnostics for XGBoost models to provide feature importance transparency.
-4. Add model calibration and threshold optimization for `SafetyRiskForecast`.
-5. Add curriculum training schedule for RLlib PPO multi-agent agents.
+1. Run the explicit AIOpsLab contract adapter against a live upstream AIOpsLab installation and confirm that the serialized orchestrator actions map cleanly to the problem-specific APIs exposed in `apis`.
+2. Run PPO curriculum training in a non-sandboxed shell and compare policy checkpoints against the heuristic baseline over longer episodes.
+3. Generate and review `diagnose-brain` reports for the current risk and demand boosters, then store accepted thresholds beside the deployed model artifacts.
+4. Replace proxy simulator reward terms with measured SLA, task-completion, and energy metrics once live Prometheus/AIOpsLab telemetry is available.
+5. Add an end-to-end report that compares architecture-PDF requirements against implementation status after the live validations above.
+
+## Latest Session Note (2026-04-28 KST, architecture gap closure slice)
+
+- Repaired the existing test baseline:
+  - feature extractor risk labels now use current and next risk/death/overload signals
+  - demand labels now fall back to a deterministic resource-pressure heuristic
+  - Optuna meta-tuning unit test now mocks the predictor-backed backend seam instead of loading real boosters
+- Added Layer 1 architecture inputs:
+  - CSV metric files are accepted by `build-trace`
+  - `scrape-prometheus` exports Prometheus `query_range` results into flat metric JSON rows
+- Added the Layer 2.5 PettingZoo-style bridge:
+  - `OrchestratorParallelEnv` wraps the existing RLlib-compatible multi-agent environment and exposes PettingZoo parallel reset/step behavior
+- Expanded Layer 4 action semantics to match the PDF more closely:
+  - Agent A: migrate, replicate, throttle
+  - Agent B: sleep/wake, DVFS, memory balloon
+  - Agent C: admit, queue, reject, deprioritize, resource cap
+  - Referee now treats secondary safety actions as top-priority and protective admission/resource-cap actions as higher priority than efficiency actions
+- Added Layer 3 diagnostics:
+  - `diagnose-brain` CLI
+  - threshold optimization and calibration bins for risk models
+  - XGBoost feature importance and contribution summaries
+- Added PPO curriculum training:
+  - `ppo_curriculum` config stages
+  - staged runtime directories under `train-policy`
+- Added explicit AIOpsLab onboarding contract support:
+  - `AIOpsLabPolicyAgent`
+  - `initialize_aiopslab_problem()`
+  - aligns with the documented AIOpsLab flow: `init_problem`, agent context initialization, `register_agent`, and async `get_action`
+- Validation run status:
+  - `PYTHONPATH=orchestrator_stack .venv/bin/python -m pytest orchestrator_stack/tests -q`: success (`42 passed`)
+- Remaining validation gap:
+  - Live AIOpsLab package/session execution and long PPO curriculum runs still need a non-sandboxed local shell with the target infrastructure running.
 
 ## Latest Session Note (2026-04-17 KST, XGBoost observation integration slice)
 
