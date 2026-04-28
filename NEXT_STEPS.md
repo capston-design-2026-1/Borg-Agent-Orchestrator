@@ -33,6 +33,10 @@ Read Agents.md, NEXT_STEPS.md, MAS_ARCHITECTURE.md, and README.md, inspect the l
 - Architecture gap closure on 2026-04-28 KST added CSV ingestion, Prometheus export, PettingZoo parallel bridge, expanded agent action spaces, XGBoost diagnostics, PPO curriculum stages, and an explicit AIOpsLab onboarding contract adapter under `orchestrator_stack/`.
 - Current orchestrator validation: `PYTHONPATH=orchestrator_stack .venv/bin/python -m pytest orchestrator_stack/tests -q` passes with `42 passed`.
 
+
+- Follow-up validation on 2026-04-28 KST: PPO curriculum now runs locally after Ray fixes; PettingZoo bridge validated against the installed package; AIOpsLab install remains blocked in this Python 3.13 venv because upstream requires Python >=3.11,<3.13; telemetry reward fields are now implemented for future live SLA/energy/task metrics.
+- Current orchestrator architecture status report: `reports/evaluations/202604281536_orchestrator_architecture_status.md`.
+
 ## Pipeline Status
 
 Advanced XGBoost track status:

@@ -1,10 +1,10 @@
 # Orchestrator Stack Next Steps
 
-1. Run the explicit AIOpsLab contract adapter against a live upstream AIOpsLab installation and confirm that the serialized orchestrator actions map cleanly to the problem-specific APIs exposed in `apis`.
-2. Run PPO curriculum training in a non-sandboxed shell and compare policy checkpoints against the heuristic baseline over longer episodes.
-3. Generate and review `diagnose-brain` reports for the current risk and demand boosters, then store accepted thresholds beside the deployed model artifacts.
-4. Replace proxy simulator reward terms with measured SLA, task-completion, and energy metrics once live Prometheus/AIOpsLab telemetry is available.
-5. Add an end-to-end report that compares architecture-PDF requirements against implementation status after the live validations above.
+1. Create a Python 3.12 AIOpsLab validation environment, install AIOpsLab from GitHub, and run `AIOpsLabPolicyAgent` against a real problem ID.
+2. Connect live Prometheus/AIOpsLab telemetry fields (`sla_violations`, `completed_tasks`, `energy_watts`) into trace rows and validate telemetry-based rewards against real workloads.
+3. Tune PPO curriculum beyond smoke settings and compare trained checkpoints against the heuristic baseline using the same telemetry reward fields.
+4. Retrain and calibrate risk/demand boosters on representative trace-derived matrices before promoting thresholds.
+5. Promote architecture-status reporting into a repeatable CLI/report command if this comparison will be regenerated often.
 
 ## Latest Session Note (2026-04-28 KST, architecture gap closure slice)
 
