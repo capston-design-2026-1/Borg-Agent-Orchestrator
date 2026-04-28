@@ -9,8 +9,10 @@ __all__ = [
     "observation_matrix",
     "trace_rows_to_training_matrices",
     "AIOpsLabBackend",
+    "AIOpsLabPolicyAgent",
     "SimulatorBackend",
     "TraceDrivenTwinBackend",
+    "initialize_aiopslab_problem",
 ]
 
 
@@ -23,4 +25,8 @@ def __getattr__(name: str) -> Any:
         from orchestrator.layer2 import simulator
 
         return getattr(simulator, name)
+    if name in {"AIOpsLabPolicyAgent", "initialize_aiopslab_problem"}:
+        from orchestrator.layer2 import aiopslab_contract
+
+        return getattr(aiopslab_contract, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

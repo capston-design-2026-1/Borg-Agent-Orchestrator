@@ -189,3 +189,4 @@ If `ppo_curriculum` is present, `train-policy` runs each stage in order with its
 - `tune-policy-rewards` now scores each Optuna trial with a real PPO training run plus a small heuristic stability term; it is no longer a learning-rate-only placeholder objective.
 - In restricted macOS sandboxes, Ray may fail during `ray.init()` with a `PermissionError` from process enumeration. The command now returns a structured `"status": "skipped"` result in that case instead of crashing.
 - Direct validation against the live upstream AIOpsLab package/session API is still open; the current adapter coverage is based on normalized payload handling plus the local stateful fallback backend.
+- AIOpsLab agent onboarding now has an explicit contract adapter for the documented flow: `init_problem(problem_id)`, agent `init_context(...)`, `register_agent(agent)`, and async agent `get_action(state)`.
