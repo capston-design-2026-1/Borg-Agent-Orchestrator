@@ -1,0 +1,110 @@
+{
+  "model_path": "orchestrator_stack/examples/models/risk_model.json",
+  "task": "risk",
+  "rows": 4000,
+  "feature_importance": {
+    "weight": {
+      "f0": 435.0,
+      "f1": 291.0,
+      "f2": 144.0,
+      "f3": 112.0,
+      "f6": 323.0
+    },
+    "gain": {
+      "f0": 2.4304511547088623,
+      "f1": 0.42962637543678284,
+      "f2": 0.5727508068084717,
+      "f3": 1.6631641387939453,
+      "f6": 0.5518583059310913
+    },
+    "cover": {
+      "f0": 6.052305698394775,
+      "f1": 4.6402153968811035,
+      "f2": 3.8465821743011475,
+      "f3": 5.572601318359375,
+      "f6": 4.9001240730285645
+    }
+  },
+  "contribution_summary": {
+    "status": "skipped",
+    "reason": "[15:34:11] /Users/runner/work/xgboost/xgboost/src/c_api/c_api_utils.h:129: Check failed: std::accumulate(shape.cbegin(), shape.cend(), static_cast<bst_ulong>(1), std::multiplies<>{}) == chunksize * rows (28000 vs. 36000) : \nStack trace:\n  [bt] (0) 1   libxgboost.dylib                    0x000000010829bdd8 dmlc::LogMessageFatal::~LogMessageFatal() + 124\n  [bt] (1) 2   libxgboost.dylib                    0x000000010832ad30 xgboost::CalcPredictShape(bool, xgboost::PredictionType, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, std::__1::vector<unsigned long long, std::__1::allocator<unsigned long long>>*, unsigned long long*) + 1224\n  [bt] (2) 3   libxgboost.dylib                    0x000000010832a150 XGBoosterPredictFromDMatrix + 1228\n  [bt] (3) 4   libffi.dylib                        0x00000001a0496050 ffi_call_SYSV + 80\n  [bt] (4) 5   libffi.dylib                        0x00000001a049f5b8 ffi_call_int + 1220\n  [bt] (5) 6   _ctypes.cpython-313-darwin.so       0x000000010589efb0 _ctypes_callproc + 768\n  [bt] (6) 7   _ctypes.cpython-313-darwin.so       0x000000010589c628 PyCFuncPtr_call + 264\n  [bt] (7) 8   Python                              0x0000000100993268 _PyObject_MakeTpCall + 120\n  [bt] (8) 9   Python                              0x0000000100aba2ec _PyEval_EvalFrameDefault + 6752\n\n"
+  },
+  "threshold": {
+    "threshold": 0.05,
+    "f1": 0.45818692902319047,
+    "precision": 0.7293064876957495,
+    "recall": 0.33401639344262296
+  },
+  "calibration_bins": [
+    {
+      "bin_start": 0.0,
+      "bin_end": 0.1,
+      "count": 3595,
+      "predicted_rate": 0.002634917944382328,
+      "observed_rate": 0.18887343532684284
+    },
+    {
+      "bin_start": 0.1,
+      "bin_end": 0.2,
+      "count": 14,
+      "predicted_rate": 0.12565399493489945,
+      "observed_rate": 0.9285714285714286
+    },
+    {
+      "bin_start": 0.2,
+      "bin_end": 0.30000000000000004,
+      "count": 6,
+      "predicted_rate": 0.2553694744904836,
+      "observed_rate": 1.0
+    },
+    {
+      "bin_start": 0.30000000000000004,
+      "bin_end": 0.4,
+      "count": 52,
+      "predicted_rate": 0.3664567974897531,
+      "observed_rate": 0.5769230769230769
+    },
+    {
+      "bin_start": 0.4,
+      "bin_end": 0.5,
+      "count": 62,
+      "predicted_rate": 0.46675016851194445,
+      "observed_rate": 0.4838709677419355
+    },
+    {
+      "bin_start": 0.5,
+      "bin_end": 0.6000000000000001,
+      "count": 56,
+      "predicted_rate": 0.5284765990717071,
+      "observed_rate": 0.9821428571428571
+    },
+    {
+      "bin_start": 0.6000000000000001,
+      "bin_end": 0.7000000000000001,
+      "count": 60,
+      "predicted_rate": 0.6680676599343618,
+      "observed_rate": 0.5666666666666667
+    },
+    {
+      "bin_start": 0.7000000000000001,
+      "bin_end": 0.8,
+      "count": 101,
+      "predicted_rate": 0.7650181875370516,
+      "observed_rate": 0.7425742574257426
+    },
+    {
+      "bin_start": 0.8,
+      "bin_end": 0.9,
+      "count": 37,
+      "predicted_rate": 0.8546104350605527,
+      "observed_rate": 1.0
+    },
+    {
+      "bin_start": 0.9,
+      "bin_end": 1.0,
+      "count": 17,
+      "predicted_rate": 0.9237607507144704,
+      "observed_rate": 1.0
+    }
+  ]
+}

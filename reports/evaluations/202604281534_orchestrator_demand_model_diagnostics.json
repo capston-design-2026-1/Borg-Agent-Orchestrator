@@ -1,0 +1,32 @@
+{
+  "model_path": "orchestrator_stack/examples/models/demand_model.json",
+  "task": "demand",
+  "rows": 4000,
+  "feature_importance": {
+    "weight": {
+      "f0": 3700.0,
+      "f1": 3086.0,
+      "f2": 2000.0,
+      "f3": 1153.0,
+      "f6": 1969.0
+    },
+    "gain": {
+      "f0": 0.003448437200859189,
+      "f1": 0.005680008791387081,
+      "f2": 0.003647612174972892,
+      "f3": 0.0917443260550499,
+      "f6": 0.0012727079447358847
+    },
+    "cover": {
+      "f0": 122.12405395507812,
+      "f1": 157.16818237304688,
+      "f2": 129.4945068359375,
+      "f3": 314.9947814941406,
+      "f6": 185.64703369140625
+    }
+  },
+  "contribution_summary": {
+    "status": "skipped",
+    "reason": "[15:34:13] /Users/runner/work/xgboost/xgboost/src/c_api/c_api_utils.h:129: Check failed: std::accumulate(shape.cbegin(), shape.cend(), static_cast<bst_ulong>(1), std::multiplies<>{}) == chunksize * rows (28000 vs. 36000) : \nStack trace:\n  [bt] (0) 1   libxgboost.dylib                    0x0000000108a0bdd8 dmlc::LogMessageFatal::~LogMessageFatal() + 124\n  [bt] (1) 2   libxgboost.dylib                    0x0000000108a9ad30 xgboost::CalcPredictShape(bool, xgboost::PredictionType, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, std::__1::vector<unsigned long long, std::__1::allocator<unsigned long long>>*, unsigned long long*) + 1224\n  [bt] (2) 3   libxgboost.dylib                    0x0000000108a9a150 XGBoosterPredictFromDMatrix + 1228\n  [bt] (3) 4   libffi.dylib                        0x00000001a0496050 ffi_call_SYSV + 80\n  [bt] (4) 5   libffi.dylib                        0x00000001a049f5b8 ffi_call_int + 1220\n  [bt] (5) 6   _ctypes.cpython-313-darwin.so       0x00000001060e6fb0 _ctypes_callproc + 768\n  [bt] (6) 7   _ctypes.cpython-313-darwin.so       0x00000001060e4628 PyCFuncPtr_call + 264\n  [bt] (7) 8   Python                              0x0000000101123268 _PyObject_MakeTpCall + 120\n  [bt] (8) 9   Python                              0x000000010124a2ec _PyEval_EvalFrameDefault + 6752\n\n"
+  }
+}
