@@ -7,8 +7,13 @@ from typing import Any
 
 class ActionKind(str, Enum):
     MIGRATE = "migrate"
+    REPLICATE = "replicate"
+    THROTTLE = "throttle"
     POWER_STATE = "power_state"
+    DVFS = "dvfs"
+    MEMORY_BALLOON = "memory_balloon"
     ADMISSION = "admission"
+    RESOURCE_CAP = "resource_cap"
     NOOP = "noop"
 
 

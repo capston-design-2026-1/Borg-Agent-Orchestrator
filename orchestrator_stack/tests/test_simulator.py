@@ -112,3 +112,34 @@ def test_trace_driven_backend_applies_migration_before_advancing_trace():
     assert cpu_by_node["n1"] < 0.86
     assert cpu_by_node["n2"] > 0.35
     assert result.reward_by_agent["AgentA"] > 10.0
+
+
+def test_trace_driven_backend_applies_secondary_architecture_actions():
+    rows = [
+        {
+            "timestamp": 100,
+            "nodes": [
+                {"node_id": "n1", "cpu_util": 0.92, "mem_util": 0.88, "disk_util": 0.2, "net_util": 0.5},
+                {"node_id": "n2", "cpu_util": 0.2, "mem_util": 0.25, "disk_util": 0.2, "net_util": 0.2},
+            ],
+            "tasks": [{"task_id": "t1", "node_id": "n1", "urgency": 0.9, "queue_priority": 3, "alive": True}],
+            "queue_length": 130,
+            "energy_price": 0.12,
+            "p_fail_scores": {"n1": 0.92, "n2": 0.1},
+            "demand_projection": {"n1": 0.82, "n2": 0.2},
+        }
+    ]
+
+    replicate_backend = TraceDrivenTwinBackend(rows)
+    replicate_backend.reset()
+    replicate = replicate_backend.step(AgentAction("AgentA", ActionKind.REPLICATE, target="n1"))
+    assert any(task.task_id.startswith("t1-replica") for task in replicate.next_observation.tasks)
+
+    cap_backend = TraceDrivenTwinBackend(rows)
+    cap_backend.reset()
+    capped = cap_backend.step(
+        AgentAction("AgentC", ActionKind.RESOURCE_CAP, target="n1", payload={"cpu_cap": 0.85, "mem_cap": 0.85})
+    )
+    n1 = next(node for node in capped.next_observation.nodes if node.node_id == "n1")
+    assert n1.cpu_util <= 0.85
+    assert n1.mem_util <= 0.85

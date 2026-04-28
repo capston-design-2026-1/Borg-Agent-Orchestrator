@@ -364,6 +364,27 @@ def _simulate_observation_transition(obs: Observation, action: AgentAction) -> O
                 target.cpu_util = min(1.0, target.cpu_util + 0.08)
                 target.mem_util = min(1.0, target.mem_util + 0.07)
 
+    if action.kind == ActionKind.REPLICATE and action.target in node_by_id and active_tasks:
+        source_task = max((task for task in active_tasks if task.node_id == action.target), key=lambda task: task.urgency, default=None)
+        replica_target = min((node for node in nodes if node.node_id != action.target), key=lambda node: node.cpu_util + node.mem_util, default=None)
+        if source_task is not None and replica_target is not None:
+            tasks.append(
+                TaskState(
+                    task_id=f"{source_task.task_id}-replica-{next_timestamp}",
+                    node_id=replica_target.node_id,
+                    urgency=source_task.urgency,
+                    queue_priority=source_task.queue_priority,
+                    alive=True,
+                )
+            )
+            replica_target.cpu_util = min(1.0, replica_target.cpu_util + 0.05)
+            replica_target.mem_util = min(1.0, replica_target.mem_util + 0.05)
+
+    if action.kind == ActionKind.THROTTLE and action.target in node_by_id:
+        target = node_by_id[action.target]
+        target.cpu_util = max(0.0, target.cpu_util * 0.85)
+        target.net_util = max(0.0, target.net_util * 0.85)
+
     if action.kind == ActionKind.POWER_STATE and action.target in node_by_id:
         target = node_by_id[action.target]
         state = str(action.payload.get("state", target.power_state))
@@ -375,14 +396,35 @@ def _simulate_observation_transition(obs: Observation, action: AgentAction) -> O
             target.cpu_util = min(1.0, target.cpu_util + 0.1)
             target.mem_util = min(1.0, target.mem_util + 0.08)
 
+    if action.kind == ActionKind.DVFS and action.target in node_by_id:
+        target = node_by_id[action.target]
+        clock_scale = max(0.3, min(1.0, float(action.payload.get("clock_scale", 0.75))))
+        target.cpu_util = max(0.0, target.cpu_util * clock_scale)
+        target.net_util = max(0.0, target.net_util * (0.9 + (0.1 * clock_scale)))
+
+    if action.kind == ActionKind.MEMORY_BALLOON and action.target in node_by_id:
+        target = node_by_id[action.target]
+        mem_scale = max(0.4, min(1.0, float(action.payload.get("mem_scale", 0.8))))
+        target.mem_util = max(0.0, target.mem_util * mem_scale)
+
     if action.kind == ActionKind.ADMISSION:
         decision = str(action.payload.get("decision", "admit"))
         if decision == "queue":
             queue_length += 1
         elif decision == "reject":
             queue_length = max(0, queue_length - 1)
+        elif decision == "deprioritize":
+            queue_length = max(0, queue_length)
+            for task in tasks:
+                if task.node_id == "queue":
+                    task.queue_priority = max(0, task.queue_priority - 1)
         else:
             queue_length = max(0, queue_length - 2)
+
+    if action.kind == ActionKind.RESOURCE_CAP and action.target in node_by_id:
+        target = node_by_id[action.target]
+        target.cpu_util = min(target.cpu_util, float(action.payload.get("cpu_cap", 0.85)))
+        target.mem_util = min(target.mem_util, float(action.payload.get("mem_cap", 0.85)))
 
     avg_cpu = sum(node.cpu_util for node in nodes) / max(1, len(nodes))
     next_energy_price = max(0.05, min(0.2, obs.energy_price + ((avg_cpu - 0.5) * 0.015)))
@@ -600,24 +642,42 @@ class TraceDrivenTwinBackend:
     def _apply_action(self, row: dict, action: AgentAction) -> dict[str, bool]:
         applied = {
             "migrated": False,
+            "replicated": False,
+            "throttled": False,
             "powered": False,
+            "dvfs": False,
+            "memory_ballooned": False,
             "queued": False,
             "rejected": False,
+            "deprioritized": False,
             "admitted": False,
+            "resource_capped": False,
         }
 
         if action.kind == ActionKind.MIGRATE:
             applied["migrated"] = action.target is not None
+        elif action.kind == ActionKind.REPLICATE:
+            applied["replicated"] = action.target is not None
+        elif action.kind == ActionKind.THROTTLE:
+            applied["throttled"] = action.target is not None
         elif action.kind == ActionKind.POWER_STATE:
             applied["powered"] = action.payload.get("state") in {"sleep", "off", "on"}
+        elif action.kind == ActionKind.DVFS:
+            applied["dvfs"] = action.target is not None
+        elif action.kind == ActionKind.MEMORY_BALLOON:
+            applied["memory_ballooned"] = action.target is not None
         elif action.kind == ActionKind.ADMISSION:
             decision = action.payload.get("decision", "admit")
             if decision == "queue":
                 applied["queued"] = True
             elif decision == "reject":
                 applied["rejected"] = True
+            elif decision == "deprioritize":
+                applied["deprioritized"] = True
             else:
                 applied["admitted"] = True
+        elif action.kind == ActionKind.RESOURCE_CAP:
+            applied["resource_capped"] = action.target is not None
         return applied
 
     def _reward_from_action(self, obs: Observation, action: AgentAction, applied: dict[str, bool]) -> dict[str, float]:
@@ -628,17 +688,25 @@ class TraceDrivenTwinBackend:
         if action.agent_name == "AgentA":
             if applied["migrated"] and p_fail > 0.75:
                 rewards["AgentA"] += 10.0
+            if applied["replicated"] and p_fail > 0.85:
+                rewards["AgentA"] += 8.0
+            if applied["throttled"] and p_fail > 0.6:
+                rewards["AgentA"] += 3.0
             if applied["migrated"] and p_fail < 0.4:
                 rewards["AgentA"] -= 20.0
         if action.agent_name == "AgentB":
-            if applied["powered"] and demand < 0.35:
+            if (applied["powered"] or applied["dvfs"] or applied["memory_ballooned"]) and demand < 0.35:
                 rewards["AgentB"] += 5.0
-            if applied["powered"] and demand > 0.75:
+            if (applied["powered"] or applied["dvfs"] or applied["memory_ballooned"]) and demand > 0.75:
                 rewards["AgentB"] -= 30.0
         if action.agent_name == "AgentC":
             qlen = int(obs.queue_length)
             if applied["admitted"] and qlen < 80:
                 rewards["AgentC"] += 5.0
+            if applied["deprioritized"] and qlen >= 80:
+                rewards["AgentC"] += 3.0
+            if applied["resource_capped"] and qlen >= 80:
+                rewards["AgentC"] += 4.0
             if applied["rejected"] and qlen < 60:
                 rewards["AgentC"] -= 20.0
             if applied["admitted"] and qlen > 120:
@@ -820,9 +888,13 @@ class AIOpsLabBackend(SimulatorBackend):
         max_risk = max(obs.p_fail_scores.values(), default=max((n.cpu_util + n.mem_util) / 2.0 for n in obs.nodes) if obs.nodes else 0.0)
         min_demand = min(obs.demand_projection.values(), default=min((n.cpu_util + n.mem_util) / 2.0 for n in obs.nodes) if obs.nodes else 0.0)
 
-        if action.agent_name == "AgentA" and action.kind == ActionKind.MIGRATE:
+        if action.agent_name == "AgentA" and action.kind in {ActionKind.MIGRATE, ActionKind.REPLICATE, ActionKind.THROTTLE}:
             rewards["AgentA"] += 10.0 if max_risk >= 0.75 else -20.0
-        if action.agent_name == "AgentB" and action.kind == ActionKind.POWER_STATE:
+        if action.agent_name == "AgentB" and action.kind in {
+            ActionKind.POWER_STATE,
+            ActionKind.DVFS,
+            ActionKind.MEMORY_BALLOON,
+        }:
             rewards["AgentB"] += 5.0 if min_demand < 0.35 else -30.0
         if action.agent_name == "AgentC" and action.kind == ActionKind.ADMISSION:
             decision = action.payload.get("decision", "admit")
@@ -830,6 +902,10 @@ class AIOpsLabBackend(SimulatorBackend):
                 rewards["AgentC"] += 5.0 if obs.queue_length < 80 else -50.0
             elif decision == "reject" and obs.queue_length < 60:
                 rewards["AgentC"] -= 20.0
+            elif decision == "deprioritize" and obs.queue_length >= 80:
+                rewards["AgentC"] += 3.0
+        if action.agent_name == "AgentC" and action.kind == ActionKind.RESOURCE_CAP:
+            rewards["AgentC"] += 4.0 if obs.queue_length >= 80 else -5.0
 
         if any(not task.alive for task in obs.tasks):
             rewards["AgentA"] -= 100.0

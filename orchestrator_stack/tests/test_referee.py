@@ -28,6 +28,20 @@ def test_referee_blocks_efficiency_when_gatekeeper_queues():
     assert "preempts efficiency actions" in decision.rationale
 
 
+def test_referee_treats_secondary_safety_actions_as_top_priority():
+    decision = resolve_with_context(
+        [
+            AgentAction("AgentB", ActionKind.DVFS, target="node-2", payload={"clock_scale": 0.65}, score=0.9),
+            AgentAction("AgentA", ActionKind.REPLICATE, target="node-1", score=0.8),
+            AgentAction("AgentC", ActionKind.ADMISSION, payload={"decision": "queue"}, score=1.0),
+        ]
+    )
+
+    assert decision.action.agent_name == "AgentA"
+    assert decision.action.kind == ActionKind.REPLICATE
+    assert decision.overridden["AgentB"] == "safety-first migration takes precedence"
+
+
 def test_referee_returns_priority_noop_when_everyone_is_idle():
     decision = resolve_with_context(
         [

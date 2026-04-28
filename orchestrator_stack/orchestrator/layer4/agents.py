@@ -13,8 +13,12 @@ class AgentARiskMitigator:
         if not obs.p_fail_scores:
             return AgentAction("AgentA", ActionKind.NOOP, score=0.0, priority=self.priority)
         node_id, score = max(obs.p_fail_scores.items(), key=lambda kv: kv[1])
+        if score >= 0.9:
+            return AgentAction("AgentA", ActionKind.REPLICATE, target=node_id, score=float(score), priority=self.priority)
         if score >= 0.7:
             return AgentAction("AgentA", ActionKind.MIGRATE, target=node_id, score=float(score), priority=self.priority)
+        if score >= 0.6:
+            return AgentAction("AgentA", ActionKind.THROTTLE, target=node_id, score=float(score), priority=self.priority)
         return AgentAction("AgentA", ActionKind.NOOP, score=float(score), priority=self.priority)
 
 
@@ -30,9 +34,18 @@ class AgentBEfficiencyOptimizer:
         if demand < 0.3:
             return AgentAction(
                 "AgentB",
-                ActionKind.POWER_STATE,
+                ActionKind.DVFS,
                 target=node_id,
-                payload={"state": "sleep"},
+                payload={"clock_scale": 0.65},
+                score=1.0 - float(demand),
+                priority=self.priority,
+            )
+        if demand < 0.45:
+            return AgentAction(
+                "AgentB",
+                ActionKind.MEMORY_BALLOON,
+                target=node_id,
+                payload={"mem_scale": 0.75},
                 score=1.0 - float(demand),
                 priority=self.priority,
             )
@@ -48,8 +61,9 @@ class AgentCGatekeeper:
         if obs.queue_length > 120 or overloaded > max(1, len(obs.nodes) // 2):
             return AgentAction(
                 "AgentC",
-                ActionKind.ADMISSION,
-                payload={"decision": "queue"},
+                ActionKind.RESOURCE_CAP,
+                target=max(obs.nodes, key=lambda node: node.cpu_util + node.mem_util).node_id if obs.nodes else None,
+                payload={"cpu_cap": 0.85, "mem_cap": 0.85},
                 score=1.0,
                 priority=self.priority,
             )

@@ -23,6 +23,11 @@ def _power_state(action: AgentAction) -> str:
     return str(action.payload.get("state", "on"))
 
 
+SAFETY_ACTIONS = {ActionKind.MIGRATE, ActionKind.REPLICATE, ActionKind.THROTTLE}
+EFFICIENCY_ACTIONS = {ActionKind.POWER_STATE, ActionKind.DVFS, ActionKind.MEMORY_BALLOON}
+PROTECTIVE_ADMISSION_DECISIONS = {"queue", "reject", "deprioritize"}
+
+
 def resolve_with_context(actions: list[AgentAction]) -> RefereeDecision:
     if not actions:
         return RefereeDecision(
@@ -38,23 +43,24 @@ def resolve_with_context(actions: list[AgentAction]) -> RefereeDecision:
         )
         return RefereeDecision(action=fallback, rationale="all agents proposed noop")
 
-    agent_a_migrate = next(
+    agent_a_safety = next(
         (
             action
             for action in meaningful
-            if action.agent_name == "AgentA" and action.kind == ActionKind.MIGRATE
+            if action.agent_name == "AgentA" and action.kind in SAFETY_ACTIONS
         ),
         None,
     )
-    if agent_a_migrate is not None:
+    if agent_a_safety is not None:
         overridden = {
             action.agent_name: "safety-first migration takes precedence"
             for action in meaningful
-            if action is not agent_a_migrate
+            if action is not agent_a_safety
         }
+        rationale_kind = "migration" if agent_a_safety.kind == ActionKind.MIGRATE else agent_a_safety.kind.value
         return RefereeDecision(
-            action=agent_a_migrate,
-            rationale="agent-a migration preempts lower-priority actions",
+            action=agent_a_safety,
+            rationale=f"agent-a {rationale_kind} preempts lower-priority actions",
             overridden=overridden,
         )
 
@@ -63,8 +69,10 @@ def resolve_with_context(actions: list[AgentAction]) -> RefereeDecision:
             action
             for action in meaningful
             if action.agent_name == "AgentC"
-            and action.kind == ActionKind.ADMISSION
-            and _admission_decision(action) in {"queue", "reject"}
+            and (
+                (action.kind == ActionKind.ADMISSION and _admission_decision(action) in PROTECTIVE_ADMISSION_DECISIONS)
+                or action.kind == ActionKind.RESOURCE_CAP
+            )
         ),
         None,
     )
@@ -83,7 +91,8 @@ def resolve_with_context(actions: list[AgentAction]) -> RefereeDecision:
     power_state_actions = [
         action
         for action in meaningful
-        if action.kind == ActionKind.POWER_STATE and _power_state(action) in {"sleep", "off", "on"}
+        if action.kind in EFFICIENCY_ACTIONS
+        and (action.kind != ActionKind.POWER_STATE or _power_state(action) in {"sleep", "off", "on"})
     ]
     if power_state_actions:
         selected = max(power_state_actions, key=lambda action: action.score)
