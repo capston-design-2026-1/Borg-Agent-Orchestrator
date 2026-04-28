@@ -16,6 +16,21 @@ except Exception:  # pragma: no cover
     PPOConfig = None
 
 
+def _init_ray(ray_module: Any, *, temp_dir: Path) -> None:
+    init_kwargs = {
+        "include_dashboard": False,
+        "ignore_reinit_error": True,
+        "num_cpus": 1,
+        "_temp_dir": str(temp_dir.resolve()),
+    }
+    try:
+        ray_module.init(local_mode=True, **init_kwargs)
+    except RuntimeError as exc:
+        if "local_mode" not in str(exc):
+            raise
+        ray_module.init(**init_kwargs)
+
+
 def train_multiagent_ppo(
     backend,
     *,
@@ -68,13 +83,7 @@ def train_multiagent_ppo(
     ray_train_constants.DEFAULT_STORAGE_PATH = str(out)
     ray_trainable.DEFAULT_STORAGE_PATH = str(out)
     if not ray.is_initialized():
-        ray.init(
-            local_mode=True,
-            include_dashboard=False,
-            ignore_reinit_error=True,
-            num_cpus=1,
-            _temp_dir=str((out / "ray_cluster").resolve()),
-        )
+        _init_ray(ray, temp_dir=out / "ray_cluster")
 
     register_env(env_name, lambda cfg: OrchestratorMultiAgentEnv(cfg))
 

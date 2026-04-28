@@ -1,6 +1,26 @@
 from orchestrator.layer4 import ppo_trainer
 
 
+class RayInitStub:
+    def __init__(self):
+        self.calls = []
+
+    def init(self, **kwargs):
+        self.calls.append(kwargs)
+        if kwargs.get("local_mode") is True:
+            raise RuntimeError("`local_mode` is no longer supported")
+
+
+def test_init_ray_falls_back_when_local_mode_is_removed(tmp_path):
+    ray = RayInitStub()
+
+    ppo_trainer._init_ray(ray, temp_dir=tmp_path)
+
+    assert len(ray.calls) == 2
+    assert ray.calls[0]["local_mode"] is True
+    assert "local_mode" not in ray.calls[1]
+
+
 def test_train_curriculum_ppo_runs_each_stage_with_fresh_backend(monkeypatch, tmp_path):
     calls = []
 
