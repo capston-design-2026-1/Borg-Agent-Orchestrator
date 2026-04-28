@@ -42,6 +42,28 @@ def test_build_trace_file_rejects_non_list_payload(tmp_path):
         build_trace_file(metrics_path, trace_path)
 
 
+def test_build_trace_file_accepts_csv_metrics(tmp_path):
+    metrics_path = tmp_path / "metrics.csv"
+    trace_path = tmp_path / "trace.json"
+    metrics_path.write_text(
+        "\n".join(
+            [
+                "timestamp,node_id,cpu_util,mem_util,disk_util,net_util,task_id,queue_length,energy_price",
+                "100,n1,0.5,0.4,0.3,0.2,t1,2,0.10",
+                "100,n2,0.6,0.5,0.4,0.3,t2,2,0.10",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    build_trace_file(metrics_path, trace_path)
+    trace = json.loads(trace_path.read_text(encoding="utf-8"))
+
+    assert len(trace) == 1
+    assert {node["node_id"] for node in trace[0]["nodes"]} == {"n1", "n2"}
+    assert len(trace[0]["tasks"]) == 2
+
+
 def test_validate_prometheus_schema_rejects_non_list_top_level():
     with pytest.raises(ValueError, match="expected top-level list"):
         validate_prometheus_schema({"timestamp": 100})  # type: ignore[arg-type]

@@ -1,13 +1,13 @@
 # Example Assets
 
-- `sample_metrics.json`: Layer 1 input example (Prometheus/JSON-like flat rows)
+- `sample_metrics.json`: Layer 1 input example (Prometheus/JSON-like flat rows; `.csv` files with matching columns are also accepted)
 - `sample_trace.json`: Layer 1 output / Layer 2 input example trace rows
 - `generate_synthetic_assets.py`: creates synthetic `.npz` datasets and a larger metrics sample
 - `models/`: output directory for trained risk/demand models
 
 ## Layer 1 Data Contracts
 
-`sample_metrics.json` accepted row shapes:
+`sample_metrics.json` and CSV metric files accepted row shapes:
 
 1. Flat Prometheus-like rows:
 `timestamp`, `node_id`, and at least one metric in `cpu_util|mem_util|disk_util|net_util`

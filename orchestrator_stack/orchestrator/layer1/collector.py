@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 from pathlib import Path
 from typing import Any
@@ -244,14 +245,24 @@ def validate_prometheus_schema(rows: list[dict[str, Any]]) -> None:
             _validate_flat_row(row, row_index)
 
 
-def build_trace_file(metrics_path: str | Path, trace_path: str | Path, interval_seconds: int = 60) -> Path:
+def load_metric_rows(metrics_path: str | Path) -> list[dict[str, Any]]:
     source = Path(metrics_path)
+    if source.suffix.lower() == ".csv":
+        with source.open("r", encoding="utf-8", newline="") as handle:
+            return [dict(row) for row in csv.DictReader(handle)]
+
     try:
         raw = json.loads(source.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ValueError(f"Failed to parse metrics JSON at {source}: {exc}") from exc
     if not isinstance(raw, list):
         raise ValueError(f"Schema drift: metrics payload at {source} must be a list, got {type(raw).__name__}.")
+    return raw
+
+
+def build_trace_file(metrics_path: str | Path, trace_path: str | Path, interval_seconds: int = 60) -> Path:
+    source = Path(metrics_path)
+    raw = load_metric_rows(source)
     validate_prometheus_schema(raw)
     trace = prometheus_rows_to_trace(raw, interval_seconds=interval_seconds)
     if not trace:
