@@ -30,6 +30,23 @@ def cmd_build_trace(args: argparse.Namespace) -> None:
     print(json.dumps({"trace_path": str(out)}, indent=2))
 
 
+def cmd_scrape_prometheus(args: argparse.Namespace) -> None:
+    from orchestrator.layer1.prometheus import export_prometheus_metric_rows
+
+    query_map = json.loads(Path(args.queries).read_text(encoding="utf-8"))
+    if not isinstance(query_map, dict):
+        raise SystemExit("--queries must point to a JSON object mapping output fields to PromQL queries")
+    out = export_prometheus_metric_rows(
+        base_url=args.base_url,
+        query_map={str(key): str(value) for key, value in query_map.items()},
+        start=args.start,
+        end=args.end,
+        step=args.step,
+        out_path=args.out,
+    )
+    print(json.dumps({"metrics_path": str(out)}, indent=2))
+
+
 def cmd_train_risk(args: argparse.Namespace) -> None:
     try:
         from orchestrator.layer3.predictors import train_safety_model
@@ -151,6 +168,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_build_trace.add_argument("--out", required=True)
     p_build_trace.add_argument("--interval-seconds", type=int, default=60)
     p_build_trace.set_defaults(func=cmd_build_trace)
+
+    p_scrape = sub.add_parser("scrape-prometheus")
+    p_scrape.add_argument("--base-url", required=True)
+    p_scrape.add_argument("--queries", required=True, help="JSON object mapping output fields to PromQL queries")
+    p_scrape.add_argument("--start", required=True)
+    p_scrape.add_argument("--end", required=True)
+    p_scrape.add_argument("--step", required=True)
+    p_scrape.add_argument("--out", required=True)
+    p_scrape.set_defaults(func=cmd_scrape_prometheus)
 
     p_train_risk = sub.add_parser("train-risk")
     p_train_risk.add_argument("--dataset", required=True)

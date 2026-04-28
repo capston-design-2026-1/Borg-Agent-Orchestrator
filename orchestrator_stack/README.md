@@ -72,6 +72,21 @@ pip install --upgrade pip
 pip install -r orchestrator_stack/requirements.txt
 ```
 
+### 3.5 Optional: Export Metrics from Prometheus
+If you have a live Prometheus endpoint, export query-range results into the same flat JSON format accepted by `build-trace`:
+
+```bash
+./.venv/bin/python orchestrator_stack/run.py scrape-prometheus \
+  --base-url http://localhost:9090 \
+  --queries orchestrator_stack/config/prometheus_queries.example.json \
+  --start 1700000000 \
+  --end 1700003600 \
+  --step 60 \
+  --out orchestrator_stack/runtime/prometheus_metrics.json
+```
+
+The query file must be a JSON object mapping output fields such as `cpu_util`, `mem_util`, `disk_util`, and `net_util` to PromQL expressions. The exporter merges Prometheus matrix results by timestamp and node label, then `build-trace` can convert the output into Layer 2 trace rows.
+
 ### 4. Generate Initial Assets (Synthetic Data & Models)
 Before running the orchestrator, you must generate the synthetic trace and training datasets:
 ```bash
