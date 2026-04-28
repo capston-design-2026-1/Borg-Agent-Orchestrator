@@ -26,23 +26,40 @@ def _node_lookup(obs: Observation) -> dict[str, Any]:
 def _risk_label(current_obs: Observation, next_obs: Observation, node_id: str) -> int:
     current_node = _node_lookup(current_obs).get(node_id)
     next_node = _node_lookup(next_obs).get(node_id, current_node)
-    fail_signal = float(next_obs.p_fail_scores.get(node_id, current_obs.p_fail_scores.get(node_id, 0.0)))
-    death_signal = int(any(not task.alive for task in next_obs.tasks if task.node_id == node_id))
-    overloaded_signal = int(
-        next_node is not None
-        and (float(next_node.cpu_util) > 0.9 or float(next_node.mem_util) > 0.9)
+    current_fail_signal = float(current_obs.p_fail_scores.get(node_id, 0.0))
+    next_fail_signal = float(next_obs.p_fail_scores.get(node_id, 0.0))
+    death_signal = int(
+        any(not task.alive for task in current_obs.tasks if task.node_id == node_id)
+        or any(not task.alive for task in next_obs.tasks if task.node_id == node_id)
     )
-    return int(fail_signal > 0.75 or death_signal or overloaded_signal)
+    overloaded_signal = int(
+        (current_node is not None and (float(current_node.cpu_util) >= 0.9 or float(current_node.mem_util) >= 0.9))
+        or (next_node is not None and (float(next_node.cpu_util) >= 0.9 or float(next_node.mem_util) >= 0.9))
+    )
+    return int(current_fail_signal > 0.75 or next_fail_signal > 0.75 or death_signal or overloaded_signal)
+
+
+def _demand_heuristic(obs: Observation, node_id: str) -> float:
+    node = _node_lookup(obs).get(node_id)
+    if node is None:
+        return 0.0
+    return (
+        0.25 * float(node.cpu_util)
+        + 0.25 * float(node.mem_util)
+        + 0.15 * float(node.net_util)
+        + 0.15 * _task_pressure(obs, node_id)
+        + 0.10 * _queue_pressure(obs)
+        + 0.05 * float(obs.energy_price)
+        - 0.05 * (1.0 if node.power_state == "on" else 0.0)
+    )
 
 
 def _demand_target(current_obs: Observation, next_obs: Observation, node_id: str) -> float:
-    next_node = _node_lookup(next_obs).get(node_id)
-    demand = float(
-        next_obs.demand_projection.get(
-            node_id,
-            0.5 * float(next_node.cpu_util) + 0.5 * float(next_node.mem_util) if next_node is not None else 0.0,
-        )
-    )
+    demand = float(next_obs.demand_projection.get(node_id, 0.0))
+    if demand <= 0.0:
+        demand = _demand_heuristic(next_obs, node_id)
+    if demand <= 0.0:
+        demand = _demand_heuristic(current_obs, node_id)
     return max(0.0, min(1.0, demand))
 
 

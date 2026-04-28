@@ -99,7 +99,7 @@ class OptunaMetaTuningTests(unittest.TestCase):
         with (
             patch("orchestrator.main.ensure_trace_exists", return_value=config.trace_path),
             patch("orchestrator.main.load_trace_rows", return_value=[{"timestamp": "t0", "nodes": [], "tasks": []}]),
-            patch("orchestrator.main._build_backend", side_effect=lambda rows, cfg: {"rows": rows, "cfg": cfg}),
+            patch("orchestrator.main._build_predictor_runtime", side_effect=lambda rows, cfg: {"rows": rows, "cfg": cfg}),
             patch("orchestrator.main.train_multiagent_ppo", side_effect=fake_train_multiagent_ppo),
             patch("orchestrator.main.evaluate_heuristic_policy", return_value={"total_score": 100.0}),
             patch("orchestrator.main.tune_policy_and_rewards", side_effect=fake_tune_policy_and_rewards),

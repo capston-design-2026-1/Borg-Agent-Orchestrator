@@ -32,8 +32,8 @@ def test_trace_rows_to_training_matrices_shapes():
     assert matrices.x.shape[1] == FEATURE_COUNT
     assert matrices.y_risk.shape[0] == matrices.x.shape[0]
     assert matrices.y_demand.shape[0] == matrices.x.shape[0]
-    assert matrices.y_risk.tolist() == [1, 0, 1, 0]
-    assert [round(value, 2) for value in matrices.y_demand.tolist()] == [0.92, 0.35, 0.92, 0.35]
+    assert matrices.y_risk.tolist() == [1, 0, 0, 0]
+    assert [round(value, 2) for value in matrices.y_demand.tolist()] == [0.42, 0.32, 0.42, 0.32]
 
 
 def test_node_feature_vector_includes_task_pressure_and_power_state():
