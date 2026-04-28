@@ -10,6 +10,9 @@ dependencies = [
 [project.scripts]
 codex-autonomy = "codex_autonomy.cli:main"
 
+[tool.setuptools.packages.find]
+include = ["codex_autonomy*"]
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"

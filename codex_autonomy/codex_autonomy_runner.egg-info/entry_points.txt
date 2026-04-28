@@ -1,0 +1,2 @@
+[console_scripts]
+codex-autonomy = codex_autonomy.cli:main

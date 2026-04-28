@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: borg-full-orchestrator
+Version: 0.1.0
+Summary: Six-layer Borg-style orchestrator with XGBoost, MARL, and Optuna
+Requires-Python: >=3.10
+Requires-Dist: numpy<3.0,>=2.0
+Requires-Dist: xgboost<4.0,>=2.0
+Requires-Dist: optuna<5.0,>=4.0
+Requires-Dist: ray[rllib]<3.0,>=2.54.1
+Requires-Dist: torch<3.0,>=2.11

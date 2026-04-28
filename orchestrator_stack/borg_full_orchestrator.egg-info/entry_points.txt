@@ -1,0 +1,2 @@
+[console_scripts]
+borg-orchestrator = orchestrator.cli:main
