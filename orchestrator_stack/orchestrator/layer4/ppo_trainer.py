@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import tempfile
 from hashlib import sha1
 from pathlib import Path
 from typing import Any
@@ -19,7 +18,7 @@ except Exception:  # pragma: no cover
 
 
 def _init_ray(ray_module: Any, *, temp_dir: Path) -> None:
-    safe_temp_dir = Path(tempfile.gettempdir()) / f"borg_ray_{sha1(str(temp_dir.resolve()).encode()).hexdigest()[:10]}"
+    safe_temp_dir = Path("/tmp") / f"borg_ray_{sha1(str(temp_dir.resolve()).encode()).hexdigest()[:10]}"
     safe_temp_dir.mkdir(parents=True, exist_ok=True)
     init_kwargs = {
         "include_dashboard": False,
