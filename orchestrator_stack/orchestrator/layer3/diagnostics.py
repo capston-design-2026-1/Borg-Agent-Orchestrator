@@ -81,6 +81,13 @@ def _contribution_summary(booster: Any, x: Any) -> dict[str, float]:
     }
 
 
+def _safe_contribution_summary(booster: Any, x: Any) -> dict[str, Any]:
+    try:
+        return {"status": "ok", "mean_abs": _contribution_summary(booster, x)}
+    except Exception as exc:
+        return {"status": "skipped", "reason": str(exc)}
+
+
 def diagnose_xgboost_model(*, model_path: str | Path, x: Any, y: Any | None = None, task: str) -> dict[str, Any]:
     xgb = _require_xgboost()
     booster = xgb.Booster()
@@ -92,7 +99,7 @@ def diagnose_xgboost_model(*, model_path: str | Path, x: Any, y: Any | None = No
         "task": task,
         "rows": int(len(predictions)),
         "feature_importance": _feature_importance(booster),
-        "contribution_summary": _contribution_summary(booster, x),
+        "contribution_summary": _safe_contribution_summary(booster, x),
     }
     if y is not None and task == "risk":
         report["threshold"] = optimize_binary_threshold(y, predictions)
