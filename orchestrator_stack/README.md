@@ -5,7 +5,7 @@ This directory implements the full 6-layer orchestrator process end-to-end:
 1. Local source ingestion (`Prometheus/JSON` -> trace file)
 2. AIOpsLab-style simulator backend + feature extraction
 3. XGBoost safety-risk and demand predictors
-4. MARL policy layer (PPO-compatible action interface) + referee
+4. MARL policy layer (PettingZoo-style parallel bridge, PPO-compatible RLlib env) + referee
 5. Optuna trial manager for reward and policy hyperparameters
 6. Scoreboard feedback loop into policy/trial evaluation
 
