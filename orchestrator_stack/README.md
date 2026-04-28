@@ -114,6 +114,16 @@ Train the XGBoost safety-risk and resource-demand models from the generated trac
   --demand-out orchestrator_stack/examples/models/demand_model.json
 ```
 
+Generate model diagnostics after training:
+```bash
+./.venv/bin/python orchestrator_stack/run.py diagnose-brain \
+  --model orchestrator_stack/examples/models/risk_model.json \
+  --dataset orchestrator_stack/examples/risk_train.npz \
+  --task risk \
+  --out reports/evaluations/risk_model_diagnostics.json
+```
+Risk diagnostics include threshold optimization, calibration bins, XGBoost feature importance, and contribution summaries from XGBoost `pred_contribs`.
+
 ## Testing the Architecture
 
 You can test the full 6-layer orchestrator stack using the provided CLI:

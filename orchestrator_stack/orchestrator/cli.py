@@ -69,6 +69,18 @@ def cmd_train_demand(args: argparse.Namespace) -> None:
     print(json.dumps({"demand_model": str(path)}, indent=2))
 
 
+def cmd_diagnose_brain(args: argparse.Namespace) -> None:
+    try:
+        from orchestrator.layer3.diagnostics import diagnose_xgboost_model, write_diagnostics_report
+    except ModuleNotFoundError as exc:
+        raise _missing_dependency(exc, "loading Layer 3 diagnostics") from exc
+
+    x, y = _load_npz(Path(args.dataset))
+    report = diagnose_xgboost_model(model_path=args.model, x=x, y=y, task=args.task)
+    out = write_diagnostics_report(report, args.out)
+    print(json.dumps({"diagnostics_path": str(out)}, indent=2))
+
+
 def cmd_train_brains(args: argparse.Namespace) -> None:
     try:
         from orchestrator.layer1.trace_ingestor import load_trace_rows
@@ -187,6 +199,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_train_demand.add_argument("--dataset", required=True)
     p_train_demand.add_argument("--out", required=True)
     p_train_demand.set_defaults(func=cmd_train_demand)
+
+    p_diagnose = sub.add_parser("diagnose-brain")
+    p_diagnose.add_argument("--model", required=True)
+    p_diagnose.add_argument("--dataset", required=True)
+    p_diagnose.add_argument("--task", choices=["risk", "demand"], required=True)
+    p_diagnose.add_argument("--out", required=True)
+    p_diagnose.set_defaults(func=cmd_diagnose_brain)
 
     p_train_brains = sub.add_parser("train-brains")
     p_train_brains.add_argument("--trace", required=True)
