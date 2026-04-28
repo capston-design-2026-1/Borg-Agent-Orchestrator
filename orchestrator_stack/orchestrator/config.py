@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
 from pathlib import Path
 
 
@@ -24,6 +25,7 @@ class OrchestratorConfig:
     ppo_minibatch_size: int = 16
     ppo_num_epochs: int = 1
     ppo_rollout_fragment_length: int = 8
+    ppo_curriculum: list[dict[str, Any]] = field(default_factory=list)
     optuna_storage_path: Path = Path("orchestrator_stack/runtime/optuna/orchestrator.db")
 
     @staticmethod
@@ -48,5 +50,6 @@ class OrchestratorConfig:
             ppo_minibatch_size=int(raw.get("ppo_minibatch_size", 16)),
             ppo_num_epochs=int(raw.get("ppo_num_epochs", 1)),
             ppo_rollout_fragment_length=int(raw.get("ppo_rollout_fragment_length", 8)),
+            ppo_curriculum=list(raw.get("ppo_curriculum", [])),
             optuna_storage_path=Path(raw.get("optuna_storage_path", "orchestrator_stack/runtime/optuna/orchestrator.db")),
         )

@@ -143,6 +143,39 @@ def train_multiagent_ppo(
     }
 
 
+def train_curriculum_ppo(
+    backend_factory,
+    *,
+    alpha: float,
+    beta: float,
+    gamma: float,
+    stages: list[dict[str, Any]],
+    output_dir: str | Path,
+) -> dict[str, Any]:
+    out = Path(output_dir)
+    stage_results = []
+    for index, stage in enumerate(stages, start=1):
+        stage_output = out / f"stage_{index:02d}"
+        result = train_multiagent_ppo(
+            backend_factory(),
+            alpha=float(stage.get("alpha", alpha)),
+            beta=float(stage.get("beta", beta)),
+            gamma=float(stage.get("gamma", gamma)),
+            learning_rate=float(stage["learning_rate"]),
+            train_iters=int(stage["train_iters"]),
+            train_batch_size=int(stage["train_batch_size"]),
+            minibatch_size=int(stage["minibatch_size"]),
+            num_epochs=int(stage["num_epochs"]),
+            rollout_fragment_length=int(stage["rollout_fragment_length"]),
+            output_dir=stage_output,
+        )
+        stage_results.append({"stage": index, **result})
+        if result.get("status") != "trained":
+            return {"status": "skipped", "reason": result.get("reason", "curriculum stage did not train"), "stages": stage_results}
+
+    return {"status": "trained", "stages": stage_results, "stage_count": len(stage_results)}
+
+
 def evaluate_heuristic_policy(backend, *, alpha: float, beta: float, gamma: float, steps: int) -> dict[str, float | int]:
     obs = backend.reset()
     scoreboard = Scoreboard(alpha=alpha, beta=beta, gamma=gamma)
