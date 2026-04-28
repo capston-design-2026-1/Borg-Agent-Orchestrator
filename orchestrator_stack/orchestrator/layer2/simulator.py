@@ -240,6 +240,9 @@ def _clone_observation(obs: Observation) -> Observation:
         demand_projection=dict(obs.demand_projection),
         queue_length=obs.queue_length,
         energy_price=obs.energy_price,
+        sla_violations=obs.sla_violations,
+        completed_tasks=obs.completed_tasks,
+        energy_watts=obs.energy_watts,
     )
 
 
@@ -297,6 +300,9 @@ def _apply_action_deltas(current_obs: Observation, simulated_obs: Observation, b
 
     merged.queue_length = simulated_obs.queue_length
     merged.energy_price = max(0.0, (baseline_obs.energy_price + simulated_obs.energy_price) / 2.0)
+    merged.sla_violations = max(simulated_obs.sla_violations, baseline_obs.sla_violations)
+    merged.completed_tasks = max(simulated_obs.completed_tasks, baseline_obs.completed_tasks)
+    merged.energy_watts = max(simulated_obs.energy_watts, baseline_obs.energy_watts)
     merged.p_fail_scores = {
         node.node_id: max(
             0.0,
@@ -448,6 +454,9 @@ def _simulate_observation_transition(obs: Observation, action: AgentAction) -> O
         demand_projection=demand_projection,
         queue_length=queue_length,
         energy_price=next_energy_price,
+        sla_violations=obs.sla_violations,
+        completed_tasks=obs.completed_tasks,
+        energy_watts=sum(node.cpu_util for node in nodes) * 100.0,
     )
 
 
@@ -565,6 +574,18 @@ def state_to_observation(state: Any, *, fallback_timestamp: int = 0, default_ene
         ),
         default_energy_price,
     )
+    sla_violations = _coerce_int(
+        _state_value(payload, "sla_violations", "slaViolationCount", default=_state_value(metrics, "sla_violations", "slaViolationCount", default=0)),
+        0,
+    )
+    completed_tasks = _coerce_int(
+        _state_value(payload, "completed_tasks", "completedJobs", default=_state_value(metrics, "completed_tasks", "completedJobs", default=0)),
+        0,
+    )
+    energy_watts = _coerce_float(
+        _state_value(payload, "energy_watts", "power_watts", default=_state_value(metrics, "energy_watts", "power_watts", default=0.0)),
+        0.0,
+    )
     timestamp = _coerce_int(_state_value(payload, "timestamp", "ts", "time"), fallback_timestamp)
 
     raw_p_fail = (
@@ -596,6 +617,9 @@ def state_to_observation(state: Any, *, fallback_timestamp: int = 0, default_ene
         demand_projection=demand_projection,
         queue_length=max(0, queue_length),
         energy_price=max(0.0, energy_price),
+        sla_violations=max(0, sla_violations),
+        completed_tasks=max(0, completed_tasks),
+        energy_watts=max(0.0, energy_watts),
     )
 
 
@@ -684,6 +708,7 @@ class TraceDrivenTwinBackend:
         rewards = {"AgentA": 1.0, "AgentB": 1.0, "AgentC": 1.0}
         p_fail = max(obs.p_fail_scores.values(), default=0.0)
         demand = max(obs.demand_projection.values(), default=0.0)
+        has_live_metrics = obs.sla_violations > 0 or obs.completed_tasks > 0 or obs.energy_watts > 0.0
 
         if action.agent_name == "AgentA":
             if applied["migrated"] and p_fail > 0.75:
@@ -711,6 +736,11 @@ class TraceDrivenTwinBackend:
                 rewards["AgentC"] -= 20.0
             if applied["admitted"] and qlen > 120:
                 rewards["AgentC"] -= 50.0
+
+        if has_live_metrics:
+            rewards["AgentA"] -= 50.0 * obs.sla_violations
+            rewards["AgentB"] += max(0.0, (500.0 - obs.energy_watts) / 100.0)
+            rewards["AgentC"] += min(10.0, obs.completed_tasks / 10.0)
 
         if any(not task.alive for task in obs.tasks):
             rewards["AgentA"] -= 100.0
@@ -887,6 +917,7 @@ class AIOpsLabBackend(SimulatorBackend):
         rewards = {"AgentA": 1.0, "AgentB": 1.0, "AgentC": 1.0}
         max_risk = max(obs.p_fail_scores.values(), default=max((n.cpu_util + n.mem_util) / 2.0 for n in obs.nodes) if obs.nodes else 0.0)
         min_demand = min(obs.demand_projection.values(), default=min((n.cpu_util + n.mem_util) / 2.0 for n in obs.nodes) if obs.nodes else 0.0)
+        has_live_metrics = obs.sla_violations > 0 or obs.completed_tasks > 0 or obs.energy_watts > 0.0
 
         if action.agent_name == "AgentA" and action.kind in {ActionKind.MIGRATE, ActionKind.REPLICATE, ActionKind.THROTTLE}:
             rewards["AgentA"] += 10.0 if max_risk >= 0.75 else -20.0
@@ -906,6 +937,11 @@ class AIOpsLabBackend(SimulatorBackend):
                 rewards["AgentC"] += 3.0
         if action.agent_name == "AgentC" and action.kind == ActionKind.RESOURCE_CAP:
             rewards["AgentC"] += 4.0 if obs.queue_length >= 80 else -5.0
+
+        if has_live_metrics:
+            rewards["AgentA"] -= 50.0 * obs.sla_violations
+            rewards["AgentB"] += max(0.0, (500.0 - obs.energy_watts) / 100.0)
+            rewards["AgentC"] += min(10.0, obs.completed_tasks / 10.0)
 
         if any(not task.alive for task in obs.tasks):
             rewards["AgentA"] -= 100.0

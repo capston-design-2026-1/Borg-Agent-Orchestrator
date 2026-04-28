@@ -45,6 +45,9 @@ class Observation:
     demand_projection: dict[str, float]
     queue_length: int
     energy_price: float
+    sla_violations: int = 0
+    completed_tasks: int = 0
+    energy_watts: float = 0.0
 
 
 @dataclass(slots=True)

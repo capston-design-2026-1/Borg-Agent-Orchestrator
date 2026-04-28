@@ -70,6 +70,21 @@ def test_state_to_observation_reads_nested_resource_metrics():
     assert obs.tasks[1].alive is False
 
 
+def test_state_to_observation_reads_live_reward_metrics():
+    payload = {
+        "timestamp": 1,
+        "nodes": [{"node_id": "n1", "cpu_util": 0.4, "mem_util": 0.3, "disk_util": 0.2, "net_util": 0.1}],
+        "tasks": [],
+        "metrics": {"sla_violations": 2, "completed_tasks": 25, "energy_watts": 320.0},
+    }
+
+    obs = state_to_observation(payload)
+
+    assert obs.sla_violations == 2
+    assert obs.completed_tasks == 25
+    assert obs.energy_watts == 320.0
+
+
 def test_trace_driven_backend_applies_migration_before_advancing_trace():
     rows = [
         {
@@ -143,3 +158,26 @@ def test_trace_driven_backend_applies_secondary_architecture_actions():
     n1 = next(node for node in capped.next_observation.nodes if node.node_id == "n1")
     assert n1.cpu_util <= 0.85
     assert n1.mem_util <= 0.85
+
+
+def test_trace_driven_backend_rewards_live_sla_energy_and_completion_metrics():
+    rows = [
+        {
+            "timestamp": 100,
+            "nodes": [{"node_id": "n1", "cpu_util": 0.4, "mem_util": 0.3, "disk_util": 0.2, "net_util": 0.1}],
+            "tasks": [],
+            "queue_length": 10,
+            "energy_price": 0.1,
+            "sla_violations": 1,
+            "completed_tasks": 20,
+            "energy_watts": 300.0,
+        }
+    ]
+
+    backend = TraceDrivenTwinBackend(rows)
+    backend.reset()
+    result = backend.step(AgentAction("AgentC", ActionKind.ADMISSION, payload={"decision": "admit"}))
+
+    assert result.reward_by_agent["AgentA"] == -49.0
+    assert result.reward_by_agent["AgentB"] == 3.0
+    assert result.reward_by_agent["AgentC"] == 8.0
