@@ -444,7 +444,7 @@ http://127.0.0.1:8876
 
 It compares `borg-experimental` against `borg-baseline` through `GET /api/comparison`.
 
-Both clusters now receive the same shared `borg-comparison-workload` application, Service, and load generator. Differences in that namespace should come from controller behavior: baseline HPA replica movement/local Karpenter activation versus experimental Agent A/B/C orchestration. The old baseline-only `borg-baseline` workload namespace is removed by the comparison setup script on rerun.
+Both clusters now receive the same shared `borg-comparison-workload` application, Service, and load generator. The shared `comparison-web` Deployment is capped at one pod in both clusters so the dashboard no longer confuses HPA-created replica count with architecture behavior. Differences in that namespace should come from local Karpenter activation, optional surge pressure, and experimental Agent A/B/C orchestration. The old baseline-only `borg-baseline` workload namespace is removed by the comparison setup script on rerun.
 
 | Section | Meaning |
 |---|---|
@@ -456,7 +456,7 @@ Both clusters now receive the same shared `borg-comparison-workload` application
 
 Use `Live comparison observatory` before reading the lower panels. It answers the immediate experiment question: under the same injected workload or fault stimulus, which cluster is absorbing pressure better, and which controller caused that behavior?
 
-The `Controller reactions` panel also shows `shared intentional stimulus`. This is the latest external exerciser operation applied to both clusters. It is the comparison input, not a controller output. Agent A/B/C decisions, Referee decisions, HPA scale changes, and local Karpenter node activation are separate reactions and are not mirrored.
+The `Controller reactions` panel also shows `shared intentional stimulus`. This is the latest external exerciser operation applied to both clusters. It is the comparison input, not a controller output. Agent A/B/C decisions, Referee decisions, constrained HPA state, and local Karpenter node activation are separate reactions and are not mirrored.
 
 The previous raw difference ledger was removed from the main dashboard because `experimental - baseline` is not a reliable visual quality signal. For example, a negative delta can be good when it means fewer pending pods, fewer restarts, lower energy, or lower request pressure. The dashboard now uses objective-specific interpretation instead.
 
