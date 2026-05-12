@@ -466,7 +466,7 @@ http://127.0.0.1:8876
 
 이 dashboard는 `GET /api/comparison`을 통해 `borg-experimental`과 `borg-baseline`을 비교한다.
 
-두 cluster에는 이제 동일한 `borg-comparison-workload` application, Service, load generator가 배포된다. 이 namespace 안의 차이는 baseline HPA replica movement/local Karpenter activation과 experimental Agent A/B/C orchestration 같은 controller behavior에서 나와야 한다. 예전 baseline-only `borg-baseline` workload namespace는 comparison setup script를 다시 실행하면 삭제된다.
+두 cluster에는 이제 동일한 `borg-comparison-workload` application, Service, load generator가 배포된다. shared `comparison-web` Deployment는 두 cluster 모두 1 pod로 고정되어 dashboard가 HPA로 늘어난 replica 수를 architecture behavior로 오해하지 않게 한다. 이 namespace 안의 차이는 local Karpenter activation, optional surge pressure, experimental Agent A/B/C orchestration 같은 controller behavior에서 나와야 한다. 예전 baseline-only `borg-baseline` workload namespace는 comparison setup script를 다시 실행하면 삭제된다.
 
 | 섹션 | 의미 |
 |---|---|
@@ -478,7 +478,7 @@ http://127.0.0.1:8876
 
 아래 패널을 읽기 전에 `Live comparison observatory`를 먼저 보면 된다. 이 영역은 "같은 workload/fault stimulus에서 어느 cluster가 pressure를 더 잘 흡수하고, 그 행동을 어떤 controller가 만들었는가"를 바로 보여주기 위한 영역이다.
 
-`Controller reactions` 패널의 `shared intentional stimulus`는 두 cluster에 같이 적용된 최신 외부 exerciser operation을 의미한다. 이것은 비교를 위한 입력이며 controller output이 아니다. Agent A/B/C decision, Referee decision, HPA scaling, local Karpenter node activation은 각 cluster의 독립적인 반응이므로 mirror하지 않는다.
+`Controller reactions` 패널의 `shared intentional stimulus`는 두 cluster에 같이 적용된 최신 외부 exerciser operation을 의미한다. 이것은 비교를 위한 입력이며 controller output이 아니다. Agent A/B/C decision, Referee decision, 제한된 HPA state, local Karpenter node activation은 각 cluster의 독립적인 반응이므로 mirror하지 않는다.
 
 기존 raw difference ledger는 main dashboard에서 제거했다. `experimental - baseline` 값은 품질 신호로 항상 올바르지 않다. 예를 들어 pending pod, restart, energy, request pressure가 더 낮아서 negative delta가 나오는 것은 오히려 좋은 결과일 수 있다. 이제 dashboard는 objective별 해석을 사용한다.
 
