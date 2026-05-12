@@ -470,10 +470,13 @@ http://127.0.0.1:8876
 
 | 섹션 | 의미 |
 |---|---|
+| Live comparison observatory | 가장 먼저 봐야 하는 visual comparison layer다. 같은 stimulus가 두 cluster에 들어간 뒤 experimental Agent A/B/C 반응과 baseline HPA/local-Karpenter 반응을 한 화면에서 비교한다. side-by-side bar는 backlog, CPU, memory, worker headroom, safety exposure, learning state를 비교하며 `experimental better`, `baseline ahead`, `matched behavior`처럼 의미 기반 label을 사용한다. |
 | Research objective evidence | Agent A safety, Agent B efficiency, Agent C admission, learning activity, mirrored-stimulus fidelity를 high-level status card로 보여준다. 모든 negative delta를 나쁘다고 가정하지 않고 `healthy`, `watch`, `mirrored` 같은 semantic label을 사용한다. |
 | Agent goal matrix | Agent A/B/C의 role, goal, trigger rule, live signal, proposal, selected control, reward, baseline analogue를 보여준다. experimental controller를 해석하기 위한 핵심 영역이다. |
 | Control pressure timeline | 최근 5분 objective window에서 risk/SLA, queue/pending pressure, estimated watts, weighted reward를 보여준다. current/desired가 안정되면 거의 한 줄로만 보이는 static HPA replica lane은 primary graph에서 제거했다. |
 | Controller response narrative | 최신 shared intentional stimulus, experimental decision/proposals/learning state, baseline HPA/local-Karpenter reaction을 함께 보여준다. |
+
+아래 패널을 읽기 전에 `Live comparison observatory`를 먼저 보면 된다. 이 영역은 "같은 workload/fault stimulus에서 어느 cluster가 pressure를 더 잘 흡수하고, 그 행동을 어떤 controller가 만들었는가"를 바로 보여주기 위한 영역이다.
 
 `Controller reactions` 패널의 `shared intentional stimulus`는 두 cluster에 같이 적용된 최신 외부 exerciser operation을 의미한다. 이것은 비교를 위한 입력이며 controller output이 아니다. Agent A/B/C decision, Referee decision, HPA scaling, local Karpenter node activation은 각 cluster의 독립적인 반응이므로 mirror하지 않는다.
 
