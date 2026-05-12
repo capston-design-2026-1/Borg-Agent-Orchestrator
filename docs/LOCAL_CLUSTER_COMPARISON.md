@@ -54,13 +54,13 @@ The script creates:
 - one control-plane and three workers for the baseline cluster
 - Metrics Server, Prometheus, and Node Exporter in both clusters
 - identical shared `borg-comparison-workload/comparison-web` workload, Service, and load generator in both clusters
-- baseline-only HPA object targeting `borg-comparison-workload/comparison-web`
+- baseline-only HPA object targeting `borg-comparison-workload/comparison-web`, capped at `minReplicas: 1` and `maxReplicas: 1` so the shared web pod count stays identical in both clusters
 - baseline-only `borg-comparison-workload/karpenter-surge` Deployment for triggering local Karpenter-style capacity activation
 
 Fairness boundary:
 
 - Shared environment: same namespace, application Deployment, Service, load generator, mirrored intentional exerciser phases, CPU/memory requests, and replica baselines.
-- Baseline-only controller layer: HPA object, HPA-driven replica changes, local Karpenter warm-node activation, and the optional `karpenter-surge` pressure target.
+- Baseline-only controller layer: HPA object state for the capped `comparison-web` workload, local Karpenter warm-node activation, and the optional `karpenter-surge` pressure target.
 - Experimental-only controller layer: Agent A/B/C decisions, Referee choices, Ray/Optuna metadata, and orchestration reward state.
 
 Recreate both clusters from scratch:
@@ -92,7 +92,7 @@ MIRROR_EXERCISE_NAMESPACE=borg-orchestrator-exercise
 That means the input stimulus is shared, while the reactions remain independent:
 
 - mirrored: intentional exerciser workload creation/deletion, request size, replica count, node selector, and namespace
-- not mirrored: Agent A/B/C decisions, Referee choices, HPA replica changes, and local Karpenter active/warm node changes
+- not mirrored: Agent A/B/C decisions, Referee choices, HPA controller state, and local Karpenter active/warm node changes
 
 Apply one shared stimulus manually:
 
@@ -124,7 +124,7 @@ The dashboard compares:
 |---|---|---|
 | nodes | ready/schedulable nodes | ready/schedulable nodes |
 | pods | total and pending pods | total and pending pods |
-| orchestration | active stage, reward, risk, decision | HPA desired replicas and local Karpenter state |
+| orchestration | active stage, reward, risk, decision | capped HPA state and local Karpenter state |
 | capacity | all Kind workers are available | workers start as active/warm to emulate Karpenter provisioning |
 
 ## Dashboard Interpretation
