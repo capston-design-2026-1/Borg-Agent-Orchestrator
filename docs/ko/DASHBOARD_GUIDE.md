@@ -473,7 +473,7 @@ http://127.0.0.1:8876
 | Live comparison observatory | 가장 먼저 봐야 하는 visual comparison layer다. 같은 stimulus가 두 cluster에 들어간 뒤 experimental Agent A/B/C 반응과 baseline HPA/local-Karpenter 반응을 한 화면에서 비교한다. side-by-side bar는 backlog, CPU, memory, worker headroom, safety exposure, learning state를 비교하며 `experimental better`, `baseline ahead`, `matched behavior`처럼 의미 기반 label을 사용한다. |
 | Research objective evidence | Agent A safety, Agent B efficiency, Agent C admission, learning activity, mirrored-stimulus fidelity를 high-level status card로 보여준다. 모든 negative delta를 나쁘다고 가정하지 않고 `healthy`, `watch`, `mirrored` 같은 semantic label을 사용한다. |
 | Agent goal matrix | Agent A/B/C의 role, goal, trigger rule, live signal, proposal, selected control, reward, baseline analogue를 보여준다. experimental controller를 해석하기 위한 핵심 영역이다. |
-| Control pressure timelines | Safety Forecast, Admission Backlog, Efficiency Energy, Reward Outcome으로 나눈 4개의 최근 5분 graph widget이다. 서로 scale이 다른 지표를 한 canvas에 우겨 넣지 않고, experimental architecture가 최적화하려는 objective signal을 각각 읽기 쉽게 보여준다. |
+| Control pressure timelines | Safety Forecast, Admission Backlog, Efficiency Energy, Reward Outcome으로 나눈 4개의 최근 5분 graph widget이다. `Efficiency Energy`는 이제 같은 local utilization-derived model로 계산한 experimental `comparison_power_watts`와 baseline estimated watts를 함께 그리므로 두 cluster의 efficiency를 직접 비교할 수 있다. 별도의 Agent B reward-power chip은 experimental `agent_energy_watts` signal로 유지된다. |
 | Controller response narrative | 최신 shared intentional stimulus, experimental decision/proposals/learning state, baseline HPA/local-Karpenter reaction을 함께 보여준다. |
 
 아래 패널을 읽기 전에 `Live comparison observatory`를 먼저 보면 된다. 이 영역은 "같은 workload/fault stimulus에서 어느 cluster가 pressure를 더 잘 흡수하고, 그 행동을 어떤 controller가 만들었는가"를 바로 보여주기 위한 영역이다.
