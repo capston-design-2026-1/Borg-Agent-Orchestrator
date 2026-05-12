@@ -89,6 +89,8 @@ def test_comparison_dashboard_exposes_expected_api_and_signals():
     assert "drawTimelineWidget" in app
     assert "timelineWidgets" in app
     assert "PRESSURE_TIMELINE_WINDOW_MS" in app
+    assert "COMPARISON_POLL_INTERVAL_MS = 1000" in app
+    assert "pollInFlight" in app
     assert "pressureWindowRows" in app
     assert "Agent A risk forecast" in app
     assert "Agent C queue length" in app
@@ -115,6 +117,8 @@ def test_comparison_dashboard_exposes_expected_api_and_signals():
     assert "agentGoalMatrix" in app
     assert "_append_history" in server
     assert "history_retention" in server
+    assert "max_history_samples = 14400" in server
+    assert "min_history_interval_seconds = 0.5" in server
     assert "Research Objective Evidence" in Path("orchestrator_stack/comparison_dashboard/index.html").read_text(encoding="utf-8")
     assert "Live Comparison Observatory" in Path("orchestrator_stack/comparison_dashboard/index.html").read_text(encoding="utf-8")
     assert "Control Pressure Timelines" in Path("orchestrator_stack/comparison_dashboard/index.html").read_text(encoding="utf-8")
