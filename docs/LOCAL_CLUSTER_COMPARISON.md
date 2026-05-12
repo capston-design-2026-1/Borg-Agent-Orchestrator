@@ -136,7 +136,7 @@ The comparison dashboard is designed to show behavioral differences, not just wh
 | Live comparison observatory | shared stimulus flow, experimental Agent A/B/C reaction, baseline HPA/local-Karpenter reaction, side-by-side bars for backlog, CPU, memory, capacity, safety, and learning state | restores intuitive visual comparison without returning to the old raw metric pile; every card keeps both clusters in the same frame |
 | Research objective evidence | objective-specific cards with semantic `healthy`, `watch`, or `mirrored` status | avoids misleading raw `experimental - baseline` coloring where a negative value can mean the experimental system is better |
 | Agent goal matrix | Agent A safety, Agent B efficiency, and Agent C admission goals, trigger rules, proposals, selected control, reward, and baseline analogue | makes the experimental architecture explainable as three independent controllers rather than one opaque action label |
-| Control pressure timeline | rolling five-minute objective window for Agent A risk/SLA, Agent C queue/pending pressure, Agent B estimated watts, and weighted reward | removes the static HPA replica line and focuses the graph on the signals the experimental architecture is trying to optimize |
+| Control pressure timelines | four separate five-minute graph widgets for Agent A safety forecast, Agent C admission backlog, Agent B estimated energy, and weighted reward outcome | avoids cramming unrelated scales into one canvas while preserving the objective signals the experimental architecture is trying to optimize |
 | Controller response narrative | shared intentional stimulus, experimental decision/proposals/learning state, and baseline HPA/local-Karpenter response | explains the same input perturbation and the two different controller reactions |
 
 The live comparison observatory is the first place to look during a run. Its bars use semantic labels such as `experimental better`, `baseline ahead`, or `matched behavior`; it never assumes that a negative numerical delta is bad. For example, lower pending pods, lower CPU pressure, lower memory pressure, and fewer failures are shown as good outcomes when the same stimulus is mirrored to both clusters.
@@ -147,7 +147,7 @@ The API behind the dashboard is `GET /api/comparison`. It reads both kubeconfigs
 orchestrator_stack/runtime/visualization-experimental/state.json
 ```
 
-The comparison API also retains up to `7200` samples in server memory while the dashboard server is running. The visible control pressure timeline intentionally filters that retained history to the most recent five minutes so the graph stays readable during long runs.
+The comparison API also retains up to `7200` samples in server memory while the dashboard server is running. The visible control pressure timeline widgets intentionally filter that retained history to the most recent five minutes so each graph stays readable during long runs.
 
 The old raw difference ledger was removed from the main view. A raw negative delta is not inherently bad: fewer pending pods, fewer restarts, lower requests, or lower energy can be a better outcome. The dashboard now uses objective-specific status labels instead of coloring every negative number red.
 
