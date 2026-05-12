@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from orchestrator.config import OrchestratorConfig
+from orchestrator.layer1.kubernetes_actions import execute_live_kubernetes_action
 from orchestrator.layer1.kubernetes_exerciser import apply_exercise_phase_to_clusters
 from orchestrator.layer1.kubernetes_trace import capture_kubernetes_trace_row, load_power_calibration, write_kubernetes_trace
 from orchestrator.layer1.trace_ingestor import load_trace_rows
@@ -319,6 +320,7 @@ def run_live_kubernetes_orchestration(
             "interval_seconds": interval_seconds,
             "exercise_cluster": exercise_cluster,
             "exercise_namespace": exercise_namespace if exercise_cluster else None,
+            "live_action_executor": "exercise_namespace_kubectl" if exercise_cluster else "disabled",
             "exercise_randomize": exercise_randomize if exercise_cluster else None,
             "exercise_seed": exercise_seed if exercise_cluster else None,
             "mirror_exercise_kubeconfigs": [str(Path(path).expanduser()) for path in mirror_exercise_kubeconfigs] if exercise_cluster else [],
@@ -459,6 +461,12 @@ def run_live_kubernetes_orchestration(
                     for proposal in proposals
                 ],
             }
+            if exercise_cluster:
+                decision_payload["kubernetes_execution"] = execute_live_kubernetes_action(
+                    action,
+                    kubeconfig_path,
+                    namespace=exercise_namespace,
+                )
             state.decision(decision_payload)
             result = backend.step(action)
             score = scoreboard.update(result.reward_by_agent)
