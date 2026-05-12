@@ -24,6 +24,7 @@ MEMORY_SUFFIXES = {
 POWER_IDLE_WATTS = 80.0
 POWER_CPU_FULL_SCALE_WATTS = 120.0
 POWER_MEM_FULL_SCALE_WATTS = 60.0
+CONTROLLED_NAMESPACES = {"borg-comparison-workload", "borg-orchestrator-exercise"}
 
 
 class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
@@ -226,7 +227,13 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
         return summaries, {key: round(value, 3) if isinstance(value, float) else value for key, value in totals.items()}
 
     @classmethod
-    def _pod_summary(cls, pods: list[dict[str, Any]], workers: list[dict[str, Any]]) -> dict[str, Any]:
+    def _pod_summary(
+        cls,
+        pods: list[dict[str, Any]],
+        workers: list[dict[str, Any]],
+        *,
+        namespaces: set[str] | None = None,
+    ) -> dict[str, Any]:
         phase_counts: dict[str, int] = {}
         namespace_counts: dict[str, int] = {}
         owner_counts: dict[str, int] = {}
@@ -242,10 +249,12 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
 
         for pod in pods:
             meta = pod.get("metadata", {})
+            namespace = meta.get("namespace", "unknown")
+            if namespaces is not None and namespace not in namespaces:
+                continue
             spec = pod.get("spec", {})
             status = pod.get("status", {})
             phase = status.get("phase", "Unknown")
-            namespace = meta.get("namespace", "unknown")
             node = spec.get("nodeName") or "unscheduled"
             owners = meta.get("ownerReferences", [])
             owner = owners[0].get("kind", "BarePod") if owners else "BarePod"
@@ -284,6 +293,34 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
             "request_memory_mi": round(request_memory_mi, 3),
             "limit_cpu_m": round(limit_cpu_m, 3),
             "limit_memory_mi": round(limit_memory_mi, 3),
+        }
+
+    @classmethod
+    def _controlled_resource_totals(
+        cls,
+        resource_totals: dict[str, Any],
+        pod_metrics: dict[str, dict[str, float]],
+        pod_summary: dict[str, Any],
+    ) -> dict[str, Any]:
+        usage_cpu_m = sum(float(pod_metrics.get(namespace, {}).get("cpu_m", 0.0)) for namespace in CONTROLLED_NAMESPACES)
+        usage_memory_mi = sum(float(pod_metrics.get(namespace, {}).get("memory_mi", 0.0)) for namespace in CONTROLLED_NAMESPACES)
+        alloc_cpu = float(resource_totals.get("allocatable_cpu_m") or 0.0)
+        alloc_mem = float(resource_totals.get("allocatable_memory_mi") or 0.0)
+        cpu_ratio = (usage_cpu_m / alloc_cpu) if alloc_cpu else 0.0
+        mem_ratio = (usage_memory_mi / alloc_mem) if alloc_mem else 0.0
+        dynamic_power = POWER_CPU_FULL_SCALE_WATTS * cpu_ratio + POWER_MEM_FULL_SCALE_WATTS * mem_ratio
+        return {
+            "namespaces": sorted(CONTROLLED_NAMESPACES),
+            "usage_cpu_m": round(usage_cpu_m, 3),
+            "usage_memory_mi": round(usage_memory_mi, 3),
+            "usage_cpu_percent": cls._percent(usage_cpu_m, alloc_cpu),
+            "usage_memory_percent": cls._percent(usage_memory_mi, alloc_mem),
+            "request_cpu_m": pod_summary.get("request_cpu_m"),
+            "request_memory_mi": pod_summary.get("request_memory_mi"),
+            "request_cpu_percent": cls._percent(float(pod_summary.get("request_cpu_m") or 0.0), alloc_cpu),
+            "request_memory_percent": cls._percent(float(pod_summary.get("request_memory_mi") or 0.0), alloc_mem),
+            "estimated_power_watts": round(dynamic_power, 3),
+            "power_metric_kind": "controlled-namespace-dynamic-estimated",
         }
 
     @classmethod
@@ -378,6 +415,8 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
         resource_totals["estimated_power_watts"] = estimated_power_watts
         resource_totals["power_metric_kind"] = "kubectl-top-estimated" if estimated_power_watts is not None else "unavailable"
         pod_summary = cls._pod_summary(pods, workers)
+        controlled_pod_summary = cls._pod_summary(pods, workers, namespaces=CONTROLLED_NAMESPACES)
+        controlled_resource_totals = cls._controlled_resource_totals(resource_totals, pod_metrics, controlled_pod_summary)
         hpa = cls._hpa_summary(hpas)
         states: dict[str, int] = {}
         for node in workers:
@@ -402,7 +441,9 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
             "pending_pods": len(pending),
             "comparison_workload_pods": len(comparison_workload_pods),
             "resource_totals": resource_totals,
+            "controlled_resource_totals": controlled_resource_totals,
             "pod_summary": pod_summary,
+            "controlled_pod_summary": controlled_pod_summary,
             "node_rows": node_rows,
             "pod_metrics_by_namespace": pod_metrics,
             "workloads": workload_rows,
@@ -492,13 +533,13 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
             ("Running pods", ("running_pods",), "Shows admitted and scheduled workload volume."),
             ("Pending pods", ("pending_pods",), "Higher pending count means queue/backlog pressure."),
             ("Restarts", ("pod_summary", "restarts"), "Container restarts indicate instability or churn."),
-            ("CPU usage m", ("resource_totals", "usage_cpu_m"), "Live Metrics Server CPU usage in millicores."),
-            ("Memory usage Mi", ("resource_totals", "usage_memory_mi"), "Live Metrics Server memory usage."),
-            ("Estimated power W", ("resource_totals", "estimated_power_watts"), "Utilization-derived power estimate from kubectl top using the same local model for both clusters."),
-            ("CPU requests m", ("pod_summary", "request_cpu_m"), "Declared scheduling demand from pod requests."),
-            ("Memory requests Mi", ("pod_summary", "request_memory_mi"), "Declared scheduling demand from pod requests."),
-            ("CPU request percent", ("pod_summary", "request_cpu_percent"), "Requested CPU as percent of allocatable cluster CPU."),
-            ("Memory request percent", ("pod_summary", "request_memory_percent"), "Requested memory as percent of allocatable cluster memory."),
+            ("Controlled CPU usage m", ("controlled_resource_totals", "usage_cpu_m"), "Metrics Server CPU for shared comparison and exercise namespaces."),
+            ("Controlled memory usage Mi", ("controlled_resource_totals", "usage_memory_mi"), "Metrics Server memory for shared comparison and exercise namespaces."),
+            ("Controlled dynamic power W", ("controlled_resource_totals", "estimated_power_watts"), "Controller-relevant utilization-derived dynamic power, excluding node idle/control-plane noise."),
+            ("Controlled CPU requests m", ("controlled_resource_totals", "request_cpu_m"), "Declared scheduling demand from controlled namespaces."),
+            ("Controlled memory requests Mi", ("controlled_resource_totals", "request_memory_mi"), "Declared scheduling demand from controlled namespaces."),
+            ("Controlled CPU request percent", ("controlled_resource_totals", "request_cpu_percent"), "Controlled requested CPU as percent of allocatable cluster CPU."),
+            ("Controlled memory request percent", ("controlled_resource_totals", "request_memory_percent"), "Controlled requested memory as percent of allocatable cluster memory."),
         ]
         rows: list[dict[str, Any]] = []
         for label, path, note in specs:
@@ -518,8 +559,8 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
         base_summary = baseline.get("pod_summary", {})
         base_phases = base_summary.get("phase_counts", {})
         karpenter = baseline.get("karpenter", {})
-        exp_power = experimental.get("resource_totals", {}).get("estimated_power_watts")
-        base_power = baseline.get("resource_totals", {}).get("estimated_power_watts")
+        exp_power = experimental.get("controlled_resource_totals", {}).get("estimated_power_watts")
+        base_power = baseline.get("controlled_resource_totals", {}).get("estimated_power_watts")
         hpas = baseline.get("hpa", [])
         first_hpa = hpas[0] if hpas else {}
         optuna = experimental_state.get("optuna", {})
@@ -558,8 +599,8 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
             return list(cls.sample_history)
         experimental = payload.get("experimental", {})
         baseline = payload.get("baseline", {})
-        exp_res = experimental.get("resource_totals", {})
-        base_res = baseline.get("resource_totals", {})
+        exp_res = experimental.get("controlled_resource_totals", {}) or experimental.get("resource_totals", {})
+        base_res = baseline.get("controlled_resource_totals", {}) or baseline.get("resource_totals", {})
         experimental_power = exp_res.get("estimated_power_watts")
         baseline_power = base_res.get("estimated_power_watts")
         sample = {
@@ -616,8 +657,8 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
             "sla_violations": exp_cluster.get("sla_violations"),
             "completed_tasks": exp_cluster.get("completed_tasks"),
             "energy_watts": exp_cluster.get("energy_watts"),
-            "comparison_power_watts": experimental.get("resource_totals", {}).get("estimated_power_watts"),
-            "comparison_power_metric_kind": experimental.get("resource_totals", {}).get("power_metric_kind"),
+            "comparison_power_watts": experimental.get("controlled_resource_totals", {}).get("estimated_power_watts"),
+            "comparison_power_metric_kind": experimental.get("controlled_resource_totals", {}).get("power_metric_kind"),
             "power_metric_kind": exp_cluster.get("power_metric_kind"),
             "agent_power_metric_kind": exp_cluster.get("power_metric_kind"),
             "telemetry_sources": exp_cluster.get("telemetry_sources", []),
@@ -625,6 +666,11 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
             "decision": exp_decision,
             "ray": experimental_state.get("ray", {}),
             "optuna": experimental_state.get("optuna", {}),
+        }
+        baseline = {
+            **baseline,
+            "comparison_power_watts": baseline.get("controlled_resource_totals", {}).get("estimated_power_watts"),
+            "comparison_power_metric_kind": baseline.get("controlled_resource_totals", {}).get("power_metric_kind"),
         }
         payload = {
             "experimental": experimental,
