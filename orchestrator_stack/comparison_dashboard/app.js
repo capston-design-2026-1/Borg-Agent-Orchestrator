@@ -121,6 +121,16 @@ function metricText(value, digits = 1, suffix = '') {
   if (n === null) return 'n/a';
   return `${n.toFixed(digits)}${suffix}`;
 }
+function powerModelLabel(kind) {
+  const text = String(kind || '').trim();
+  if (!text) return 'estimated model';
+  const normalized = text.toLowerCase();
+  if (normalized.includes('controlled-namespace-dynamic')) return 'controlled namespace estimate';
+  if (normalized.includes('kubectl-top')) return 'kubectl top estimate';
+  if (normalized.includes('default_utilization')) return 'default utilization estimate';
+  if (normalized.includes('prometheus')) return 'prometheus-enriched estimate';
+  return text.replaceAll('-', ' ');
+}
 function compareVerdict(experimental, baseline, direction = 'lower', suffix = '') {
   const expValue = num(experimental);
   const baseValue = num(baseline);
@@ -433,7 +443,7 @@ function renderComparisonVisuals(payload) {
       ${pairBar({ label:'controlled dynamic power', experimental:expPower, baseline:basePower, direction:'lower', suffix:'W', digits:1, note:'This compares only the shared comparison and exercise namespaces, excluding unrelated control-plane and observability noise.' })}
       ${pairBar({ label:'controlled CPU used', experimental:expRes.usage_cpu_percent, baseline:baseRes.usage_cpu_percent, direction:'lower', suffix:'%', digits:1, domain:100 })}
       ${pairBar({ label:'controlled memory used', experimental:expRes.usage_memory_percent, baseline:baseRes.usage_memory_percent, direction:'lower', suffix:'%', digits:1, domain:100 })}
-      <div class="mini-stat-line">${compactPill('Agent B reward power', metricText(agentPower, 1, 'W'), 'neutral')}${compactPill('comparison model', exp.comparison_power_metric_kind || expRes.power_metric_kind || exp.power_metric_kind || 'estimated', 'neutral')}</div>
+      <div class="mini-stat-line">${compactPill('Agent B reward power', metricText(agentPower, 1, 'W'), 'neutral')}${compactPill('comparison model', powerModelLabel(exp.comparison_power_metric_kind || expRes.power_metric_kind || exp.power_metric_kind), 'neutral')}</div>
     </article>
 
     <article class="comparison-card">
