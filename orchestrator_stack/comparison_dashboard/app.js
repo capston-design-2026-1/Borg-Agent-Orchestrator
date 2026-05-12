@@ -13,6 +13,16 @@ function num(value) {
 }
 function fmt(value, digits = 3) { const n = num(value); return n === null ? 'n/a' : n.toFixed(digits); }
 function pct(value) { const n = num(value); return n === null ? 'n/a' : `${n.toFixed(1)}%`; }
+function comparisonPower(cluster) {
+  const resourceTotals = cluster?.resource_totals || {};
+  return num(cluster?.comparison_power_watts ?? resourceTotals.estimated_power_watts ?? cluster?.energy_watts);
+}
+function agentRewardPower(cluster) {
+  const explicit = num(cluster?.agent_energy_watts);
+  if (explicit !== null) return explicit;
+  const hasComparisonPower = cluster?.comparison_power_watts !== undefined || (cluster?.resource_totals || {}).estimated_power_watts !== undefined;
+  return hasComparisonPower ? null : num(cluster?.energy_watts);
+}
 function hpaDesired(cluster) { return (cluster.hpa || []).reduce((sum, item) => sum + Number(item.desired ?? item.current ?? item.min ?? 0), 0); }
 function hpaCurrent(cluster) { return (cluster.hpa || []).reduce((sum, item) => sum + Number(item.current ?? 0), 0); }
 function hpaMax(cluster) { return (cluster.hpa || []).reduce((sum, item) => sum + Number(item.max ?? 0), 0); }
@@ -304,8 +314,11 @@ const timelineWidgets = [
     noteId:'efficiencyTimelineNote',
     unit:'estimated watts',
     maxFloor:5,
-    series:[{ key:'experimentalEnergy', color:palette.experimental, label:'Agent B estimated watts', width:3 }],
-    note: rows => `Latest estimated power ${metricText(latestValue(rows, 'experimentalEnergy'), 1, 'W')}; low demand is shown in the comparison observatory cards.`,
+    series:[
+      { key:'experimentalComparisonEnergy', color:palette.experimental, label:'experimental estimated watts', width:3 },
+      { key:'baselineEnergy', color:palette.baseline, label:'baseline estimated watts', width:3 },
+    ],
+    note: rows => `Latest experimental ${metricText(latestValue(rows, 'experimentalComparisonEnergy'), 1, 'W')}; baseline ${metricText(latestValue(rows, 'baselineEnergy'), 1, 'W')}. Both use the same local utilization model.`,
   },
   {
     canvasId:'rewardTimelineCanvas',
@@ -366,6 +379,9 @@ function renderComparisonVisuals(payload) {
   const base = payload.baseline || {};
   const expRes = exp.resource_totals || {};
   const baseRes = base.resource_totals || {};
+  const expPower = comparisonPower(exp);
+  const basePower = comparisonPower(base);
+  const agentPower = agentRewardPower(exp);
   const decision = exp.decision || {};
   const reward = exp.reward_summary || {};
   const baseSummary = base.pod_summary || {};
@@ -411,9 +427,10 @@ function renderComparisonVisuals(payload) {
 
     <article class="comparison-card">
       <div class="card-title"><span>Agent B objective</span><b>Efficiency pressure</b></div>
+      ${pairBar({ label:'estimated power', experimental:expPower, baseline:basePower, direction:'lower', suffix:'W', digits:1, note:'Both clusters use the same local utilization-derived estimate from Metrics Server, so this is the direct efficiency comparison.' })}
       ${pairBar({ label:'CPU used', experimental:expRes.usage_cpu_percent, baseline:baseRes.usage_cpu_percent, direction:'lower', suffix:'%', digits:1, domain:100 })}
       ${pairBar({ label:'memory used', experimental:expRes.usage_memory_percent, baseline:baseRes.usage_memory_percent, direction:'lower', suffix:'%', digits:1, domain:100 })}
-      <div class="mini-stat-line">${compactPill('experimental power', `${fmt(exp.energy_watts, 1)}W`, 'neutral')}${compactPill('metric kind', exp.power_metric_kind || 'estimated', 'neutral')}</div>
+      <div class="mini-stat-line">${compactPill('Agent B reward power', metricText(agentPower, 1, 'W'), 'neutral')}${compactPill('comparison model', exp.comparison_power_metric_kind || expRes.power_metric_kind || exp.power_metric_kind || 'estimated', 'neutral')}</div>
     </article>
 
     <article class="comparison-card">
@@ -462,6 +479,8 @@ function renderObjectiveEvidence(payload) {
   const stimulus = stimulusSummary(payload);
   const optuna = exp.optuna || {};
   const ray = exp.ray || {};
+  const expPower = comparisonPower(exp);
+  const basePower = comparisonPower(base);
   const objectives = [
     {
       label: 'Agent A safety',
@@ -472,9 +491,9 @@ function renderObjectiveEvidence(payload) {
     },
     {
       label: 'Agent B efficiency',
-      value: `${fmt(exp.energy_watts, 1)}W ${exp.power_metric_kind ? `(${esc(exp.power_metric_kind)})` : ''}`,
+      value: `exp ${metricText(expPower, 1, 'W')} / base ${metricText(basePower, 1, 'W')}`,
       baseline: `${hpa.label}; ${esc(base.karpenter?.active_nodes ?? 'n/a')} active / ${esc(base.karpenter?.warm_nodes ?? 'n/a')} warm`,
-      note: 'Efficiency is judged by estimated power and consolidation pressure, not just CPU percentage.',
+      note: 'Efficiency compares both clusters with the same estimated-power model, plus CPU and memory pressure.',
       tone: 'efficiency',
     },
     {
@@ -536,7 +555,7 @@ function renderAgentGoalMatrix(payload) {
       role: 'Efficiency / energy optimizer',
       goal: 'Reduce waste through DVFS, memory ballooning, and power-state decisions.',
       trigger: 'low demand selects sleep, DVFS, or memory balloon before wasting active capacity',
-      signal: `min demand ${fmt(exp.min_demand)} on ${esc(exp.min_demand_node || 'n/a')}; estimated power ${fmt(exp.energy_watts, 1)}W`,
+      signal: `min demand ${fmt(exp.min_demand)} on ${esc(exp.min_demand_node || 'n/a')}; exp/base power ${metricText(comparisonPower(exp), 1, 'W')} / ${metricText(comparisonPower(base), 1, 'W')}`,
       proposal: proposalSummary(decision, 'AgentB'),
       selected: selectedSummary(decision, 'AgentB'),
       reward: fmt(rewards.AgentB),
@@ -629,6 +648,8 @@ function render(payload) {
       experimentalRisk: exp.max_risk || 0,
       experimentalSla: exp.sla_violations || 0,
       experimentalEnergy: exp.energy_watts || 0,
+      experimentalComparisonEnergy: comparisonPower(exp) ?? 0,
+      baselineEnergy: comparisonPower(base) ?? 0,
       experimentalReward: exp.last_reward || 0,
       experimentalMinDemand: exp.min_demand || 0,
       experimentalSchedulable: exp.schedulable_nodes || 0,
