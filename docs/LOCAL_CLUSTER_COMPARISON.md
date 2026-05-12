@@ -61,7 +61,7 @@ Fairness boundary:
 
 - Shared environment: same namespace, application Deployment, Service, load generator, mirrored intentional exerciser phases, CPU/memory requests, and replica baselines.
 - Baseline-only controller layer: HPA object state for the capped `comparison-web` workload, local Karpenter warm-node activation, and the optional `karpenter-surge` pressure target.
-- Experimental-only controller layer: Agent A/B/C decisions, Referee choices, Ray/Optuna metadata, and orchestration reward state.
+- Experimental-only controller layer: Agent A/B/C decisions, Referee choices, bounded Kubernetes remediation in `borg-orchestrator-exercise`, Ray/Optuna metadata, and orchestration reward state.
 
 Recreate both clusters from scratch:
 
@@ -92,7 +92,7 @@ MIRROR_EXERCISE_NAMESPACE=borg-orchestrator-exercise
 That means the input stimulus is shared, while the reactions remain independent:
 
 - mirrored: intentional exerciser workload creation/deletion, request size, replica count, node selector, and namespace
-- not mirrored: Agent A/B/C decisions, Referee choices, HPA controller state, and local Karpenter active/warm node changes
+- not mirrored: Agent A/B/C decisions, Referee choices, experimental-only remediation of labeled exerciser Deployments, HPA controller state, and local Karpenter active/warm node changes
 
 Apply one shared stimulus manually:
 
@@ -149,7 +149,9 @@ orchestrator_stack/runtime/visualization-experimental/state.json
 
 The comparison API also retains up to `7200` samples in server memory while the dashboard server is running. The visible control pressure timeline widgets intentionally filter that retained history to the most recent five minutes so each graph stays readable during long runs.
 
-The `Efficiency Energy` widget compares both clusters. It uses `resource_totals.estimated_power_watts` and exposes the experimental value as `comparison_power_watts`, computed from each cluster's `kubectl top nodes` CPU and memory percentages using the same local model (`80 + 120*cpu_util + 60*mem_util` per measured node). This is not a wattmeter reading, but it is a consistent local efficiency estimate for the experimental and baseline clusters. The separate `Agent B reward power` chip uses `agent_energy_watts`, the experimental orchestration reward-side power signal.
+The `Efficiency Energy` widget compares both clusters through `controlled_resource_totals.estimated_power_watts` and exposes the values as `comparison_power_watts`. This controlled estimate uses Metrics Server CPU and memory from the shared comparison namespace and the mirrored exercise namespace only, then applies the same local dynamic-power model to both clusters. This is not a wattmeter reading, but it avoids letting unrelated control-plane and Prometheus noise decide whether the experimental controller is efficient. The separate `Agent B reward power` chip uses `agent_energy_watts`, the experimental orchestration reward-side power signal.
+
+The live experimental loop now executes Referee-selected actions against Kubernetes in a narrow, auditable scope. It only mutates Deployments with the exerciser label in `borg-orchestrator-exercise`; the baseline receives the same external stimulus but not the experimental Agent A/B/C remediation. This is why the experimental cluster can legitimately show lower pending pods, lower controlled requests, lower controlled CPU/memory, or lower controlled dynamic watts after a decision.
 
 The old raw difference ledger was removed from the main view. A raw negative delta is not inherently bad: fewer pending pods, fewer restarts, lower requests, or lower energy can be a better outcome. The dashboard now uses objective-specific status labels instead of coloring every negative number red.
 
