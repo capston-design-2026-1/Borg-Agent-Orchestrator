@@ -20,7 +20,7 @@ spec:
     kind: Deployment
     name: comparison-web
   minReplicas: 1
-  maxReplicas: 24
+  maxReplicas: 1
   metrics:
     - type: Resource
       resource:
