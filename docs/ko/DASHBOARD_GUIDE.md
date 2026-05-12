@@ -86,7 +86,7 @@ cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator && LIVE_K8S=
 | In-cluster Prometheus | repository manifest가 `observe/prometheus-server`를 실행한다. launcher는 기본적으로 `http://127.0.0.1:19090`으로 port-forward한다. | live trace row가 Prometheus 기반 CPU/memory enrichment를 포함할 수 있다. 정상 row에는 `telemetry_sources`에 `prometheus_node_exporter`가 들어간다. |
 | Node Exporter | `observe/prometheus-node-exporter` DaemonSet이 Kind node에서 실행된다. | `node_cpu_seconds_total`, `node_memory_MemAvailable_bytes` 같은 node-exporter metric이 trace collector에 공급된다. |
 | Legacy `openebs-hostpath` PVC | 예전 `observe/prometheus-pvc`는 이 Kind cluster에 없는 storage class를 요구해서 Pending이었다. bootstrap script가 이 stale Pending PVC를 삭제하고 Prometheus는 `emptyDir`를 사용한다. | thesis demo가 telemetry 수집을 위해 OpenEBS에 의존하지 않는다. Prometheus 데이터는 pod 재시작 시 사라지는 ephemeral 데이터이며 live dashboard evidence에는 충분하다. |
-| Energy watts | default utilization model 기반 estimate다. | `est power ...W`는 실제 wattmeter 측정값이 아니다. |
+| Energy watts | default utilization model 기반 estimate다. | `est power ...W`는 실제 wattmeter 측정값이 아니다. 전체 계산 방식은 `docs/ENERGY_WATTS_MODEL.md`에 정리되어 있다. |
 | Agent placement realism | single-node cluster다. | Agent C admission logic은 볼 수 있지만, 진짜 multi-node placement/migration 실험은 이 환경만으로는 보여주기 어렵다. |
 
 실시간 telemetry 정상 여부는 다음 신호로 확인한다.
@@ -105,7 +105,7 @@ live exerciser는 실제 Kubernetes mutation을 수행한다. 예를 들어 `bor
 | Node, pod, deployment, event, namespace, scheduler failure | Kind cluster의 실제 Kubernetes API 데이터 |
 | Synthetic workload phase와 rollout return code | exerciser가 실행한 실제 `kubectl apply/delete/rollout status` 결과 |
 | Agent A/B/C proposal, Referee choice, reward total | live cluster observation을 기반으로 twin/reward path에서 평가되고, live exercise mode에서는 experimental exercise namespace에 실제 적용되는 orchestrator control-plane decision |
-| Energy watts | 별도 calibration이 없으면 `idle_watts=80`, `cpu_full_scale_watts=120`, `mem_full_scale_watts=60`을 쓰는 model-derived estimate |
+| Energy watts | 별도 calibration이 없으면 `idle_watts=80`, `cpu_full_scale_watts=120`, `mem_full_scale_watts=60`을 쓰는 model-derived estimate. 자세한 계산식은 `docs/ENERGY_WATTS_MODEL.md`를 참고한다. |
 
 ## 아주 중요한 해석: 실제 Kubernetes 변화와 선택된 오케스트레이션 action
 
