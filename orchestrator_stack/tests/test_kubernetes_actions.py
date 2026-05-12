@@ -38,6 +38,7 @@ def test_resource_cap_scales_admission_pressure_down(monkeypatch):
     assert result["matched_deployments"] == ["admission-cap", "safety-throttle"]
     assert any("deployment/admission-cap" in command and "--requests=cpu=50m,memory=32Mi" in command for command in commands)
     assert any(command[-1] == "--replicas=1" and "deployment/admission-cap" in command for command in commands)
+    assert any("deployment/comparison-load-generator" in command and "--limits=cpu=60m,memory=48Mi" in command for command in commands)
     assert not any("deployment/safety-throttle" in command and command[-1] == "--replicas=1" for command in commands)
 
 
@@ -52,6 +53,7 @@ def test_admission_reject_removes_only_exerciser_backlog(monkeypatch):
     assert result["status"] == "applied"
     assert result["admission_decision"] == "reject"
     assert any(command[-1] == "--replicas=0" and "deployment/admission-queue" in command for command in commands)
+    assert any("deployment/comparison-load-generator" in command for command in commands)
 
 
 def test_memory_balloon_bounds_all_current_exercise_deployments(monkeypatch):
@@ -65,6 +67,7 @@ def test_memory_balloon_bounds_all_current_exercise_deployments(monkeypatch):
     assert result["status"] == "applied"
     assert any("--requests=cpu=400m,memory=48Mi" in command for command in commands)
     assert any("--limits=cpu=700m,memory=96Mi" in command for command in commands)
+    assert any("--requests=cpu=10m,memory=12Mi" in command for command in commands)
 
 
 def test_no_exercise_deployments_is_safe_noop(monkeypatch):
