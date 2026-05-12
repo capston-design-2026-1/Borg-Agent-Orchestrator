@@ -36,7 +36,10 @@ def test_baseline_manifest_uses_real_hpa_and_local_karpenter_boundary():
     assert "autoscaling/v2" in hpa
     assert "name: comparison-web" in hpa
     assert "namespace: borg-comparison-workload" in hpa
+    assert "minReplicas: 1" in hpa
+    assert "maxReplicas: 1" in hpa
     assert "registry.k8s.io/hpa-example" in shared
+    assert "replicas: 1" in shared
     assert "comparison-load-generator" in shared
     assert "local-kind-karpenter-emulation" in controller
     assert "borg.local/provisioning-state=active" in controller
