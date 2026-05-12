@@ -22,6 +22,7 @@ class ExercisePhase:
     node_selector: dict[str, str] | None = None
     intended_agent: str | None = None
     intended_action: str | None = None
+    consume_cpu: bool = False
     rollout_timeout_seconds: int = 8
 
 
@@ -33,11 +34,45 @@ def _deployment_manifest(
     memory: str,
     replicas: int = 1,
     node_selector: dict[str, str] | None = None,
+    consume_cpu: bool = False,
 ) -> str:
     selector_block = ""
     if node_selector:
         entries = "\n".join(f"        {key}: {value}" for key, value in sorted(node_selector.items()))
         selector_block = f"\n      nodeSelector:\n{entries}"
+    if consume_cpu:
+        container = """
+        - name: cpu-burner
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - |
+              while true; do :; done &
+              while true; do :; done &
+              while true; do :; done &
+              while true; do :; done &
+              wait
+          resources:
+            requests:
+              cpu: {cpu}
+              memory: {memory}
+            limits:
+              cpu: {cpu}
+              memory: {memory}
+""".format(cpu=cpu, memory=memory).rstrip()
+    else:
+        container = """
+        - name: pause
+          image: registry.k8s.io/pause:3.10
+          resources:
+            requests:
+              cpu: {cpu}
+              memory: {memory}
+            limits:
+              cpu: {cpu}
+              memory: {memory}
+""".format(cpu=cpu, memory=memory).rstrip()
     return f"""
 apiVersion: v1
 kind: Namespace
@@ -67,15 +102,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 0{selector_block}
       containers:
-        - name: pause
-          image: registry.k8s.io/pause:3.10
-          resources:
-            requests:
-              cpu: {cpu}
-              memory: {memory}
-            limits:
-              cpu: {cpu}
-              memory: {memory}
+{container}
 """.strip()
 
 
@@ -102,60 +129,65 @@ def exercise_phases(namespace: str) -> list[ExercisePhase]:
         ExercisePhase(
             name="light-dvfs",
             detail="create light schedulable demand so AgentB can prefer DVFS over a full power-state transition",
-            manifest=_deployment_manifest(namespace, "light-dvfs", cpu="2200m", memory="256Mi"),
+            manifest=_deployment_manifest(namespace, "light-dvfs", cpu="2200m", memory="256Mi", consume_cpu=True),
             operation="apply",
             deployment="light-dvfs",
             cpu_request="2200m",
             memory_request="256Mi",
             replicas=1,
+            consume_cpu=True,
             intended_agent="AgentB",
             intended_action="dvfs",
         ),
         ExercisePhase(
             name="moderate-memory",
             detail="create moderate schedulable memory demand so AgentB can prefer memory ballooning",
-            manifest=_deployment_manifest(namespace, "moderate-memory", cpu="6200m", memory="768Mi"),
+            manifest=_deployment_manifest(namespace, "moderate-memory", cpu="6200m", memory="768Mi", consume_cpu=True),
             operation="apply",
             deployment="moderate-memory",
             cpu_request="6200m",
             memory_request="768Mi",
             replicas=1,
+            consume_cpu=True,
             intended_agent="AgentB",
             intended_action="memory_balloon",
         ),
         ExercisePhase(
             name="safety-throttle",
             detail="create moderate safety pressure so AgentA can throttle a risky node",
-            manifest=_deployment_manifest(namespace, "safety-throttle", cpu="8600m", memory="1Gi"),
+            manifest=_deployment_manifest(namespace, "safety-throttle", cpu="8600m", memory="1Gi", consume_cpu=True),
             operation="apply",
             deployment="safety-throttle",
             cpu_request="8600m",
             memory_request="1Gi",
             replicas=1,
+            consume_cpu=True,
             intended_agent="AgentA",
             intended_action="throttle",
         ),
         ExercisePhase(
             name="safety-migrate",
             detail="create high schedulable safety pressure so AgentA can select migration",
-            manifest=_deployment_manifest(namespace, "safety-migrate", cpu="9200m", memory="5Gi"),
+            manifest=_deployment_manifest(namespace, "safety-migrate", cpu="9200m", memory="5Gi", consume_cpu=True),
             operation="apply",
             deployment="safety-migrate",
             cpu_request="9200m",
             memory_request="5Gi",
             replicas=1,
+            consume_cpu=True,
             intended_agent="AgentA",
             intended_action="migrate",
         ),
         ExercisePhase(
             name="safety-replicate",
             detail="create severe schedulable pressure so AgentA can select replication before saturation",
-            manifest=_deployment_manifest(namespace, "safety-replicate", cpu="9400m", memory="7Gi"),
+            manifest=_deployment_manifest(namespace, "safety-replicate", cpu="9400m", memory="7Gi", consume_cpu=True),
             operation="apply",
             deployment="safety-replicate",
             cpu_request="9400m",
             memory_request="7Gi",
             replicas=1,
+            consume_cpu=True,
             intended_agent="AgentA",
             intended_action="replicate",
         ),
@@ -261,6 +293,7 @@ def _randomized_phase(namespace: str, phase_index: int, *, seed: int | None = No
             memory=f"{mem_mi}Mi",
             replicas=template.replicas or 1,
             node_selector=template.node_selector,
+            consume_cpu=template.consume_cpu,
         ),
         operation="apply",
         deployment=template.name,
@@ -270,6 +303,7 @@ def _randomized_phase(namespace: str, phase_index: int, *, seed: int | None = No
         node_selector=template.node_selector,
         intended_agent=template.intended_agent,
         intended_action=template.intended_action,
+        consume_cpu=template.consume_cpu,
         rollout_timeout_seconds=template.rollout_timeout_seconds,
     )
 
@@ -299,6 +333,7 @@ def _copy_phase_to_namespace(phase: ExercisePhase, namespace: str) -> ExercisePh
             memory=phase.memory_request or "64Mi",
             replicas=phase.replicas or 1,
             node_selector=phase.node_selector,
+            consume_cpu=phase.consume_cpu,
         ),
         operation=phase.operation,
         deployment=phase.deployment,
@@ -308,6 +343,7 @@ def _copy_phase_to_namespace(phase: ExercisePhase, namespace: str) -> ExercisePh
         node_selector=phase.node_selector,
         intended_agent=phase.intended_agent,
         intended_action=phase.intended_action,
+        consume_cpu=phase.consume_cpu,
         rollout_timeout_seconds=phase.rollout_timeout_seconds,
     )
 
@@ -373,6 +409,7 @@ def apply_selected_exercise_phase(
             "memory_request": phase.memory_request,
             "replicas": phase.replicas,
             "node_selector": phase.node_selector,
+            "consume_cpu": phase.consume_cpu,
         },
         "intended_agent": phase.intended_agent,
         "intended_action": phase.intended_action,
