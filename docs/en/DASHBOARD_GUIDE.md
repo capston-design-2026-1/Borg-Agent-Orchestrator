@@ -362,14 +362,26 @@ Optuna is the Layer 5 meta-optimizer. The dashboard separates objective score fr
 
 | UI element | Meaning |
 |---|---|
-| Study name | Usually `visualized_orchestrator_reward_weights`. |
+| Study name | Usually `visualized_orchestrator_reward_weights_live_action_v2`, or `visualized_orchestrator_reward_weights_<epoch>` when `OPTUNA_STUDY_EPOCH` is set. |
 | `alpha`, `beta`, `gamma` cards | Best trial's reward weights. |
 | Objective score graph | The single scalar objective Optuna maximizes. It has one line because there is one objective value. |
 | Weight graph | Trial-by-trial sampled `alpha`, `beta`, and `gamma` values, drawn with points and end labels so each sampled parameter remains readable. |
 | Optuna graph x-axis | Persisted Optuna study trial ID, such as `T0`, `T1`, and `T20`. |
 | Optuna window note | Reports how many completed persisted trials are currently loaded and the visible `Tfirst` to `Tlast` range. |
 
-The persisted Optuna study keeps counting across launches because `load_if_exists=True` reuses `orchestrator_stack/runtime/optuna/orchestrator.db`. The dashboard now exports and plots all completed trials in that persistent study, not only the latest three-trial bootstrap callback window. Therefore, if the study already contains trials `T0` through `T20`, both the objective graph and the weight graph should show the full `T0` to `T20` history after the launcher is restarted with this version of the runtime.
+The persisted Optuna store keeps counting across launches because `load_if_exists=True` reuses `orchestrator_stack/runtime/optuna/orchestrator.db`. Each architecture epoch uses a separate study name inside that SQLite store, so old trials do not pin the best-so-far line after reward semantics or Kubernetes action execution changes. The dashboard exports and plots all completed trials for the active study, not only the latest bootstrap callback window.
+
+If a major architecture change makes old objective scores incomparable, refresh the active study:
+
+```bash
+OPTUNA_REFRESH=1 NO_TUNE=0 TRIALS=20 ./orchestrator_stack/scripts/launch_orchestration.sh
+```
+
+For reproducible thesis runs, prefer an explicit epoch name:
+
+```bash
+OPTUNA_STUDY_EPOCH=thesis_live_v3 NO_TUNE=0 TRIALS=20 ./orchestrator_stack/scripts/launch_orchestration.sh
+```
 
 Search ranges:
 
