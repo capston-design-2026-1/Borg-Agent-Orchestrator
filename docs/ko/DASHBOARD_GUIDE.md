@@ -98,13 +98,13 @@ cd /Users/theokim/Documents/github/kyunghee/Borg-Agent-Orchestrator && LIVE_K8S=
 | `kubectl -n observe get pods,svc -l app.kubernetes.io/part-of=borg-orchestrator` | Prometheus와 Node Exporter pod/service가 running으로 보인다. |
 | `state.json` / trace row | Prometheus enrichment가 성공하면 `telemetry_sources`에 `kubernetes_api`와 `prometheus_node_exporter`가 함께 들어간다. |
 
-live exerciser는 실제 Kubernetes mutation을 수행한다. 예를 들어 `borg-orchestrator-exercise` namespace에 `light-dvfs`, `safety-replicate`, `admission-queue` 같은 `pause` Deployment를 만들거나 삭제한다. 이 Deployment들은 실제 scheduler 결과를 만들 수 있으며, `Pending` pod와 `FailedScheduling` event가 발생한다. 따라서 dashboard는 다음 데이터들을 섞어서 보여준다.
+live exerciser는 실제 Kubernetes mutation을 수행한다. 예를 들어 `borg-orchestrator-exercise` namespace에 `light-dvfs`, `safety-replicate` 같은 제한된 BusyBox CPU-burner Deployment와 `admission-queue` 같은 unschedulable admission-pressure Deployment를 만들거나 삭제한다. 이 Deployment들은 실제 Metrics Server CPU 변화, `Pending` pod, `FailedScheduling` event를 만든다. 따라서 dashboard는 다음 데이터들을 섞어서 보여준다.
 
 | 데이터 종류 | 실제성 수준 |
 |---|---|
 | Node, pod, deployment, event, namespace, scheduler failure | Kind cluster의 실제 Kubernetes API 데이터 |
 | Synthetic workload phase와 rollout return code | exerciser가 실행한 실제 `kubectl apply/delete/rollout status` 결과 |
-| Agent A/B/C proposal, Referee choice, reward total | live cluster observation을 기반으로 twin/reward path에서 평가되는 orchestrator control-plane decision |
+| Agent A/B/C proposal, Referee choice, reward total | live cluster observation을 기반으로 twin/reward path에서 평가되고, live exercise mode에서는 experimental exercise namespace에 실제 적용되는 orchestrator control-plane decision |
 | Energy watts | 별도 calibration이 없으면 `idle_watts=80`, `cpu_full_scale_watts=120`, `mem_full_scale_watts=60`을 쓰는 model-derived estimate |
 
 ## 아주 중요한 해석: 실제 Kubernetes 변화와 선택된 오케스트레이션 action
@@ -114,13 +114,13 @@ live exerciser는 실제 Kubernetes mutation을 수행한다. 예를 들어 `bor
 | 이름 | 실제 Kubernetes에 직접 수행되는가 | 의미 |
 |---|---:|---|
 | Intentional Kubernetes Stimulus | 예 | exerciser가 `kubectl apply/delete`로 exercise namespace의 synthetic Deployment를 만들거나 삭제한다. 이 변화가 cluster risk/demand를 흔들어 Agent A/B/C가 다양한 결정을 하도록 만든다. |
-| Performed Action | 현재 구현에서는 live twin/reward path에 적용 | Referee가 선택한 오케스트레이션 action이다. live dashboard는 이 action을 twin transition과 reward 계산에 적용하고 시각화한다. 별도의 executor가 연결되지 않는 한 이 selected action 자체가 곧바로 실제 cluster resource를 바꾸는 것은 아니다. |
+| Performed Action | live exercise mode에서는 예 | Referee가 선택한 오케스트레이션 action이다. live dashboard는 이 action을 twin transition과 reward 계산에 적용한 뒤, 제한된 Kubernetes executor가 experimental cluster의 `borg-orchestrator-exercise` namespace 안에서 exerciser label이 붙은 Deployment만 변경한다. baseline에 mirror된 stimulus는 Agent A/B/C가 직접 바꾸지 않는다. |
 
 따라서 thesis 보고서에서는 다음처럼 표현하는 것이 정확하다.
 
-- 실제 cluster perturbation은 Workload Exerciser가 수행한다.
-- Agent/Referee action은 live cluster snapshot을 보고 선택된 control decision이며, 현재 dashboard는 이 decision을 twin/reward layer에 적용해 결과를 평가한다.
-- 실제 Kubernetes remediation executor를 추가하면 Performed Action 카드가 실제 cluster mutation까지 연결되는 구조로 확장될 수 있다.
+- 외부 perturbation은 Workload Exerciser가 수행하며 두 cluster에 동일하게 mirror된다.
+- Agent/Referee action은 live cluster snapshot을 보고 선택된 control decision이며, twin/reward layer에서 평가된다.
+- live exercise mode에서는 selected action이 experimental cluster의 제한된 Kubernetes remediation도 수행한다. Agent C는 exercise backlog를 cap/reject/deprioritize하고, Agent B는 resource envelope을 낮추거나 exerciser workload를 sleep시키며, Agent A는 controlled exercise workload를 throttle/migrate/replicate할 수 있다.
 
 ## 상단 Hero와 실행 상태 카드
 
@@ -473,7 +473,7 @@ http://127.0.0.1:8876
 | Live comparison observatory | 가장 먼저 봐야 하는 visual comparison layer다. 같은 stimulus가 두 cluster에 들어간 뒤 experimental Agent A/B/C 반응과 baseline HPA/local-Karpenter 반응을 한 화면에서 비교한다. side-by-side bar는 backlog, CPU, memory, worker headroom, safety exposure, learning state를 비교하며 `experimental better`, `baseline ahead`, `matched behavior`처럼 의미 기반 label을 사용한다. |
 | Research objective evidence | Agent A safety, Agent B efficiency, Agent C admission, learning activity, mirrored-stimulus fidelity를 high-level status card로 보여준다. 모든 negative delta를 나쁘다고 가정하지 않고 `healthy`, `watch`, `mirrored` 같은 semantic label을 사용한다. |
 | Agent goal matrix | Agent A/B/C의 role, goal, trigger rule, live signal, proposal, selected control, reward, baseline analogue를 보여준다. experimental controller를 해석하기 위한 핵심 영역이다. |
-| Control pressure timelines | Safety Forecast, Admission Backlog, Efficiency Energy, Reward Outcome으로 나눈 4개의 최근 5분 graph widget이다. `Efficiency Energy`는 이제 같은 local utilization-derived model로 계산한 experimental `comparison_power_watts`와 baseline estimated watts를 함께 그리므로 두 cluster의 efficiency를 직접 비교할 수 있다. 별도의 Agent B reward-power chip은 experimental `agent_energy_watts` signal로 유지된다. |
+| Control pressure timelines | Safety Forecast, Admission Backlog, Efficiency Energy, Reward Outcome으로 나눈 4개의 최근 5분 graph widget이다. `Efficiency Energy`는 이제 같은 local utilization-derived model로 계산한 experimental/baseline controlled-namespace dynamic watts를 함께 그린다. 따라서 control-plane이나 Prometheus noise가 아니라 controller가 실제로 다루는 namespace의 CPU/memory work를 비교한다. 별도의 Agent B reward-power chip은 experimental `agent_energy_watts` signal로 유지된다. |
 | Controller response narrative | 최신 shared intentional stimulus, experimental decision/proposals/learning state, baseline HPA/local-Karpenter reaction을 함께 보여준다. |
 
 아래 패널을 읽기 전에 `Live comparison observatory`를 먼저 보면 된다. 이 영역은 "같은 workload/fault stimulus에서 어느 cluster가 pressure를 더 잘 흡수하고, 그 행동을 어떤 controller가 만들었는가"를 바로 보여주기 위한 영역이다.
