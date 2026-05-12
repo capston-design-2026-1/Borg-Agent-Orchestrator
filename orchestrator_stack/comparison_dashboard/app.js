@@ -13,8 +13,11 @@ function num(value) {
 }
 function fmt(value, digits = 3) { const n = num(value); return n === null ? 'n/a' : n.toFixed(digits); }
 function pct(value) { const n = num(value); return n === null ? 'n/a' : `${n.toFixed(1)}%`; }
+function objectiveResources(cluster) {
+  return cluster?.controlled_resource_totals || cluster?.resource_totals || {};
+}
 function comparisonPower(cluster) {
-  const resourceTotals = cluster?.resource_totals || {};
+  const resourceTotals = objectiveResources(cluster);
   return num(cluster?.comparison_power_watts ?? resourceTotals.estimated_power_watts ?? cluster?.energy_watts);
 }
 function agentRewardPower(cluster) {
@@ -312,13 +315,13 @@ const timelineWidgets = [
     canvasId:'efficiencyTimelineCanvas',
     legendId:'efficiencyTimelineLegend',
     noteId:'efficiencyTimelineNote',
-    unit:'estimated watts',
+    unit:'controlled dynamic watts',
     maxFloor:5,
     series:[
-      { key:'experimentalComparisonEnergy', color:palette.experimental, label:'experimental estimated watts', width:3 },
-      { key:'baselineEnergy', color:palette.baseline, label:'baseline estimated watts', width:3 },
+      { key:'experimentalComparisonEnergy', color:palette.experimental, label:'experimental controlled watts', width:3 },
+      { key:'baselineEnergy', color:palette.baseline, label:'baseline controlled watts', width:3 },
     ],
-    note: rows => `Latest experimental ${metricText(latestValue(rows, 'experimentalComparisonEnergy'), 1, 'W')}; baseline ${metricText(latestValue(rows, 'baselineEnergy'), 1, 'W')}. Both use the same local utilization model.`,
+    note: rows => `Latest experimental ${metricText(latestValue(rows, 'experimentalComparisonEnergy'), 1, 'W')}; baseline ${metricText(latestValue(rows, 'baselineEnergy'), 1, 'W')}. Both use controlled namespace CPU and memory with the same local utilization model.`,
   },
   {
     canvasId:'rewardTimelineCanvas',
@@ -377,8 +380,8 @@ function renderComparisonVisuals(payload) {
   if (!target) return;
   const exp = payload.experimental || {};
   const base = payload.baseline || {};
-  const expRes = exp.resource_totals || {};
-  const baseRes = base.resource_totals || {};
+  const expRes = objectiveResources(exp);
+  const baseRes = objectiveResources(base);
   const expPower = comparisonPower(exp);
   const basePower = comparisonPower(base);
   const agentPower = agentRewardPower(exp);
@@ -427,9 +430,9 @@ function renderComparisonVisuals(payload) {
 
     <article class="comparison-card">
       <div class="card-title"><span>Agent B objective</span><b>Efficiency pressure</b></div>
-      ${pairBar({ label:'estimated power', experimental:expPower, baseline:basePower, direction:'lower', suffix:'W', digits:1, note:'Both clusters use the same local utilization-derived estimate from Metrics Server, so this is the direct efficiency comparison.' })}
-      ${pairBar({ label:'CPU used', experimental:expRes.usage_cpu_percent, baseline:baseRes.usage_cpu_percent, direction:'lower', suffix:'%', digits:1, domain:100 })}
-      ${pairBar({ label:'memory used', experimental:expRes.usage_memory_percent, baseline:baseRes.usage_memory_percent, direction:'lower', suffix:'%', digits:1, domain:100 })}
+      ${pairBar({ label:'controlled dynamic power', experimental:expPower, baseline:basePower, direction:'lower', suffix:'W', digits:1, note:'This compares only the shared comparison and exercise namespaces, excluding unrelated control-plane and observability noise.' })}
+      ${pairBar({ label:'controlled CPU used', experimental:expRes.usage_cpu_percent, baseline:baseRes.usage_cpu_percent, direction:'lower', suffix:'%', digits:1, domain:100 })}
+      ${pairBar({ label:'controlled memory used', experimental:expRes.usage_memory_percent, baseline:baseRes.usage_memory_percent, direction:'lower', suffix:'%', digits:1, domain:100 })}
       <div class="mini-stat-line">${compactPill('Agent B reward power', metricText(agentPower, 1, 'W'), 'neutral')}${compactPill('comparison model', exp.comparison_power_metric_kind || expRes.power_metric_kind || exp.power_metric_kind || 'estimated', 'neutral')}</div>
     </article>
 
@@ -611,17 +614,17 @@ function render(payload) {
   const base = payload.baseline || {};
   const karp = base.karpenter || {};
   const hpa = hpaReaction(base);
-  const expRes = exp.resource_totals || {}, baseRes = base.resource_totals || {};
+  const expRes = objectiveResources(exp), baseRes = objectiveResources(base);
   $('updatedAt').textContent = new Date().toLocaleTimeString();
   const serverHistory = Array.isArray(payload.history) ? payload.history : [];
   $('sampleCount').textContent = `${serverHistory.length || historyRows.length + 1} samples`;
   $('experimentalRole').textContent = exp.role || 'experimental';
   $('baselineRole').textContent = base.role || 'baseline';
   $('experimentalMetrics').innerHTML = metricHtml([
-    ['nodes', `${exp.ready_nodes ?? 0}/${exp.nodes ?? 0}`], ['workers', `${exp.ready_workers ?? 0}/${exp.worker_nodes ?? 0}`], ['pending', exp.pending_pods], ['CPU used', pct(expRes.usage_cpu_percent)], ['mem used', pct(expRes.usage_memory_percent)], ['reward', fmt(exp.last_reward)], ['stage', compactStage(exp.active_stage)], ['status', exp.orchestrator_status || 'n/a']
+    ['nodes', `${exp.ready_nodes ?? 0}/${exp.nodes ?? 0}`], ['workers', `${exp.ready_workers ?? 0}/${exp.worker_nodes ?? 0}`], ['pending', exp.pending_pods], ['controlled CPU', pct(expRes.usage_cpu_percent)], ['controlled mem', pct(expRes.usage_memory_percent)], ['reward', fmt(exp.last_reward)], ['stage', compactStage(exp.active_stage)], ['status', exp.orchestrator_status || 'n/a']
   ]);
   $('baselineMetrics').innerHTML = metricHtml([
-    ['nodes', `${base.ready_nodes ?? 0}/${base.nodes ?? 0}`], ['workers', `${base.ready_workers ?? 0}/${base.worker_nodes ?? 0}`], ['pending', base.pending_pods], ['CPU used', pct(baseRes.usage_cpu_percent)], ['mem used', pct(baseRes.usage_memory_percent)], ['HPA objects', (base.hpa || []).length], ['active nodes', karp.active_nodes], ['warm nodes', karp.warm_nodes]
+    ['nodes', `${base.ready_nodes ?? 0}/${base.nodes ?? 0}`], ['workers', `${base.ready_workers ?? 0}/${base.worker_nodes ?? 0}`], ['pending', base.pending_pods], ['controlled CPU', pct(baseRes.usage_cpu_percent)], ['controlled mem', pct(baseRes.usage_memory_percent)], ['HPA objects', (base.hpa || []).length], ['active nodes', karp.active_nodes], ['warm nodes', karp.warm_nodes]
   ]);
   $('experimentalRisk').textContent = fmt(exp.max_risk);
   $('experimentalDecision').textContent = compactAction(exp.last_decision);
