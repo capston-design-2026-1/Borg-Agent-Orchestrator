@@ -6,7 +6,11 @@ const palette = {
 const PRESSURE_TIMELINE_WINDOW_MS = 5 * 60 * 1000;
 
 function esc(value) { return String(value ?? 'n/a').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch])); }
-function num(value) { const n = Number(value); return Number.isFinite(n) ? n : null; }
+function num(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
 function fmt(value, digits = 3) { const n = num(value); return n === null ? 'n/a' : n.toFixed(digits); }
 function pct(value) { const n = num(value); return n === null ? 'n/a' : `${n.toFixed(1)}%`; }
 function hpaDesired(cluster) { return (cluster.hpa || []).reduce((sum, item) => sum + Number(item.desired ?? item.current ?? item.min ?? 0), 0); }
@@ -99,6 +103,48 @@ function objectiveStatus(kind, payload) {
   }
   return ['observing', 'neutral'];
 }
+function metricText(value, digits = 1, suffix = '') {
+  const n = num(value);
+  if (n === null) return 'n/a';
+  return `${n.toFixed(digits)}${suffix}`;
+}
+function compareVerdict(experimental, baseline, direction = 'lower', suffix = '') {
+  const expValue = num(experimental);
+  const baseValue = num(baseline);
+  if (expValue === null || baseValue === null) return { tone: 'neutral', text: 'comparison pending' };
+  const delta = expValue - baseValue;
+  const epsilon = Math.max(0.001, Math.abs(baseValue) * 0.005);
+  if (Math.abs(delta) <= epsilon) return { tone: 'neutral', text: 'matched behavior' };
+  const experimentalBetter = direction === 'higher' ? delta > 0 : delta < 0;
+  const magnitude = metricText(Math.abs(delta), suffix === '%' ? 1 : 0, suffix);
+  return experimentalBetter
+    ? { tone: 'good', text: `experimental better by ${magnitude}` }
+    : { tone: 'watch', text: `baseline ahead by ${magnitude}` };
+}
+function pairBar({ label, experimental, baseline, direction = 'lower', suffix = '', digits = 1, domain = null, note = '' }) {
+  const expValue = num(experimental);
+  const baseValue = num(baseline);
+  const max = Math.max(num(domain) ?? 0, expValue ?? 0, baseValue ?? 0, 1);
+  const expWidth = expValue === null ? 0 : Math.min(100, Math.max(expValue === 0 ? 0 : 4, (expValue / max) * 100));
+  const baseWidth = baseValue === null ? 0 : Math.min(100, Math.max(baseValue === 0 ? 0 : 4, (baseValue / max) * 100));
+  const verdict = compareVerdict(expValue, baseValue, direction, suffix);
+  return `
+    <div class="pair-row">
+      <header><span>${esc(label)}</span><strong class="comparison-pill ${verdict.tone}">${esc(verdict.text)}</strong></header>
+      <div class="bar-lane experimental"><em>Experimental</em><i><u style="width:${expWidth}%"></u></i><b>${esc(metricText(expValue, digits, suffix))}</b></div>
+      <div class="bar-lane baseline"><em>Baseline</em><i><u style="width:${baseWidth}%"></u></i><b>${esc(metricText(baseValue, digits, suffix))}</b></div>
+      ${note ? `<small>${esc(note)}</small>` : ''}
+    </div>
+  `;
+}
+function compactPill(label, value, tone = 'neutral') {
+  return `<span class="comparison-pill ${tone}"><b>${esc(label)}</b> ${esc(value)}</span>`;
+}
+function proposalPills(decision) {
+  const proposals = decision?.proposals || [];
+  if (!proposals.length) return '<span class="comparison-pill neutral">no agent proposals yet</span>';
+  return proposals.map(item => compactPill(item.agent || 'agent', `${item.kind || 'action'} ${fmt(item.score)}`, item.agent === decision.agent ? 'good' : 'neutral')).join('');
+}
 function metricHtml(rows) { return rows.map(([k, v]) => `<div><b>${esc(v)}</b><span>${esc(k)}</span></div>`).join(''); }
 function latest() { return historyRows[historyRows.length - 1] || {}; }
 function compactAction(value) {
@@ -106,6 +152,11 @@ function compactAction(value) {
   const parts = text.split(':');
   if (parts.length >= 3) return `${parts[0]}:${parts[2]}`;
   return text;
+}
+function compactStage(value) {
+  const text = String(value || 'n/a');
+  if (text === 'live_kubernetes_loop') return 'live kube loop';
+  return text.replaceAll('_', ' ');
 }
 function displayTime(value) {
   if (!value) return 'waiting';
@@ -287,6 +338,96 @@ function drawCharts(payload, chartHistory) {
   drawPressureTimeline('timelineCanvas', chartHistory);
 }
 
+function renderComparisonVisuals(payload) {
+  const target = $('comparisonVisuals');
+  if (!target) return;
+  const exp = payload.experimental || {};
+  const base = payload.baseline || {};
+  const expRes = exp.resource_totals || {};
+  const baseRes = base.resource_totals || {};
+  const decision = exp.decision || {};
+  const reward = exp.reward_summary || {};
+  const baseSummary = base.pod_summary || {};
+  const basePhases = baseSummary.phase_counts || {};
+  const karp = base.karpenter || {};
+  const stimulus = stimulusSummary(payload);
+  const hpa = hpaReaction(base);
+  const ray = exp.ray || {};
+  const optuna = exp.optuna || {};
+  const selectedAction = exp.last_decision || `${decision.agent || 'waiting'}:${decision.kind || 'n/a'}`;
+  const stimulusMirrorTone = (num(payload.shared_stimulus?.mirror_count ?? (payload.shared_stimulus?.mirrors || []).length) ?? 0) > 0 ? 'good' : 'watch';
+  target.innerHTML = `
+    <article class="comparison-card flow-card">
+      <div class="card-title">
+        <span>mirrored experiment driver</span>
+        <b>Same stimulus, two controller responses</b>
+        <strong class="comparison-pill ${stimulusMirrorTone}">${esc(stimulus.title)}</strong>
+      </div>
+      <div class="split-flow">
+        <div class="control-path experimental">
+          <span>Experimental Agent A/B/C</span>
+          <b>${esc(compactAction(selectedAction))}</b>
+          <em>${esc(decision.reason || 'reason pending')}</em>
+          <div class="pill-row">${proposalPills(decision)}</div>
+        </div>
+        <div class="stimulus-core">
+          <span>intentional Kubernetes stimulus</span>
+          <b>${esc(stimulus.detail)}</b>
+        </div>
+        <div class="control-path baseline">
+          <span>HPA + local Karpenter</span>
+          <b>${esc(hpa.label)}</b>
+          <em>${esc(hpa.detail)}; ${esc(karp.active_nodes ?? 'n/a')} active / ${esc(karp.warm_nodes ?? 'n/a')} warm workers</em>
+        </div>
+      </div>
+    </article>
+
+    <article class="comparison-card">
+      <div class="card-title"><span>Agent C objective</span><b>Admission pressure</b></div>
+      ${pairBar({ label:'pending pods', experimental:exp.pending_pods, baseline:base.pending_pods, direction:'lower', digits:0, note:'Lower pending pods means the controller is absorbing the same stimulus with less scheduling backlog.' })}
+      ${pairBar({ label:'queue / unscheduled pressure', experimental:exp.queue_length, baseline:baseSummary.unscheduled || 0, direction:'lower', digits:0, note:'Experimental queue length is compared with the baseline unscheduled-pod signal as the closest admission-pressure analogue.' })}
+    </article>
+
+    <article class="comparison-card">
+      <div class="card-title"><span>Agent B objective</span><b>Efficiency pressure</b></div>
+      ${pairBar({ label:'CPU used', experimental:expRes.usage_cpu_percent, baseline:baseRes.usage_cpu_percent, direction:'lower', suffix:'%', digits:1, domain:100 })}
+      ${pairBar({ label:'memory used', experimental:expRes.usage_memory_percent, baseline:baseRes.usage_memory_percent, direction:'lower', suffix:'%', digits:1, domain:100 })}
+      <div class="mini-stat-line">${compactPill('experimental power', `${fmt(exp.energy_watts, 1)}W`, 'neutral')}${compactPill('metric kind', exp.power_metric_kind || 'estimated', 'neutral')}</div>
+    </article>
+
+    <article class="comparison-card">
+      <div class="card-title"><span>Agent A objective</span><b>Safety exposure</b></div>
+      <div class="risk-meter">
+        <span>experimental forecast risk</span>
+        <i><u style="width:${Math.min(100, Math.max(0, (num(exp.max_risk) ?? 0) * 100))}%"></u></i>
+        <b>${fmt(exp.max_risk)}</b>
+      </div>
+      <div class="mini-stat-grid">
+        ${compactPill('SLA', exp.sla_violations ?? 0, (num(exp.sla_violations) ?? 0) === 0 ? 'good' : 'bad')}
+        ${compactPill('baseline failed', basePhases.Failed || 0, (basePhases.Failed || 0) === 0 ? 'good' : 'bad')}
+        ${compactPill('baseline restarts', baseSummary.restarts || 0, (baseSummary.restarts || 0) === 0 ? 'good' : 'watch')}
+      </div>
+      <small>Agent A is proactive: it sees forecast risk before Kubernetes exposes only failed pods or restarts.</small>
+    </article>
+
+    <article class="comparison-card">
+      <div class="card-title"><span>Capacity behavior</span><b>Worker headroom</b></div>
+      ${pairBar({ label:'ready workers', experimental:exp.ready_workers, baseline:base.ready_workers, direction:'higher', digits:0 })}
+      ${pairBar({ label:'schedulable workers', experimental:exp.schedulable_nodes, baseline:base.schedulable_nodes, direction:'higher', digits:0 })}
+      <div class="mini-stat-line">${compactPill('baseline active', karp.active_nodes ?? 'n/a', 'neutral')}${compactPill('baseline warm', karp.warm_nodes ?? 'n/a', 'neutral')}</div>
+    </article>
+
+    <article class="comparison-card learning-card">
+      <div class="card-title"><span>Learning and policy adaptation</span><b>Adaptive vs fixed control</b></div>
+      <div class="learning-split">
+        <div><span>Experimental</span><b>reward ${fmt(reward.average_total)}</b><em>Ray ${esc(ray.status || 'n/a')} / Optuna ${esc(optuna.completed_trials ?? 0)} trials</em></div>
+        <div><span>Baseline</span><b>fixed HPA loop</b><em>${esc(hpa.label)}; no reward learner or MARL policy.</em></div>
+      </div>
+      <small>The comparison is not only resource count: it asks whether learned decisions improve safety, efficiency, and admission behavior under the same injected cluster stimulus.</small>
+    </article>
+  `;
+}
+
 function renderObjectiveEvidence(payload) {
   const target = $('objectiveEvidence');
   if (!target) return;
@@ -437,7 +578,7 @@ function render(payload) {
   $('experimentalRole').textContent = exp.role || 'experimental';
   $('baselineRole').textContent = base.role || 'baseline';
   $('experimentalMetrics').innerHTML = metricHtml([
-    ['nodes', `${exp.ready_nodes ?? 0}/${exp.nodes ?? 0}`], ['workers', `${exp.ready_workers ?? 0}/${exp.worker_nodes ?? 0}`], ['pending', exp.pending_pods], ['CPU used', pct(expRes.usage_cpu_percent)], ['mem used', pct(expRes.usage_memory_percent)], ['reward', fmt(exp.last_reward)], ['stage', exp.active_stage || 'n/a'], ['status', exp.orchestrator_status || 'n/a']
+    ['nodes', `${exp.ready_nodes ?? 0}/${exp.nodes ?? 0}`], ['workers', `${exp.ready_workers ?? 0}/${exp.worker_nodes ?? 0}`], ['pending', exp.pending_pods], ['CPU used', pct(expRes.usage_cpu_percent)], ['mem used', pct(expRes.usage_memory_percent)], ['reward', fmt(exp.last_reward)], ['stage', compactStage(exp.active_stage)], ['status', exp.orchestrator_status || 'n/a']
   ]);
   $('baselineMetrics').innerHTML = metricHtml([
     ['nodes', `${base.ready_nodes ?? 0}/${base.nodes ?? 0}`], ['workers', `${base.ready_workers ?? 0}/${base.worker_nodes ?? 0}`], ['pending', base.pending_pods], ['CPU used', pct(baseRes.usage_cpu_percent)], ['mem used', pct(baseRes.usage_memory_percent)], ['HPA objects', (base.hpa || []).length], ['active nodes', karp.active_nodes], ['warm nodes', karp.warm_nodes]
@@ -451,6 +592,7 @@ function render(payload) {
     baselineController.title = hpa.detail;
   }
   $('baselineWarm').textContent = `${karp.active_nodes ?? 'n/a'} active / ${karp.warm_nodes ?? 'n/a'} warm`;
+  renderComparisonVisuals(payload);
   renderObjectiveEvidence(payload);
   renderAgentGoalMatrix(payload);
   renderReactions(exp, base);
