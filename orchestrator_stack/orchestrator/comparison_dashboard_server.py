@@ -36,8 +36,8 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
     shared_stimulus_path = Path("orchestrator_stack/runtime/comparison/shared_stimulus.json")
     sample_history: list[dict[str, Any]] = []
     last_sample_epoch = 0.0
-    max_history_samples = 7200
-    min_history_interval_seconds = 1.0
+    max_history_samples = 14400
+    min_history_interval_seconds = 0.5
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, directory=str(self.dashboard_dir), **kwargs)
