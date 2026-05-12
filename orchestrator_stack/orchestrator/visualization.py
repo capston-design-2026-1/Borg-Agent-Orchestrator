@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 import time
 from dataclasses import replace
 from pathlib import Path
@@ -24,6 +26,9 @@ try:
     import optuna
 except Exception:  # pragma: no cover
     optuna = None
+
+
+DEFAULT_VISUALIZED_OPTUNA_STUDY_NAME = "visualized_orchestrator_reward_weights_live_action_v2"
 
 
 def _backend(rows: list[dict[str, Any]], config: OrchestratorConfig):
@@ -168,12 +173,27 @@ def _sync_optuna_study_history(study: Any, study_name: str, state: Visualization
     )
 
 
+def _safe_optuna_study_fragment(value: str) -> str:
+    fragment = re.sub(r"[^A-Za-z0-9_.-]+", "_", value.strip()).strip("_.-")
+    return fragment or "default"
+
+
+def _visualized_optuna_study_name() -> str:
+    explicit = os.environ.get("BORG_OPTUNA_STUDY_NAME") or os.environ.get("OPTUNA_STUDY_NAME")
+    if explicit:
+        return _safe_optuna_study_fragment(explicit)
+    epoch = os.environ.get("BORG_OPTUNA_STUDY_EPOCH") or os.environ.get("OPTUNA_STUDY_EPOCH")
+    if epoch:
+        return f"visualized_orchestrator_reward_weights_{_safe_optuna_study_fragment(epoch)}"
+    return DEFAULT_VISUALIZED_OPTUNA_STUDY_NAME
+
+
 def _tune_rewards(config: OrchestratorConfig, rows: list[dict[str, Any]], state: VisualizationState, *, trials: int) -> dict[str, Any]:
     if optuna is None:
         return {"status": "skipped", "reason": "optuna is not installed"}
     config.optuna_storage_path.parent.mkdir(parents=True, exist_ok=True)
     storage = f"sqlite:///{config.optuna_storage_path.resolve()}"
-    study_name = "visualized_orchestrator_reward_weights"
+    study_name = _visualized_optuna_study_name()
     study = optuna.create_study(direction="maximize", storage=storage, study_name=study_name, load_if_exists=True)
     _sync_optuna_study_history(study, study_name, state, status="running")
 
