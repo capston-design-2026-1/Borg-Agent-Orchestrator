@@ -114,13 +114,13 @@ live exerciser는 실제 Kubernetes mutation을 수행한다. 예를 들어 `bor
 | 이름 | 실제 Kubernetes에 직접 수행되는가 | 의미 |
 |---|---:|---|
 | Intentional Kubernetes Stimulus | 예 | exerciser가 `kubectl apply/delete`로 exercise namespace의 synthetic Deployment를 만들거나 삭제한다. 이 변화가 cluster risk/demand를 흔들어 Agent A/B/C가 다양한 결정을 하도록 만든다. |
-| Performed Action | live exercise mode에서는 예 | Referee가 선택한 오케스트레이션 action이다. live dashboard는 이 action을 twin transition과 reward 계산에 적용한 뒤, 제한된 Kubernetes executor가 experimental cluster의 `borg-orchestrator-exercise` namespace 안에서 exerciser label이 붙은 Deployment만 변경한다. baseline에 mirror된 stimulus는 Agent A/B/C가 직접 바꾸지 않는다. |
+| Performed Action | live exercise mode에서는 예 | Referee가 선택한 오케스트레이션 action이다. live dashboard는 이 action을 twin transition과 reward 계산에 적용한 뒤, 제한된 Kubernetes executor가 experimental cluster의 `borg-orchestrator-exercise` namespace 안에서 exerciser label이 붙은 Deployment를 변경하고 experimental `comparison-load-generator`의 QoS envelope도 제한할 수 있다. baseline에 mirror된 stimulus는 Agent A/B/C가 직접 바꾸지 않는다. |
 
 따라서 thesis 보고서에서는 다음처럼 표현하는 것이 정확하다.
 
 - 외부 perturbation은 Workload Exerciser가 수행하며 두 cluster에 동일하게 mirror된다.
 - Agent/Referee action은 live cluster snapshot을 보고 선택된 control decision이며, twin/reward layer에서 평가된다.
-- live exercise mode에서는 selected action이 experimental cluster의 제한된 Kubernetes remediation도 수행한다. Agent C는 exercise backlog를 cap/reject/deprioritize하고, Agent B는 resource envelope을 낮추거나 exerciser workload를 sleep시키며, Agent A는 controlled exercise workload를 throttle/migrate/replicate할 수 있다.
+- live exercise mode에서는 selected action이 experimental cluster의 제한된 Kubernetes remediation도 수행한다. Agent C는 exercise backlog를 cap/reject/deprioritize하고, Agent B는 resource envelope을 낮추거나 exerciser workload를 sleep시키며, Agent A는 controlled exercise workload를 throttle/migrate/replicate할 수 있다. 또한 protective/efficiency action은 baseline을 그대로 둔 채 experimental load-generator resource만 제한할 수 있다.
 
 ## 상단 Hero와 실행 상태 카드
 
