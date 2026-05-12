@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Borg Orchestrator Comparison</title>
-  <link rel="stylesheet" href="styles.css?v=202605121520" />
+  <link rel="stylesheet" href="styles.css?v=202605121650" />
 </head>
 <body>
   <main class="shell">
@@ -44,13 +44,40 @@
       <div id="objectiveEvidence" class="objective-grid"></div>
     </section>
 
-    <section class="chart-grid primary-charts">
-      <article class="panel chart-card wide">
-        <div class="panel-head"><h2>Control Pressure Timeline</h2><span>five-minute objective window</span></div>
-        <canvas id="timelineCanvas" width="1700" height="620"></canvas>
-        <p id="timelineWindow" class="chart-note">waiting for comparison samples</p>
-        <div id="timelineLegend" class="legend"></div>
-      </article>
+    <section class="split-timeline-section">
+      <div class="timeline-section-head">
+        <div>
+          <h2>Control Pressure Timelines</h2>
+          <p id="timelineWindow">waiting for comparison samples</p>
+        </div>
+        <span>four separated five-minute objective windows</span>
+      </div>
+      <div class="split-timeline-grid">
+        <article class="panel chart-card timeline-card safety-timeline">
+          <div class="panel-head"><h2>Safety Forecast</h2><span>Agent A</span></div>
+          <canvas id="safetyTimelineCanvas" width="840" height="340"></canvas>
+          <p id="safetyTimelineNote" class="chart-note">waiting</p>
+          <div id="safetyTimelineLegend" class="legend timeline-legend"></div>
+        </article>
+        <article class="panel chart-card timeline-card admission-timeline">
+          <div class="panel-head"><h2>Admission Backlog</h2><span>Agent C vs baseline</span></div>
+          <canvas id="admissionTimelineCanvas" width="840" height="340"></canvas>
+          <p id="admissionTimelineNote" class="chart-note">waiting</p>
+          <div id="admissionTimelineLegend" class="legend timeline-legend"></div>
+        </article>
+        <article class="panel chart-card timeline-card efficiency-timeline">
+          <div class="panel-head"><h2>Efficiency Energy</h2><span>Agent B</span></div>
+          <canvas id="efficiencyTimelineCanvas" width="840" height="340"></canvas>
+          <p id="efficiencyTimelineNote" class="chart-note">waiting</p>
+          <div id="efficiencyTimelineLegend" class="legend timeline-legend"></div>
+        </article>
+        <article class="panel chart-card timeline-card reward-timeline">
+          <div class="panel-head"><h2>Reward Outcome</h2><span>weighted feedback</span></div>
+          <canvas id="rewardTimelineCanvas" width="840" height="340"></canvas>
+          <p id="rewardTimelineNote" class="chart-note">waiting</p>
+          <div id="rewardTimelineLegend" class="legend timeline-legend"></div>
+        </article>
+      </div>
     </section>
 
     <section class="panel agent-panel">
@@ -69,6 +96,6 @@
       <p id="errors" class="error-line"></p>
     </section>
   </main>
-  <script src="app.js?v=202605121520"></script>
+  <script src="app.js?v=202605121650"></script>
 </body>
 </html>
