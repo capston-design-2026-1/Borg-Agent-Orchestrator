@@ -2,9 +2,51 @@
 
 1. Add a local dual-cluster experiment runner that applies a fixed sequence of mirrored stimuli, records per-stimulus windows, and exports timestamped comparison evidence.
 2. Persist comparison dashboard time-series history to JSON/CSV so thesis evidence survives browser refresh and can be cited.
-3. Add automatic baseline Prometheus port-forward support beside the comparison dashboard launcher.
-4. Replace calibrated utilization-derived energy watts with a direct measured node-power source when available; Prometheus/node-exporter now supplies CPU and memory utilization but not hardware wattmeter readings.
-5. Expand the current five-family policy gate suite with another full-phase AIOpsLab family when available.
+3. Harden lifecycle scripts so dashboard, comparison server, local Karpenter, Prometheus port-forwards, and live orchestrator can be started/stopped as durable detached processes without manual `screen` repair.
+4. Add windowed objective summaries for the comparison dashboard: controlled CPU/memory, controlled dynamic watts, pending pods, request pressure, reward, risk, and action effectiveness over 1/5/15 minute windows.
+5. Replace calibrated utilization-derived energy watts with a direct measured node-power source when available; Prometheus/node-exporter now supplies CPU and memory utilization but not hardware wattmeter readings.
+6. Expand the current five-family policy gate suite with another full-phase AIOpsLab family when available.
+
+## Latest Session Note (2026-05-12 KST, live remediation and comparison fidelity handoff)
+
+- Root cause fixed:
+  - the experimental cluster could fail to exceed baseline because Agent A/B/C decisions were not direct Kubernetes actions.
+  - live exercise mode now executes the selected Referee action through `orchestrator_stack/orchestrator/layer1/kubernetes_actions.py`.
+- Real Kubernetes action scope:
+  - only experimental-side controlled resources are mutated.
+  - exerciser Deployments are changed in `borg-orchestrator-exercise`.
+  - protective/efficiency actions can also cap the experimental `borg-comparison-workload/comparison-load-generator` QoS envelope.
+  - mirrored baseline stimulus remains unchanged by Agent A/B/C.
+- Runtime state schema:
+  - `decision.kubernetes_execution` now records `status`, `matched_deployments`, `workload_namespace`, and exact `kubectl` operations.
+- Stimulus realism:
+  - schedulable exercise phases now use bounded BusyBox CPU-burner containers so CPU/power changes are visible through Metrics Server.
+  - unschedulable Agent C admission phases still use `pause` pods because their goal is queue/backlog pressure, not active CPU burn.
+- Comparison dashboard semantics:
+  - `controlled_resource_totals` compares only `borg-comparison-workload` plus `borg-orchestrator-exercise`.
+  - controlled dynamic watts are calculated from controlled namespace CPU/memory usage rather than whole-cluster idle/control-plane noise.
+  - raw total cluster metrics are still available in the API but should not be the primary thesis comparison metric.
+- Current live runtime:
+  - running in detached `screen` sessions:
+    - `borg-experimental-orchestrator`
+    - `borg-exp-dashboard`
+    - `borg-comparison-dashboard`
+    - `borg-local-karpenter`
+    - `borg-exp-prom`
+    - `borg-base-prom`
+  - experimental dashboard: `http://127.0.0.1:8765`
+  - comparison dashboard: `http://127.0.0.1:8876`
+  - experimental Prometheus: `http://127.0.0.1:19090`
+  - baseline Prometheus: `http://127.0.0.1:19091`
+- Latest live verification before this handoff:
+  - `state.json` active stage was `live_kubernetes_loop`.
+  - latest observed decision had `kubernetes_execution.status=applied`.
+  - example operation: scale/cap `admission-cap` and cap `comparison-load-generator`.
+  - Optuna persistent study had `42` completed trials.
+- Test validation:
+  - `PYTHONPATH=orchestrator_stack ./.venv/bin/python -m pytest orchestrator_stack/tests -q`: `121 passed`
+  - `git diff --check`: clean
+- Next session should not judge the architecture from one instantaneous dashboard sample. Metrics Server lag and phase rotation can make CPU/memory samples noisy. Build/export fixed-window evidence before making thesis-level claims.
 
 ## Latest Session Note (2026-05-08 KST, continuity handoff)
 
