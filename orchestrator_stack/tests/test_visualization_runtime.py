@@ -222,6 +222,22 @@ def test_optuna_study_history_keeps_all_completed_trials():
     assert [row["value"] for row in history] == [3.0, 8.0]
 
 
+def test_visualized_optuna_study_name_uses_architecture_epoch(monkeypatch):
+    from orchestrator.visualization import DEFAULT_VISUALIZED_OPTUNA_STUDY_NAME, _visualized_optuna_study_name
+
+    monkeypatch.delenv("BORG_OPTUNA_STUDY_NAME", raising=False)
+    monkeypatch.delenv("OPTUNA_STUDY_NAME", raising=False)
+    monkeypatch.delenv("BORG_OPTUNA_STUDY_EPOCH", raising=False)
+    monkeypatch.delenv("OPTUNA_STUDY_EPOCH", raising=False)
+    assert _visualized_optuna_study_name() == DEFAULT_VISUALIZED_OPTUNA_STUDY_NAME
+
+    monkeypatch.setenv("BORG_OPTUNA_STUDY_EPOCH", "live action v3")
+    assert _visualized_optuna_study_name() == "visualized_orchestrator_reward_weights_live_action_v3"
+
+    monkeypatch.setenv("BORG_OPTUNA_STUDY_NAME", "custom thesis study")
+    assert _visualized_optuna_study_name() == "custom_thesis_study"
+
+
 def test_live_kubernetes_orchestration_loop_uses_cluster_snapshots(monkeypatch, tmp_path: Path):
     from orchestrator import visualization
 
