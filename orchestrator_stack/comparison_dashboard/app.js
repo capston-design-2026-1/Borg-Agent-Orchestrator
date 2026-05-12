@@ -4,6 +4,7 @@ const palette = {
   experimental: '#16835f', baseline: '#d48a20', blue: '#2f6f9f', red: '#b44634', ink: '#10201a', muted: '#65756e', grid: 'rgba(16,32,26,.14)', panel: 'rgba(255,255,255,.58)'
 };
 const PRESSURE_TIMELINE_WINDOW_MS = 5 * 60 * 1000;
+const COMPARISON_POLL_INTERVAL_MS = 1000;
 
 function esc(value) { return String(value ?? 'n/a').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch])); }
 function num(value) {
@@ -677,20 +678,29 @@ function render(payload) {
   const chartHistory = serverHistory.length ? serverHistory : historyRows;
   const pressureHistory = pressureWindowRows(chartHistory);
   const first = pressureHistory[0], last = pressureHistory[pressureHistory.length - 1];
+  const serverFloor = num(payload.history_retention?.min_interval_seconds);
+  const cadence = serverFloor === null
+    ? `polling every ${(COMPARISON_POLL_INTERVAL_MS / 1000).toFixed(1)}s`
+    : `polling every ${(COMPARISON_POLL_INTERVAL_MS / 1000).toFixed(1)}s; server sample floor ${serverFloor.toFixed(serverFloor < 1 ? 1 : 0)}s`;
   $('timelineWindow').textContent = pressureHistory.length
-    ? `Showing ${pressureHistory.length} samples from the past 5 minutes (${displayTime(first.time)} to ${displayTime(last.time)}); ${chartHistory.length} retained total samples remain available while the server runs.`
+    ? `Showing ${pressureHistory.length} samples from the past 5 minutes (${displayTime(first.time)} to ${displayTime(last.time)}); ${chartHistory.length} retained total samples remain available while the server runs; ${cadence}.`
     : 'waiting for comparison samples';
   drawCharts(payload, pressureHistory);
 }
+let pollInFlight = false;
 async function tick() {
+  if (pollInFlight) return;
+  pollInFlight = true;
   try {
     const res = await fetch('/api/comparison', { cache:'no-store' });
     render(await res.json());
   } catch (err) {
     console.error(err);
     $('errors').textContent = `dashboard fetch failed: ${err}`;
+  } finally {
+    pollInFlight = false;
   }
 }
 window.addEventListener('resize', () => { if (window.latestPayload || latest()) tick(); });
 tick();
-setInterval(tick, 2500);
+setInterval(tick, COMPARISON_POLL_INTERVAL_MS);
