@@ -114,13 +114,13 @@ The dashboard shows two action-like streams, and they should not be confused.
 | Name | Directly mutates Kubernetes now? | Meaning |
 |---|---:|---|
 | Intentional Kubernetes Stimulus | Yes | The exerciser runs `kubectl apply/delete` in the exercise namespace to create controlled cluster fluctuation. This is what makes risk/demand change and gives Agent A/B/C decision opportunities. |
-| Performed Action | Yes, when live exercise mode is enabled | The Referee-selected orchestration decision. The dashboard applies it to the twin transition and reward calculation, then a narrow Kubernetes executor mutates only labeled exerciser Deployments in the experimental `borg-orchestrator-exercise` namespace. Baseline stimulus is not mutated by Agent A/B/C. |
+| Performed Action | Yes, when live exercise mode is enabled | The Referee-selected orchestration decision. The dashboard applies it to the twin transition and reward calculation, then a narrow Kubernetes executor mutates labeled exerciser Deployments in the experimental `borg-orchestrator-exercise` namespace and can cap the experimental `comparison-load-generator` QoS envelope. Baseline stimulus is not mutated by Agent A/B/C. |
 
 For thesis wording, the precise interpretation is:
 
 - The external perturbation is performed by the Workload Exerciser and mirrored to both clusters.
 - Agent/Referee actions are control decisions selected from live cluster observations and evaluated through the twin/reward layer.
-- In live exercise mode, the selected action also becomes a bounded Kubernetes remediation on the experimental cluster: Agent C can cap/reject/deprioritize exercise backlog, Agent B can lower resource envelopes or sleep exerciser work, and Agent A can throttle/migrate/replicate the controlled exercise workload.
+- In live exercise mode, the selected action also becomes a bounded Kubernetes remediation on the experimental cluster: Agent C can cap/reject/deprioritize exercise backlog, Agent B can lower resource envelopes or sleep exerciser work, Agent A can throttle/migrate/replicate the controlled exercise workload, and protective/efficiency actions can cap the experimental load-generator resources without changing the baseline.
 
 ## Hero and Runtime Status
 
