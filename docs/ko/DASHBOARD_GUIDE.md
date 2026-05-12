@@ -378,14 +378,26 @@ Optuna는 reward weight와 일부 policy tuning을 위한 meta-optimization laye
 
 | UI 요소 | 의미 |
 |---|---|
-| Study name | 보통 `visualized_orchestrator_reward_weights`. |
+| Study name | 보통 `visualized_orchestrator_reward_weights_live_action_v2`다. `OPTUNA_STUDY_EPOCH`를 지정하면 `visualized_orchestrator_reward_weights_<epoch>` 형태가 된다. |
 | `alpha`, `beta`, `gamma` 카드 | 현재 best trial의 reward weights. |
 | Objective score graph | Optuna가 maximize하는 objective value. 선이 하나인 이유는 objective가 하나이기 때문이다. |
 | Weight graph | trial마다 sample된 `alpha`, `beta`, `gamma` 세 weight의 변화. point와 end label을 함께 그려 각 parameter sample이 읽히도록 한다. |
 | Optuna graph x-axis | persistent Optuna study trial ID다. 예: `T0`, `T1`, `T20`. |
 | Optuna window note | 현재 dashboard가 불러온 completed persistent trial 개수와 표시 범위(`Tfirst` to `Tlast`)를 보여준다. |
 
-Optuna study는 `orchestrator_stack/runtime/optuna/orchestrator.db`에 저장되고 `load_if_exists=True`로 재사용되기 때문에 launch가 바뀌어도 global trial ID가 계속 증가한다. Dashboard는 이제 최신 3-trial bootstrap callback window만 그리지 않고, persistent study 안에 있는 모든 completed trial을 `state.json`으로 export해서 그린다. 따라서 study에 이미 `T0`부터 `T20`까지 있다면, 이 runtime 버전으로 launcher를 다시 시작한 뒤 Objective graph와 Weight graph 모두 `T0`부터 `T20`까지의 전체 history를 보여야 한다.
+Optuna store는 `orchestrator_stack/runtime/optuna/orchestrator.db`에 저장되고 `load_if_exists=True`로 재사용된다. 다만 architecture epoch마다 별도 study name을 사용하므로 reward semantics나 Kubernetes action execution이 바뀐 뒤에도 예전 trial이 best-so-far line을 고정하지 않는다. Dashboard는 active study 안의 completed trial 전체를 export해서 그린다.
+
+큰 architecture 변경 때문에 예전 objective score와 현재 objective score가 비교 불가능해졌다면 active study를 refresh한다.
+
+```bash
+OPTUNA_REFRESH=1 NO_TUNE=0 TRIALS=20 ./orchestrator_stack/scripts/launch_orchestration.sh
+```
+
+논문용으로 재현 가능한 실험을 남길 때는 명시적인 epoch name을 쓰는 것이 좋다.
+
+```bash
+OPTUNA_STUDY_EPOCH=thesis_live_v3 NO_TUNE=0 TRIALS=20 ./orchestrator_stack/scripts/launch_orchestration.sh
+```
 
 Optuna search range는 다음과 같다.
 
