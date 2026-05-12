@@ -306,6 +306,95 @@ def test_live_kubernetes_orchestration_loop_uses_cluster_snapshots(monkeypatch, 
     assert state["cluster"]["telemetry_sources"] == ["kubernetes_api", "prometheus_node_exporter"]
 
 
+def test_live_kubernetes_loop_records_real_action_execution(monkeypatch, tmp_path: Path):
+    from orchestrator import visualization
+
+    trace_path = tmp_path / "trace.json"
+    trace_path.write_text(
+        json.dumps(
+            [
+                {
+                    "timestamp": 1,
+                    "nodes": [{"node_id": "node-1", "cpu_util": 0.2, "mem_util": 0.2, "disk_util": 0.0, "net_util": 0.0}],
+                    "tasks": [],
+                    "p_fail_scores": {"node-1": 0.2},
+                    "demand_projection": {"node-1": 0.2},
+                    "queue_length": 0,
+                    "energy_price": 0.1,
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    cfg = tmp_path / "config.json"
+    cfg.write_text(
+        json.dumps(
+            {
+                "trace_path": str(trace_path),
+                "risk_model_path": str(tmp_path / "risk.json"),
+                "demand_model_path": str(tmp_path / "demand.json"),
+                "episode_steps": 1,
+                "use_predictor_runtime": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        visualization,
+        "capture_kubernetes_trace_row",
+        lambda **kwargs: {
+            "timestamp": 2,
+            "nodes": [{"node_id": "node-1", "cpu_util": 0.2, "mem_util": 0.2, "disk_util": 0.0, "net_util": 0.0}],
+            "tasks": [],
+            "p_fail_scores": {"node-1": 0.2},
+            "demand_projection": {"node-1": 0.2},
+            "queue_length": 130,
+            "energy_price": 0.1,
+            "sla_violations": 0,
+            "completed_tasks": 0,
+            "energy_watts": 90.0,
+        },
+    )
+    monkeypatch.setattr(
+        visualization,
+        "train_brain_models",
+        lambda config: {"risk_model": str(tmp_path / "risk.json"), "demand_model": str(tmp_path / "demand.json")},
+    )
+    monkeypatch.setattr(
+        visualization,
+        "apply_exercise_phase_to_clusters",
+        lambda **kwargs: {
+            "phase": "admission-cap",
+            "detail": "test",
+            "namespace": kwargs["namespace"],
+            "operation": "apply",
+        },
+    )
+    executions = []
+
+    def fake_execute(action, kubeconfig, namespace):
+        executions.append((action.kind.value, str(kubeconfig), namespace))
+        return {"status": "applied", "namespace": namespace, "operations": [{"description": "scale admission-cap to 1"}]}
+
+    monkeypatch.setattr(visualization, "execute_live_kubernetes_action", fake_execute)
+
+    visualization.run_live_kubernetes_orchestration(
+        cfg,
+        event_dir=tmp_path / "events",
+        kubeconfig="/tmp/kubeconfig",
+        max_iterations=1,
+        trace_out=tmp_path / "live_trace.json",
+        train_policy=False,
+        tune_rewards=False,
+        exercise_cluster=True,
+    )
+    state = json.loads((tmp_path / "events" / "state.json").read_text(encoding="utf-8"))
+
+    assert executions == [("resource_cap", "/tmp/kubeconfig", "borg-orchestrator-exercise")]
+    assert state["decision"]["kubernetes_execution"]["status"] == "applied"
+    assert state["summary"]["last_action"]["kubernetes_execution"]["operations"][0]["description"] == "scale admission-cap to 1"
+
+
 def test_live_kubernetes_loop_continues_without_xgboost(monkeypatch, tmp_path: Path):
     from orchestrator import visualization
 
