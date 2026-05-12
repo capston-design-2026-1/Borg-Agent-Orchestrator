@@ -10,6 +10,8 @@ from orchestrator.types import ActionKind, AgentAction
 
 
 DEFAULT_EXERCISE_NAMESPACE = "borg-orchestrator-exercise"
+DEFAULT_WORKLOAD_NAMESPACE = "borg-comparison-workload"
+LOAD_GENERATOR_DEPLOYMENT = "comparison-load-generator"
 
 
 def _run_kubectl(kubeconfig: str | Path, args: list[str]) -> subprocess.CompletedProcess[str]:
@@ -127,16 +129,44 @@ def _rollout_restart(
         )
 
 
+def _cap_load_generator(
+    kubeconfig: str | Path,
+    namespace: str,
+    operations: list[dict[str, Any]],
+    *,
+    cpu_request: str = "10m",
+    cpu_limit: str = "60m",
+    memory_request: str = "16Mi",
+    memory_limit: str = "48Mi",
+) -> None:
+    _record_operation(
+        kubeconfig,
+        operations,
+        f"cap {LOAD_GENERATOR_DEPLOYMENT} QoS envelope",
+        [
+            "-n",
+            namespace,
+            "set",
+            "resources",
+            f"deployment/{LOAD_GENERATOR_DEPLOYMENT}",
+            f"--requests=cpu={cpu_request},memory={memory_request}",
+            f"--limits=cpu={cpu_limit},memory={memory_limit}",
+        ],
+    )
+
+
 def execute_live_kubernetes_action(
     action: AgentAction,
     kubeconfig: str | Path,
     *,
     namespace: str = DEFAULT_EXERCISE_NAMESPACE,
+    workload_namespace: str = DEFAULT_WORKLOAD_NAMESPACE,
 ) -> dict[str, Any]:
     """Apply a selected Referee action to the live experimental exercise namespace.
 
-    The executor is intentionally narrow: it only touches deployments created by the
-    orchestrator exerciser label in the configured namespace. Mirrored baseline
+    The executor is intentionally narrow: it touches deployments created by the
+    orchestrator exerciser label in the configured namespace and applies a bounded
+    QoS cap to the experimental comparison load generator. Mirrored baseline
     stimulus is left untouched so HPA/Karpenter and Agent A/B/C remain separate
     controller responses to the same external fault/load injection.
     """
@@ -151,6 +181,7 @@ def execute_live_kubernetes_action(
         "target": action.target,
         "payload": dict(action.payload),
         "matched_deployments": names,
+        "workload_namespace": workload_namespace,
         "operations": operations,
     }
     if discovery_error:
@@ -172,17 +203,21 @@ def execute_live_kubernetes_action(
             limits={"cpu": "100m", "memory": "64Mi"},
         )
         _scale(kubeconfig, namespace, targets, 1, operations)
+        _cap_load_generator(kubeconfig, workload_namespace, operations)
     elif action.kind == ActionKind.ADMISSION:
         decision = str(action.payload.get("decision", "admit"))
         targets = _target_deployments(names, prefer_admission=True)
         replicas_by_decision = {"reject": 0, "deprioritize": 6, "queue": 12, "admit": 1}
         if decision in replicas_by_decision:
             _scale(kubeconfig, namespace, targets, replicas_by_decision[decision], operations)
+        if decision in {"reject", "deprioritize", "queue"}:
+            _cap_load_generator(kubeconfig, workload_namespace, operations)
         result["admission_decision"] = decision
     elif action.kind == ActionKind.POWER_STATE:
         state = str(action.payload.get("state", "on"))
         if state in {"sleep", "off"}:
             _scale(kubeconfig, namespace, names, 0, operations)
+            _cap_load_generator(kubeconfig, workload_namespace, operations, cpu_request="5m", cpu_limit="40m")
         elif state == "on":
             _scale(kubeconfig, namespace, names, 1, operations)
         result["power_state"] = state
@@ -195,6 +230,7 @@ def execute_live_kubernetes_action(
             requests={"cpu": "250m", "memory": "96Mi"},
             limits={"cpu": "500m", "memory": "192Mi"},
         )
+        _cap_load_generator(kubeconfig, workload_namespace, operations)
     elif action.kind == ActionKind.MEMORY_BALLOON:
         _set_resources(
             kubeconfig,
@@ -204,6 +240,7 @@ def execute_live_kubernetes_action(
             requests={"cpu": "400m", "memory": "48Mi"},
             limits={"cpu": "700m", "memory": "96Mi"},
         )
+        _cap_load_generator(kubeconfig, workload_namespace, operations, memory_request="12Mi", memory_limit="32Mi")
     elif action.kind == ActionKind.THROTTLE:
         _set_resources(
             kubeconfig,
@@ -213,8 +250,10 @@ def execute_live_kubernetes_action(
             requests={"cpu": "250m", "memory": "96Mi"},
             limits={"cpu": "500m", "memory": "192Mi"},
         )
+        _cap_load_generator(kubeconfig, workload_namespace, operations)
     elif action.kind == ActionKind.MIGRATE:
         _rollout_restart(kubeconfig, namespace, names, operations)
+        _cap_load_generator(kubeconfig, workload_namespace, operations)
     elif action.kind == ActionKind.REPLICATE:
         _scale(kubeconfig, namespace, names, 2, operations)
         _set_resources(
@@ -225,6 +264,7 @@ def execute_live_kubernetes_action(
             requests={"cpu": "200m", "memory": "96Mi"},
             limits={"cpu": "500m", "memory": "192Mi"},
         )
+        _cap_load_generator(kubeconfig, workload_namespace, operations)
     else:
         result["status"] = "unsupported"
         return result
