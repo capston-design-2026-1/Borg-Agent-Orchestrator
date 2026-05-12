@@ -181,6 +181,18 @@ Use more Optuna trials:
 TRIALS=10 ./orchestrator_stack/scripts/launch_orchestration.sh
 ```
 
+Refresh Optuna after architecture or reward-semantics changes:
+
+```bash
+OPTUNA_REFRESH=1 NO_TUNE=0 TRIALS=20 ./orchestrator_stack/scripts/launch_orchestration.sh
+```
+
+Use a named Optuna architecture epoch:
+
+```bash
+OPTUNA_STUDY_EPOCH=thesis_live_v3 NO_TUNE=0 TRIALS=20 ./orchestrator_stack/scripts/launch_orchestration.sh
+```
+
 Enable Ray/RLlib bootstrap in live Kubernetes mode:
 
 ```bash
