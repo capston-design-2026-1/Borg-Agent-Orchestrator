@@ -133,10 +133,13 @@ The comparison dashboard is designed to show behavioral differences, not just wh
 
 | Area | What it shows | Why it matters |
 |---|---|---|
+| Live comparison observatory | shared stimulus flow, experimental Agent A/B/C reaction, baseline HPA/local-Karpenter reaction, side-by-side bars for backlog, CPU, memory, capacity, safety, and learning state | restores intuitive visual comparison without returning to the old raw metric pile; every card keeps both clusters in the same frame |
 | Research objective evidence | objective-specific cards with semantic `healthy`, `watch`, or `mirrored` status | avoids misleading raw `experimental - baseline` coloring where a negative value can mean the experimental system is better |
 | Agent goal matrix | Agent A safety, Agent B efficiency, and Agent C admission goals, trigger rules, proposals, selected control, reward, and baseline analogue | makes the experimental architecture explainable as three independent controllers rather than one opaque action label |
 | Control pressure timeline | rolling five-minute objective window for Agent A risk/SLA, Agent C queue/pending pressure, Agent B estimated watts, and weighted reward | removes the static HPA replica line and focuses the graph on the signals the experimental architecture is trying to optimize |
 | Controller response narrative | shared intentional stimulus, experimental decision/proposals/learning state, and baseline HPA/local-Karpenter response | explains the same input perturbation and the two different controller reactions |
+
+The live comparison observatory is the first place to look during a run. Its bars use semantic labels such as `experimental better`, `baseline ahead`, or `matched behavior`; it never assumes that a negative numerical delta is bad. For example, lower pending pods, lower CPU pressure, lower memory pressure, and fewer failures are shown as good outcomes when the same stimulus is mirrored to both clusters.
 
 The API behind the dashboard is `GET /api/comparison`. It reads both kubeconfigs live with `kubectl`, uses Metrics Server through `kubectl top`, and joins that with the experimental orchestration state file:
 
