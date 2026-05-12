@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Borg Orchestrator Comparison</title>
-  <link rel="stylesheet" href="styles.css?v=202605081900" />
+  <link rel="stylesheet" href="styles.css?v=202605121520" />
 </head>
 <body>
   <main class="shell">
@@ -32,6 +32,11 @@
         <div id="baselineMetrics" class="metric-grid"></div>
         <div class="signal-band"><span>baseline controller</span><b id="baselineController">HPA + local Karpenter</b><span>capacity state</span><b id="baselineWarm">n/a</b></div>
       </article>
+    </section>
+
+    <section class="panel comparison-visual-panel">
+      <div class="panel-head"><h2>Live Comparison Observatory</h2><span>same stimulus, side-by-side behavior</span></div>
+      <div id="comparisonVisuals" class="comparison-visuals"></div>
     </section>
 
     <section class="panel thesis-panel">
@@ -64,6 +69,6 @@
       <p id="errors" class="error-line"></p>
     </section>
   </main>
-  <script src="app.js?v=202605081900"></script>
+  <script src="app.js?v=202605121520"></script>
 </body>
 </html>
