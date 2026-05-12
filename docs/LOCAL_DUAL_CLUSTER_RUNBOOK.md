@@ -106,7 +106,7 @@ Important behavior:
 
 - Intentional exercise stimuli are mirrored to `borg-baseline` by default.
 - Agent A/B/C and Referee actions are not mirrored.
-- HPA and local Karpenter reactions are not mirrored.
+- HPA state and local Karpenter reactions are not mirrored.
 
 ## 3. Start Comparison Dashboard
 
@@ -180,7 +180,7 @@ Useful namespaces to inspect in k9s:
 | Namespace | Meaning |
 |---|---|
 | `borg-orchestrator-exercise` | mirrored intentional stimuli |
-| `borg-comparison-workload` | shared app/load-generator in both clusters; baseline also has HPA and optional surge here |
+| `borg-comparison-workload` | shared app/load-generator in both clusters; `comparison-web` is capped at one pod in both clusters; baseline also has HPA state and optional surge here |
 | `observe` | Prometheus and Node Exporter |
 | `kube-system` | Metrics Server and Kubernetes system pods |
 
