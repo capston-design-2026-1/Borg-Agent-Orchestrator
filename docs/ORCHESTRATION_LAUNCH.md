@@ -62,7 +62,7 @@ The launcher uses `~/Documents/borg_orchestrator_clusters/kubeconfig-experimenta
 For exact local comparison, `launch_experimental_multinode_orchestration.sh` also mirrors each intentional exercise phase to `~/Documents/borg_orchestrator_clusters/kubeconfig-baseline`. Only the external stimulus is mirrored. Controller reactions are intentionally not mirrored:
 
 - mirrored: exerciser workload create/delete operations, CPU/memory request, replica count, node selector, and namespace
-- not mirrored: Agent A/B/C actions, Referee decisions, HPA scaling, and local Karpenter warm-node activation/consolidation
+- not mirrored: Agent A/B/C actions, Referee decisions, HPA controller state, and local Karpenter warm-node activation/consolidation
 
 Manual shared stimulus command:
 
@@ -145,7 +145,7 @@ This creates two separate multi-node Kind clusters:
 - `borg-experimental`: the experimental orchestrator cluster.
 - `borg-baseline`: a baseline cluster with real Kubernetes HPA and a local Karpenter-style warm-node controller.
 
-Both clusters receive the same `borg-comparison-workload` app, Service, and load generator. HPA objects, HPA-driven replica changes, local Karpenter activation, and Agent A/B/C decisions remain the intentionally different controller reactions.
+Both clusters receive the same `borg-comparison-workload` app, Service, and load generator. The shared `comparison-web` workload is capped at one pod in both clusters; HPA controller state, local Karpenter activation, and Agent A/B/C decisions remain the intentionally different controller reactions.
 
 The comparison dashboard runs at:
 
