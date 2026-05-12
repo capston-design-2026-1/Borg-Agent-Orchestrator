@@ -21,6 +21,9 @@ MEMORY_SUFFIXES = {
     "M": 1000 * 1000 / 1024 / 1024,
     "G": 1000 * 1000 * 1000 / 1024 / 1024,
 }
+POWER_IDLE_WATTS = 80.0
+POWER_CPU_FULL_SCALE_WATTS = 120.0
+POWER_MEM_FULL_SCALE_WATTS = 60.0
 
 
 class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
@@ -119,6 +122,27 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
         if total <= 0:
             return None
         return round((value / total) * 100, 3)
+
+    @staticmethod
+    def _ratio_from_percent(value: Any) -> float:
+        if not isinstance(value, (int, float)):
+            return 0.0
+        return max(0.0, min(1.0, float(value) / 100.0))
+
+    @classmethod
+    def _estimate_cluster_power_watts(cls, node_rows: list[dict[str, Any]], measured_nodes: set[str]) -> float | None:
+        if not measured_nodes:
+            return None
+        total = 0.0
+        counted = 0
+        for row in node_rows:
+            if row.get("name") not in measured_nodes:
+                continue
+            cpu_ratio = cls._ratio_from_percent(row.get("usage_cpu_percent"))
+            mem_ratio = cls._ratio_from_percent(row.get("usage_memory_percent"))
+            total += POWER_IDLE_WATTS + POWER_CPU_FULL_SCALE_WATTS * cpu_ratio + POWER_MEM_FULL_SCALE_WATTS * mem_ratio
+            counted += 1
+        return round(total, 3) if counted else None
 
     @staticmethod
     def _inc(counter: dict[str, int], key: str) -> None:
@@ -350,6 +374,9 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
             pod for pod in pods if pod.get("metadata", {}).get("namespace") == "borg-comparison-workload"
         ]
         node_rows, resource_totals = cls._node_summary(nodes, node_metrics)
+        estimated_power_watts = cls._estimate_cluster_power_watts(node_rows, set(node_metrics))
+        resource_totals["estimated_power_watts"] = estimated_power_watts
+        resource_totals["power_metric_kind"] = "kubectl-top-estimated" if estimated_power_watts is not None else "unavailable"
         pod_summary = cls._pod_summary(pods, workers)
         hpa = cls._hpa_summary(hpas)
         states: dict[str, int] = {}
@@ -467,6 +494,7 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
             ("Restarts", ("pod_summary", "restarts"), "Container restarts indicate instability or churn."),
             ("CPU usage m", ("resource_totals", "usage_cpu_m"), "Live Metrics Server CPU usage in millicores."),
             ("Memory usage Mi", ("resource_totals", "usage_memory_mi"), "Live Metrics Server memory usage."),
+            ("Estimated power W", ("resource_totals", "estimated_power_watts"), "Utilization-derived power estimate from kubectl top using the same local model for both clusters."),
             ("CPU requests m", ("pod_summary", "request_cpu_m"), "Declared scheduling demand from pod requests."),
             ("Memory requests Mi", ("pod_summary", "request_memory_mi"), "Declared scheduling demand from pod requests."),
             ("CPU request percent", ("pod_summary", "request_cpu_percent"), "Requested CPU as percent of allocatable cluster CPU."),
@@ -490,6 +518,8 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
         base_summary = baseline.get("pod_summary", {})
         base_phases = base_summary.get("phase_counts", {})
         karpenter = baseline.get("karpenter", {})
+        exp_power = experimental.get("resource_totals", {}).get("estimated_power_watts")
+        base_power = baseline.get("resource_totals", {}).get("estimated_power_watts")
         hpas = baseline.get("hpa", [])
         first_hpa = hpas[0] if hpas else {}
         optuna = experimental_state.get("optuna", {})
@@ -503,9 +533,9 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
             },
             {
                 "label": "Efficiency objective",
-                "experimental": f"{cls._safe_number(exp_cluster.get('energy_watts')) or 0:.1f}W, demand {cls._safe_number(exp_cluster.get('min_demand')) or 0:.3f}",
-                "baseline": cls._hpa_reaction_label(baseline),
-                "interpretation": "Agent B is judged on energy-aware consolidation decisions; HPA/Karpenter reacts through replica and capacity movement.",
+                "experimental": f"{cls._safe_number(exp_power) or 0:.1f}W, demand {cls._safe_number(exp_cluster.get('min_demand')) or 0:.3f}",
+                "baseline": f"{cls._safe_number(base_power) or 0:.1f}W, {cls._hpa_reaction_label(baseline)}",
+                "interpretation": "Agent B is judged on energy-aware consolidation decisions; both clusters are compared with the same local utilization-derived power estimate.",
             },
             {
                 "label": "Admission objective",
@@ -530,6 +560,8 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
         baseline = payload.get("baseline", {})
         exp_res = experimental.get("resource_totals", {})
         base_res = baseline.get("resource_totals", {})
+        experimental_power = exp_res.get("estimated_power_watts")
+        baseline_power = base_res.get("estimated_power_watts")
         sample = {
             "time": datetime.now(timezone.utc).isoformat(),
             "experimentalPending": experimental.get("pending_pods", 0),
@@ -538,6 +570,8 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
             "experimentalRisk": experimental.get("max_risk", 0),
             "experimentalSla": experimental.get("sla_violations", 0),
             "experimentalEnergy": experimental.get("energy_watts", 0),
+            "experimentalComparisonEnergy": experimental_power if experimental_power is not None else experimental.get("energy_watts", 0),
+            "baselineEnergy": baseline_power if baseline_power is not None else 0,
             "experimentalReward": experimental.get("last_reward", 0),
             "experimentalMinDemand": experimental.get("min_demand", 0),
             "experimentalSchedulable": experimental.get("schedulable_nodes", 0),
@@ -571,6 +605,7 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
             "last_reward": exp_reward.get("last_total"),
             "avg_reward": exp_reward.get("average_total"),
             "reward_summary": exp_reward,
+            "agent_energy_watts": exp_cluster.get("energy_watts"),
             "max_risk": exp_cluster.get("max_risk"),
             "max_risk_node": exp_cluster.get("max_risk_node"),
             "min_demand": exp_cluster.get("min_demand"),
@@ -581,7 +616,10 @@ class ComparisonDashboardHandler(SimpleHTTPRequestHandler):
             "sla_violations": exp_cluster.get("sla_violations"),
             "completed_tasks": exp_cluster.get("completed_tasks"),
             "energy_watts": exp_cluster.get("energy_watts"),
+            "comparison_power_watts": experimental.get("resource_totals", {}).get("estimated_power_watts"),
+            "comparison_power_metric_kind": experimental.get("resource_totals", {}).get("power_metric_kind"),
             "power_metric_kind": exp_cluster.get("power_metric_kind"),
+            "agent_power_metric_kind": exp_cluster.get("power_metric_kind"),
             "telemetry_sources": exp_cluster.get("telemetry_sources", []),
             "last_decision": exp_decision.get("action_label") or (f"{exp_decision.get('agent')}:{exp_decision.get('kind')}" if exp_decision.get("agent") else None),
             "decision": exp_decision,
