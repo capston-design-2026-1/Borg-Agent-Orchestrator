@@ -36,6 +36,9 @@ PROMETHEUS_PORT="${PROMETHEUS_PORT:-19090}"
 OBSERVABILITY_WAIT_TIMEOUT="${OBSERVABILITY_WAIT_TIMEOUT:-180s}"
 POWER_CALIBRATION="${POWER_CALIBRATION:-}"
 TRACE_OUT="${TRACE_OUT:-orchestrator_stack/runtime/visualization/live_kubernetes_trace.json}"
+OPTUNA_STUDY_NAME="${OPTUNA_STUDY_NAME:-}"
+OPTUNA_STUDY_EPOCH="${OPTUNA_STUDY_EPOCH:-live_action_v2}"
+OPTUNA_REFRESH="${OPTUNA_REFRESH:-0}"
 if [[ "$LIVE_K8S" == "1" ]]; then
   EXERCISE_CLUSTER="${EXERCISE_CLUSTER:-1}"
 else
@@ -58,6 +61,9 @@ RUN_LOG="orchestrator_stack/runtime/dashboard/run.log"
 PROMETHEUS_FORWARD_LOG="orchestrator_stack/runtime/dashboard/prometheus-port-forward.log"
 RUN_ID="$(date +%Y%m%d%H%M%S)"
 GIT_REV="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+if [[ "$OPTUNA_REFRESH" == "1" && -z "$OPTUNA_STUDY_NAME" ]]; then
+  OPTUNA_STUDY_EPOCH="refresh_${RUN_ID}"
+fi
 
 EXISTING_WRITERS="$(
   pgrep -f "orchestrator_stack/run.py .*--event-dir $EVENT_DIR" 2>/dev/null | while read -r pid; do
@@ -141,7 +147,10 @@ cat > "$EVENT_DIR/run_manifest.json" <<EOF
   "observability_stack": "$OBSERVABILITY_STACK",
   "prometheus_base_url": "$PROMETHEUS_BASE_URL",
   "prometheus_port_forward": "$PROMETHEUS_PORT_FORWARD",
-  "prometheus_port": "$PROMETHEUS_PORT"
+  "prometheus_port": "$PROMETHEUS_PORT",
+  "optuna_study_name": "$OPTUNA_STUDY_NAME",
+  "optuna_study_epoch": "$OPTUNA_STUDY_EPOCH",
+  "optuna_refresh": "$OPTUNA_REFRESH"
 }
 EOF
 
@@ -159,6 +168,13 @@ echo "mode: $MODE"
 echo "observability stack: $OBSERVABILITY_STACK"
 if [[ -n "$PROMETHEUS_BASE_URL" ]]; then
   echo "prometheus: $PROMETHEUS_BASE_URL"
+fi
+if [[ "$NO_TUNE" != "1" ]]; then
+  if [[ -n "$OPTUNA_STUDY_NAME" ]]; then
+    echo "optuna study: $OPTUNA_STUDY_NAME"
+  else
+    echo "optuna study epoch: $OPTUNA_STUDY_EPOCH"
+  fi
 fi
 
 if [[ "$OPEN_BROWSER" == "1" && "$(uname -s)" == "Darwin" ]]; then
@@ -197,6 +213,8 @@ fi
 if [[ "$NO_POLICY" == "1" ]]; then ARGS+=(--no-policy); fi
 if [[ "$NO_TUNE" == "1" ]]; then ARGS+=(--no-tune); fi
 
+BORG_OPTUNA_STUDY_NAME="$OPTUNA_STUDY_NAME" \
+BORG_OPTUNA_STUDY_EPOCH="$OPTUNA_STUDY_EPOCH" \
 PYTHONPATH="orchestrator_stack${PYTHONPATH:+:$PYTHONPATH}" "$PYTHON_BIN" "${ARGS[@]}" 2>&1 | tee "$RUN_LOG"
 
 echo "complete: $URL"
