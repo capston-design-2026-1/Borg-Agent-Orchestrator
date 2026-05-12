@@ -77,7 +77,8 @@ def test_comparison_dashboard_exposes_expected_api_and_signals():
     assert "baselinePending" in app
     assert "hpaDesired" in app
     assert "hpaReaction" in app
-    assert "drawPressureTimeline" in app
+    assert "drawTimelineWidget" in app
+    assert "timelineWidgets" in app
     assert "PRESSURE_TIMELINE_WINDOW_MS" in app
     assert "pressureWindowRows" in app
     assert "Agent A risk forecast" in app
@@ -87,7 +88,10 @@ def test_comparison_dashboard_exposes_expected_api_and_signals():
     assert "renderComparisonVisuals" in app
     assert "pairBar" in app
     assert "renderAgentGoalMatrix" in app
-    assert "timelineCanvas" in app
+    assert "safetyTimelineCanvas" in app
+    assert "admissionTimelineCanvas" in app
+    assert "efficiencyTimelineCanvas" in app
+    assert "rewardTimelineCanvas" in app
     assert "comparisonVisuals" in app
     assert "objectiveEvidence" in app
     assert "agentGoalMatrix" in app
@@ -95,5 +99,6 @@ def test_comparison_dashboard_exposes_expected_api_and_signals():
     assert "history_retention" in server
     assert "Research Objective Evidence" in Path("orchestrator_stack/comparison_dashboard/index.html").read_text(encoding="utf-8")
     assert "Live Comparison Observatory" in Path("orchestrator_stack/comparison_dashboard/index.html").read_text(encoding="utf-8")
+    assert "Control Pressure Timelines" in Path("orchestrator_stack/comparison_dashboard/index.html").read_text(encoding="utf-8")
     assert "Agent Goal Matrix" in Path("orchestrator_stack/comparison_dashboard/index.html").read_text(encoding="utf-8")
     assert "shared intentional stimulus" in app
