@@ -99,6 +99,12 @@ In `LIVE_K8S=1` mode, the launcher now bootstraps the in-cluster observability p
 
 In `LIVE_K8S=1` mode, the default is `MODE=full`: Ray/RLlib and Optuna bootstrap run before the continuous Kubernetes loop. Use `MODE=fast LIVE_K8S=1` only for quick debugging without Ray/Optuna.
 
+Optuna studies are architecture-versioned so old reward-weight trials do not pin the best-so-far line after orchestration semantics change. The default live study epoch is `live_action_v2`. To intentionally start a fresh Optuna study after a major architecture update, run:
+
+```bash
+OPTUNA_REFRESH=1 NO_TUNE=0 TRIALS=20 ./orchestrator_stack/scripts/launch_orchestration.sh
+```
+
 `LIVE_K8S=1` also enables `EXERCISE_CLUSTER=1` and `EXERCISE_RANDOMIZE=1` by default. This creates randomized safe workloads in `borg-orchestrator-exercise` so the cluster state fluctuates across explicit action-covering phases: Agent B `power_state`, `dvfs`, and `memory_balloon`; Agent A `throttle`, `migrate`, and `replicate`; and Agent C `admission:queue`, `admission:deprioritize`, and `resource_cap`. Set `EXERCISE_CLUSTER=0` to observe without synthetic workload changes, `EXERCISE_RANDOMIZE=0` to debug the deterministic coverage cycle, or `EXERCISE_SEED=<number>` for reproducible randomized phases.
 
 Set `OBSERVABILITY_STACK=0` only if you have already installed a compatible telemetry stack. Set `PROMETHEUS_PORT=<port>` if local port `19090` is already in use, or provide `PROMETHEUS_BASE_URL=<url>` to use an existing Prometheus endpoint.
