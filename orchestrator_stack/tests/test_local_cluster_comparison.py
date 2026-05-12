@@ -74,6 +74,8 @@ def test_comparison_dashboard_exposes_expected_api_and_signals():
     assert "shared_stimulus" in server
     assert "_difference_rows" in server
     assert "resource_totals" in server
+    assert "controlled_resource_totals" in server
+    assert "CONTROLLED_NAMESPACES" in server
     assert "estimated_power_watts" in server
     assert "comparison_power_watts" in server
     assert "comparison_power_metric_kind" in server
@@ -91,9 +93,11 @@ def test_comparison_dashboard_exposes_expected_api_and_signals():
     assert "Agent A risk forecast" in app
     assert "Agent C queue length" in app
     assert "comparisonPower" in app
+    assert "objectiveResources" in app
+    assert "controlled dynamic power" in app
     assert "agentRewardPower" in app
-    assert "experimental estimated watts" in app
-    assert "baseline estimated watts" in app
+    assert "experimental controlled watts" in app
+    assert "baseline controlled watts" in app
     assert "Agent B reward power" in app
     assert "comparison_power_metric_kind" in app
     assert "baselineEnergy" in app
