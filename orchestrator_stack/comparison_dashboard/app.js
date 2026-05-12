@@ -212,7 +212,7 @@ function drawAxisTicks(ctx, panel, scale, side) {
     ctx.lineTo(panel.x + panel.w, y);
     ctx.stroke();
     const labelX = side === 'right' ? panel.x + panel.w + 10 : panel.x - 10;
-    ctx.fillText(value.toFixed(value >= 10 ? 0 : 1), labelX, y + 4);
+    ctx.fillText(value.toFixed(Math.abs(value) >= 10 ? 0 : 1), labelX, y + 4);
   }
 }
 function drawPanelSeries(ctx, rows, panel, scale, series) {
@@ -240,83 +240,101 @@ function drawPanelSeries(ctx, rows, panel, scale, series) {
     ctx.setLineDash([]);
   });
 }
-function drawPressureTimeline(canvasId, sourceRows) {
-  const canvas = $(canvasId); if (!canvas) return;
+function scaledDomain(values, floor = 1, fixedMin = null, fixedMax = null) {
+  const realValues = values.map(num).filter(v => v !== null);
+  if (!realValues.length) return { min: fixedMin ?? 0, max: fixedMax ?? floor };
+  if (fixedMin !== null || fixedMax !== null) {
+    return { min: fixedMin ?? Math.min(0, ...realValues), max: fixedMax ?? Math.max(floor, ...realValues) };
+  }
+  const rawMin = Math.min(...realValues);
+  const rawMax = Math.max(...realValues);
+  const min = rawMin < 0 ? -scaledMax([Math.abs(rawMin)], 1) : 0;
+  const max = scaledMax([rawMax], floor);
+  return max === min ? { min, max: min + 1 } : { min, max };
+}
+function drawEventMarkers(ctx, rows, panel, markers) {
+  if (!markers?.length || !rows.length) return;
+  const xFor = index => rows.length <= 1 ? panel.x + panel.w / 2 : panel.x + (index / (rows.length - 1)) * panel.w;
+  markers.forEach(marker => {
+    ctx.fillStyle = marker.color;
+    rows.forEach((row, index) => {
+      const count = num(row[marker.key]) ?? 0;
+      if (count <= 0) return;
+      const x = xFor(index);
+      const y = panel.y + 16;
+      ctx.beginPath();
+      ctx.arc(x, y, Math.min(6, 3 + count), 0, Math.PI * 2);
+      ctx.fill();
+    });
+  });
+}
+function latestValue(rows, key) {
+  if (!rows.length) return null;
+  return num(rows[rows.length - 1][key]);
+}
+const timelineWidgets = [
+  {
+    canvasId:'safetyTimelineCanvas',
+    legendId:'safetyTimelineLegend',
+    noteId:'safetyTimelineNote',
+    unit:'risk score',
+    maxFloor:1,
+    fixedMin:0,
+    fixedMax:1,
+    series:[{ key:'experimentalRisk', color:palette.red, label:'Agent A risk forecast', width:3 }],
+    markers:[{ key:'experimentalSla', color:'#6d372f', label:'SLA violation marker' }],
+    note: rows => `Latest risk ${fmt(latestValue(rows, 'experimentalRisk'))}; SLA markers appear as brown dots when violations occur.`,
+  },
+  {
+    canvasId:'admissionTimelineCanvas',
+    legendId:'admissionTimelineLegend',
+    noteId:'admissionTimelineNote',
+    unit:'queue / pending pods',
+    maxFloor:5,
+    series:[
+      { key:'experimentalQueue', color:palette.blue, label:'Agent C queue length', width:3 },
+      { key:'experimentalPending', color:palette.experimental, label:'experimental pending pods', width:2.6 },
+      { key:'baselinePending', color:palette.baseline, label:'baseline pending pods', width:2.6 },
+    ],
+    note: rows => `Latest queue ${metricText(latestValue(rows, 'experimentalQueue'), 0)}; experimental pending ${metricText(latestValue(rows, 'experimentalPending'), 0)}; baseline pending ${metricText(latestValue(rows, 'baselinePending'), 0)}.`,
+  },
+  {
+    canvasId:'efficiencyTimelineCanvas',
+    legendId:'efficiencyTimelineLegend',
+    noteId:'efficiencyTimelineNote',
+    unit:'estimated watts',
+    maxFloor:5,
+    series:[{ key:'experimentalEnergy', color:palette.experimental, label:'Agent B estimated watts', width:3 }],
+    note: rows => `Latest estimated power ${metricText(latestValue(rows, 'experimentalEnergy'), 1, 'W')}; low demand is shown in the comparison observatory cards.`,
+  },
+  {
+    canvasId:'rewardTimelineCanvas',
+    legendId:'rewardTimelineLegend',
+    noteId:'rewardTimelineNote',
+    unit:'weighted total reward',
+    maxFloor:5,
+    series:[{ key:'experimentalReward', color:'#111f1a', label:'experimental weighted reward', width:3 }],
+    note: rows => `Latest reward ${fmt(latestValue(rows, 'experimentalReward'))}; this scale allows negative reward without clipping below the card.`,
+  },
+];
+function drawTimelineWidget(spec, sourceRows) {
+  const canvas = $(spec.canvasId);
+  if (!canvas) return;
   const { ctx, w, h } = setupCanvas(canvas);
   const rows = downsample(sourceRows);
-  const left = 68, right = 86, top = 24, bottom = 50, gap = 24;
-  const panels = [
-    {
-      title: 'Safety risk',
-      unit: 'risk score / SLA count',
-      side: 'left',
-      y: top,
-      series: [
-        { key:'experimentalRisk', color:palette.red, label:'Agent A risk forecast', width:3 },
-        { key:'experimentalSla', color:'#6d372f', label:'experimental SLA violations', width:2.3, dash:[6, 5], stepped:true },
-      ],
-      maxFloor: 1,
-    },
-    {
-      title: 'Admission backlog',
-      unit: 'queue / pending pods',
-      side: 'left',
-      y: 0,
-      series: [
-        { key:'experimentalQueue', color:palette.blue, label:'Agent C queue length', width:3 },
-        { key:'experimentalPending', color:palette.experimental, label:'experimental pending pods', width:2.5 },
-        { key:'baselinePending', color:palette.baseline, label:'baseline pending pods', width:2.5 },
-      ],
-      maxFloor: 5,
-    },
-    {
-      title: 'Efficiency signal',
-      unit: 'estimated watts',
-      side: 'right',
-      y: 0,
-      series: [
-        { key:'experimentalEnergy', color:palette.experimental, label:'Agent B estimated watts', width:2.8 },
-      ],
-      maxFloor: 5,
-    },
-    {
-      title: 'Reward outcome',
-      unit: 'weighted total reward',
-      side: 'right',
-      y: 0,
-      series: [
-        { key:'experimentalReward', color:'#111f1a', label:'experimental weighted reward', width:3 },
-      ],
-      maxFloor: 5,
-    },
-  ];
-  const plotW = w - left - right;
-  const panelH = (h - top - bottom - gap * (panels.length - 1)) / panels.length;
-  panels.forEach((panel, index) => { panel.y = top + index * (panelH + gap); });
+  const left = 58, right = 20, top = 22, bottom = 42;
+  const panel = { x:left, y:top, w:w - left - right, h:h - top - bottom };
+  const values = rows.flatMap(row => spec.series.map(seriesItem => row[seriesItem.key]));
+  const scale = scaledDomain(values, spec.maxFloor, spec.fixedMin ?? null, spec.fixedMax ?? null);
 
   ctx.clearRect(0,0,w,h);
-  ctx.fillStyle = 'rgba(255,255,255,.48)';
-  ctx.fillRect(left, top, plotW, h - top - bottom);
-  panels.forEach(item => {
-    const panel = { x:left, y:item.y, w:plotW, h:panelH };
-    const values = rows.flatMap(row => item.series.map(seriesItem => row[seriesItem.key]));
-    const max = scaledMax(values, item.maxFloor);
-    const scale = { min:0, max };
-    ctx.fillStyle = 'rgba(255,255,255,.34)';
-    ctx.fillRect(panel.x, panel.y, panel.w, panel.h);
-    drawAxisTicks(ctx, panel, scale, item.side);
-    ctx.fillStyle = palette.ink;
-    ctx.font = '800 13px Avenir Next, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(item.title, panel.x + 8, panel.y + 17);
-    ctx.fillStyle = palette.muted;
-    ctx.font = '10px Avenir Next, sans-serif';
-    ctx.fillText(item.unit, panel.x + 8, panel.y + 32);
-    if (rows.length) drawPanelSeries(ctx, rows, panel, scale, item.series);
-  });
+  ctx.fillStyle = 'rgba(255,255,255,.54)';
+  ctx.fillRect(panel.x, panel.y, panel.w, panel.h);
+  drawAxisTicks(ctx, panel, scale, 'left');
   if (rows.length) {
-    const bottomPanel = { x:left, y:top + (panelH + gap) * (panels.length - 1), w:plotW, h:panelH };
-    const xFor = index => rows.length <= 1 ? bottomPanel.x + bottomPanel.w / 2 : bottomPanel.x + (index / (rows.length - 1)) * bottomPanel.w;
+    drawPanelSeries(ctx, rows, panel, scale, spec.series);
+    drawEventMarkers(ctx, rows, panel, spec.markers);
+    const xFor = index => rows.length <= 1 ? panel.x + panel.w / 2 : panel.x + (index / (rows.length - 1)) * panel.w;
     const ticks = [0, Math.floor((rows.length - 1) / 2), rows.length - 1];
     ctx.fillStyle = 'rgba(16,32,26,.58)';
     ctx.font = '11px Avenir Next, sans-serif';
@@ -324,18 +342,21 @@ function drawPressureTimeline(canvasId, sourceRows) {
       const row = rows[index];
       const x = xFor(index);
       ctx.textAlign = index === 0 ? 'left' : index === rows.length - 1 ? 'right' : 'center';
-      ctx.fillText(displayTime(row.time), x, h - 27);
+      ctx.fillText(displayTime(row.time), x, h - 17);
     });
   }
   ctx.fillStyle = 'rgba(16,32,26,.68)';
-  ctx.font = '12px Avenir Next, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('last 5 minutes', left + plotW / 2, h - 9);
-  const legendSeries = panels.flatMap(panel => panel.series);
-  $('timelineLegend').innerHTML = legendSeries.map(item => `<span><b style="color:${item.color}">■</b> ${esc(item.label)}</span>`).join('');
+  ctx.font = '11px Avenir Next, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(spec.unit, panel.x + panel.w, panel.y + 14);
+  const legendItems = [...spec.series, ...(spec.markers || [])];
+  const legend = $(spec.legendId);
+  if (legend) legend.innerHTML = legendItems.map(item => `<span><b style="color:${item.color}">■</b> ${esc(item.label)}</span>`).join('');
+  const note = $(spec.noteId);
+  if (note) note.textContent = rows.length ? spec.note(rows) : 'waiting for comparison samples';
 }
 function drawCharts(payload, chartHistory) {
-  drawPressureTimeline('timelineCanvas', chartHistory);
+  timelineWidgets.forEach(spec => drawTimelineWidget(spec, chartHistory));
 }
 
 function renderComparisonVisuals(payload) {
