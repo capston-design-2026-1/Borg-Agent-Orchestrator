@@ -448,10 +448,13 @@ Both clusters now receive the same shared `borg-comparison-workload` application
 
 | Section | Meaning |
 |---|---|
+| Live comparison observatory | The main visual comparison layer. It shows the same stimulus feeding both clusters, then places experimental Agent A/B/C behavior and baseline HPA/local-Karpenter behavior in one frame. Its side-by-side bars compare backlog, CPU, memory, worker headroom, safety exposure, and learning state with semantic `experimental better`, `baseline ahead`, or `matched behavior` labels. |
 | Research objective evidence | High-level status cards for Agent A safety, Agent B efficiency, Agent C admission, learning activity, and mirrored-stimulus fidelity. These cards use semantic labels like `healthy`, `watch`, or `mirrored` instead of assuming every negative delta is bad. |
 | Agent goal matrix | Agent A/B/C role, goal, trigger rule, live signal, proposal, selected control, reward, and baseline analogue. This is the main interpretability surface for the experimental controller. |
 | Control pressure timeline | Rolling five-minute objective window for risk/SLA, queue/pending pressure, estimated watts, and weighted reward. The static HPA replica lane was removed because a stable current/desired line was not useful as a primary graph. |
 | Controller response narrative | Latest shared intentional stimulus, experimental decision/proposals/learning state, and baseline HPA/local-Karpenter reaction. |
+
+Use `Live comparison observatory` before reading the lower panels. It answers the immediate experiment question: under the same injected workload or fault stimulus, which cluster is absorbing pressure better, and which controller caused that behavior?
 
 The `Controller reactions` panel also shows `shared intentional stimulus`. This is the latest external exerciser operation applied to both clusters. It is the comparison input, not a controller output. Agent A/B/C decisions, Referee decisions, HPA scale changes, and local Karpenter node activation are separate reactions and are not mirrored.
 
