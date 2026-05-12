@@ -77,7 +77,53 @@ Read Agents.md, NEXT_STEPS.md, MAS_ARCHITECTURE.md, and README.md, inspect the l
 - Follow-up implementation on 2026-05-08 KST: local dual-cluster comparison now exists without AWS. `borg-experimental` and `borg-baseline` are both multi-node Kind clusters; the baseline runs real Kubernetes HPA plus a local Karpenter-style warm-node controller, and `orchestrator_stack/comparison_dashboard/` compares both clusters.
 - Follow-up implementation on 2026-05-08 KST: mirrored stimulus semantics are now enforced for exact comparison input. Intentional exerciser operations are selected once and applied to both clusters; Agent A/B/C, Referee, HPA, and local Karpenter actions remain independent reactions.
 - Follow-up reporting on 2026-05-08 KST: local dual-cluster continuity report is recorded at `reports/milestones/202605081138_local_dual_cluster_handoff.md`. Use it with `docs/LOCAL_DUAL_CLUSTER_RUNBOOK.md` when resuming comparison work in a new Codex session.
-- Current orchestrator validation: `PYTHONPATH=orchestrator_stack ./.venv/bin/python -m pytest orchestrator_stack/tests -q` passes with `115 passed`.
+- Current orchestrator validation: `PYTHONPATH=orchestrator_stack ./.venv/bin/python -m pytest orchestrator_stack/tests -q` passes with `121 passed`.
+
+## Latest Session Note (2026-05-12 KST, live remediation and comparison fidelity handoff)
+
+- Durable handoff report created:
+  - `reports/milestones/202605121623_live_remediation_comparison_handoff.md`
+- Latest pushed commit after this slice:
+  - `5673ed2 Document experimental QoS cap boundary`
+- Main root cause fixed:
+  - before this slice, Agent A/B/C decisions were mostly evaluated in the twin/reward path, so the experimental cluster could fail to beat the HPA/local-Karpenter baseline on actual Kubernetes CPU, memory, pending pods, and estimated power.
+  - selected Referee actions now execute bounded Kubernetes mutations on the experimental cluster through `orchestrator_stack/orchestrator/layer1/kubernetes_actions.py`.
+- Live action execution details:
+  - `VisualizationState.decision` now records `kubernetes_execution`.
+  - examples include scaling/capping exerciser Deployments in `borg-orchestrator-exercise` and applying a bounded QoS envelope to the experimental `borg-comparison-workload/comparison-load-generator`.
+  - baseline stimulus remains mirrored, but baseline does not receive Agent A/B/C remediation.
+- Workload realism fix:
+  - schedulable exerciser phases now use bounded BusyBox CPU-burner containers instead of only `pause` pods, so Metrics Server can observe real CPU movement.
+- Comparison dashboard fix:
+  - comparison API now exposes `controlled_resource_totals` for `borg-comparison-workload` and `borg-orchestrator-exercise`.
+  - dashboard efficiency widgets now use controlled-namespace dynamic watts instead of raw cluster totals, reducing control-plane and Prometheus noise.
+- Documentation updated:
+  - `docs/en/DASHBOARD_GUIDE.md`
+  - `docs/ko/DASHBOARD_GUIDE.md`
+  - `docs/LOCAL_CLUSTER_COMPARISON.md`
+- Runtime state at handoff:
+  - live dual-cluster stack is running in detached `screen` sessions:
+    - `borg-experimental-orchestrator`
+    - `borg-exp-dashboard`
+    - `borg-comparison-dashboard`
+    - `borg-local-karpenter`
+    - `borg-exp-prom`
+    - `borg-base-prom`
+  - experimental dashboard: `http://127.0.0.1:8765`
+  - comparison dashboard: `http://127.0.0.1:8876`
+  - experimental Prometheus: `http://127.0.0.1:19090`
+  - baseline Prometheus: `http://127.0.0.1:19091`
+- Latest observed live state before handoff:
+  - `state.json` showed active stage `live_kubernetes_loop`.
+  - latest decision example: `AgentA:replicate` with `kubernetes_execution.status=applied`.
+  - latest execution example scaled/capped `admission-cap` and capped `comparison-load-generator`.
+  - Optuna persistent study had `42` completed trials.
+- Validation:
+  - `PYTHONPATH=orchestrator_stack ./.venv/bin/python -m pytest orchestrator_stack/tests -q`: `121 passed`
+  - `git diff --check`: clean
+- Important caveat for the next session:
+  - single-sample CPU/memory/power comparisons can still wobble because Metrics Server is delayed and the exerciser phase changes every few iterations.
+  - thesis-grade evidence should use fixed stimulus windows and exported time-series aggregates rather than one dashboard sample.
 
 ## Pipeline Status
 
