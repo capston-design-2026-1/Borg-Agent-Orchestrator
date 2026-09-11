@@ -3,11 +3,14 @@ from __future__ import annotations
 import json
 import math
 import os
+import hashlib
+import re
 from pathlib import Path
 
 import numpy as np
 import polars as pl
 from xgboost import XGBClassifier
+from sklearn.metrics import average_precision_score
 
 from src.advanced_xgboost.features import ADVANCED_FEATURE_COLUMNS, MISSINGNESS_FLAG_COLUMNS, target_column_name
 from src.advanced_xgboost.settings import model_dir, report_dir
@@ -26,6 +29,36 @@ def validation_fraction() -> float:
     if not raw:
         return DEFAULT_VALID_FRACTION
     return float(raw)
+
+
+def temporal_splits(frame: pl.LazyFrame, target_column: str, valid_fraction: float | None = None):
+    """Reserve the final interval before tuning and purge overlapping label horizons."""
+    match = re.fullmatch(r"target_failure_([1-9][0-9]*)m", target_column)
+    if not match:
+        raise ValueError("Target must encode a positive failure horizon in minutes")
+    required = {"causal_schema_version", "event_observation_end_time"}
+    if required - set(frame.collect_schema().names()):
+        raise ValueError("Rebuild feature data using causal schema v2 before training")
+    versions = frame.select("causal_schema_version").unique().collect().to_series().to_list()
+    if versions != [2]:
+        raise ValueError("Only causal schema v2 feature data can be trained")
+    valid_fraction = validation_fraction() if valid_fraction is None else valid_fraction
+    test_fraction = float(os.environ.get("BORG_TEST_FRACTION", "0.2"))
+    if not (0 < valid_fraction < 1 and 0 < test_fraction < 1 and valid_fraction + test_fraction < 1):
+        raise ValueError("Validation and test fractions must be positive and sum to less than one")
+    valid_start = split_time_for_scan(frame, valid_fraction + test_fraction)
+    test_start = split_time_for_scan(frame, test_fraction)
+    if valid_start >= test_start:
+        raise ValueError("Not enough distinct timestamps for train/validation/test intervals")
+    horizon_us = int(match[1]) * 60 * 1_000_000
+    labeled = frame.filter(pl.col(target_column).is_not_null()
+                           & (pl.col("end_time") + horizon_us <= pl.col("event_observation_end_time")))
+    train = labeled.filter(pl.col("end_time") + horizon_us < valid_start)
+    valid = labeled.filter((pl.col("end_time") >= valid_start)
+                           & (pl.col("end_time") + horizon_us < test_start))
+    test = labeled.filter(pl.col("end_time") >= test_start)
+    return train, valid, test, {"validation_start": valid_start, "test_start": test_start,
+                                "horizon_us": horizon_us, "causal_schema_version": 2}
 
 
 def model_name() -> str:
@@ -151,23 +184,12 @@ def prepare_matrix(frame: pl.DataFrame, target_column: str) -> tuple[list[list[f
     return x, y
 
 
-def average_precision(prediction_frame: pl.DataFrame, target_column: str) -> float:
-    ranked = (
-        prediction_frame
-        .sort("risk_score", descending=True)
-        .with_row_index("rank", offset=1)
-        .with_columns(
-            [
-                pl.col(target_column).cast(pl.Int64).cum_sum().alias("true_positives"),
-                (pl.col(target_column).cast(pl.Int64).cum_sum() / pl.col("rank")).alias("precision_at_rank"),
-            ]
-        )
-    )
-    positives_total = ranked.filter(pl.col(target_column)).height
-    if positives_total == 0:
-        return 0.0
-    ap_sum = ranked.filter(pl.col(target_column)).select(pl.col("precision_at_rank").sum()).item()
-    return float(ap_sum) / positives_total if ap_sum is not None else 0.0
+def average_precision(prediction_frame: pl.DataFrame, target_column: str) -> float | None:
+    if prediction_frame.is_empty() or not prediction_frame.get_column(target_column).any():
+        return None
+    # Threshold-based AP handles tied scores without depending on row order.
+    return float(average_precision_score(prediction_frame.get_column(target_column).to_numpy(),
+                                         prediction_frame.get_column("risk_score").to_numpy()))
 
 
 def precision_at_k(frame: pl.DataFrame, k: int, target_column: str) -> float:
@@ -262,8 +284,42 @@ def sample_split(
     return sampled, sampled_stats
 
 
+def sample_natural_split(frame: pl.LazyFrame, target_column: str, max_rows: int):
+    """Bound memory without selecting on the outcome label."""
+    stats = split_stats(frame, target_column)
+    sampled = frame
+    if stats["rows"] > max_rows:
+        sampled = frame.with_columns(row_id_expr().alias("_sample_key")).sort(
+            ["_sample_key", "cluster_id", "collection_id", "instance_index", "start_time", "end_time"]
+        ).head(max_rows).drop("_sample_key")
+    result = sampled.collect(engine="streaming")
+    positives = result.filter(pl.col(target_column)).height
+    negatives = result.height - positives
+    return result, {
+        "rows": result.height, "positives": positives, "negatives": negatives,
+        "source_rows": stats["rows"], "source_positives": stats["positives"],
+        "source_negatives": stats["negatives"],
+        "negative_keep_fraction": negatives / stats["negatives"] if stats["negatives"] else 1.0,
+        "sampling_method": "all_rows" if stats["rows"] <= max_rows else "label_independent_hash",
+    }
+
+
+def dataset_fingerprint(frame: pl.LazyFrame, target_column: str) -> str:
+    """Order-independent dataset identity for detecting accidental changes, not authentication."""
+    columns = ["cluster_id", "collection_id", "instance_index", "start_time", "end_time",
+               "causal_schema_version", "event_observation_end_time", *MODEL_FEATURE_COLUMNS, target_column]
+    identity = frame.select(
+        pl.len().alias("rows"),
+        *[pl.struct(columns).hash(seed=seed).sum().alias(f"content_{seed}") for seed in (42, 1234)],
+    ).collect().to_dicts()[0]
+    return hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+
+
 def train_and_evaluate(feature_scan: pl.LazyFrame, target_column: str) -> dict[str, int | float | str]:
-    split_time = split_time_for_scan(feature_scan, validation_fraction())
+    if (model_output_dir(target_column) / "holdout_metrics.json").exists():
+        raise FileExistsError("This model has consumed its final test; preserve it and choose a new study/test set")
+    train_scan, valid_scan, _, split_contract = temporal_splits(feature_scan, target_column)
+    split_time = split_contract["validation_start"]
     selected_columns = [
         "cluster_id",
         "collection_id",
@@ -274,11 +330,14 @@ def train_and_evaluate(feature_scan: pl.LazyFrame, target_column: str) -> dict[s
         *MODEL_FEATURE_COLUMNS,
         target_column,
     ]
-    base_scan = feature_scan.select(selected_columns).with_columns(pl.col(target_column).cast(pl.Boolean))
-    train_scan = base_scan.filter(pl.col("end_time") < split_time)
-    valid_scan = base_scan.filter(pl.col("end_time") >= split_time)
+    train_scan = train_scan.select(selected_columns).with_columns(pl.col(target_column).cast(pl.Boolean))
+    valid_scan = valid_scan.select(selected_columns).with_columns(pl.col(target_column).cast(pl.Boolean))
     train_df, train_stats = sample_split(train_scan, target_column, max_train_rows())
-    valid_df, valid_stats = sample_split(valid_scan, target_column, max_valid_rows())
+    valid_df, valid_stats = sample_natural_split(valid_scan, target_column, max_valid_rows())
+    if train_df.is_empty() or valid_df.is_empty():
+        raise ValueError("Insufficient mature labels after temporal purging; verify coverage and time span")
+    if train_stats["positives"] == 0 or train_stats["negatives"] == 0:
+        raise ValueError("Training requires both failure and nonfailure examples")
     train_x, train_y = prepare_matrix(train_df, target_column)
     valid_x, valid_y = prepare_matrix(valid_df, target_column)
 
@@ -292,6 +351,11 @@ def train_and_evaluate(feature_scan: pl.LazyFrame, target_column: str) -> dict[s
         fit_kwargs["verbose"] = verbose_eval()
     model.fit(train_x, train_y, **fit_kwargs)
     model.get_booster().save_model(model_path(target_column))
+    contract = {**split_contract, "target_column": target_column,
+                "feature_columns": list(MODEL_FEATURE_COLUMNS), "sampling_seed": sampling_seed(),
+                "dataset_fingerprint": dataset_fingerprint(feature_scan, target_column),
+                "model_sha256": hashlib.sha256(model_path(target_column).read_bytes()).hexdigest()}
+    (model_output_dir(target_column) / "evaluation_contract.json").write_text(json.dumps(contract, indent=2))
     valid_scores = model.predict_proba(valid_x)[:, 1].tolist()
 
     prediction_frame = valid_df.select(
@@ -325,6 +389,12 @@ def train_and_evaluate(feature_scan: pl.LazyFrame, target_column: str) -> dict[s
     one_percent = max(1, math.ceil(prediction_frame.height * 0.01))
     point_one_percent = max(1, math.ceil(prediction_frame.height * 0.001))
     metrics = {
+        "status": "evaluated" if valid_stats["positives"] else "insufficient_positive_evidence",
+        "evaluation_partition": "development_validation",
+        "final_test_evaluated": False,
+        "split_contract": split_contract,
+        "validation_sampling_method": valid_stats["sampling_method"],
+        "causal_schema_version": 2,
         "model_name": model_name(),
         "target_column": target_column,
         "source_train_rows": train_stats["source_rows"],
@@ -359,3 +429,43 @@ def train_and_evaluate(feature_scan: pl.LazyFrame, target_column: str) -> dict[s
     metrics_path(target_column).write_text(json.dumps(metrics, indent=2))
     summary_report_path(target_column).write_text(json.dumps(metrics, indent=2))
     return metrics
+
+
+def evaluate_frozen_holdout(feature_scan: pl.LazyFrame, target_column: str) -> dict:
+    """Evaluate an already selected model once; never fit or select it on test outcomes."""
+    output = model_output_dir(target_column)
+    contract = json.loads((output / "evaluation_contract.json").read_text())
+    if contract["target_column"] != target_column or contract["feature_columns"] != list(MODEL_FEATURE_COLUMNS):
+        raise ValueError("Frozen model feature contract mismatch")
+    if hashlib.sha256(model_path(target_column).read_bytes()).hexdigest() != contract["model_sha256"]:
+        raise ValueError("Model changed after its evaluation contract was frozen")
+    if (output / "holdout_metrics.json").exists():
+        raise FileExistsError("Holdout already evaluated; preserve its result and use a new independent test set")
+    if "causal_schema_version" not in feature_scan.collect_schema().names():
+        raise ValueError("Holdout requires causal schema v2")
+    if feature_scan.select("causal_schema_version").unique().collect().to_series().to_list() != [2]:
+        raise ValueError("Holdout causal schema mismatch")
+    if dataset_fingerprint(feature_scan, target_column) != contract["dataset_fingerprint"]:
+        raise ValueError("Dataset changed after the evaluation contract was frozen")
+    test_scan = feature_scan.filter((pl.col("end_time") >= contract["test_start"])
+        & (pl.col("end_time") + contract["horizon_us"] <= pl.col("event_observation_end_time"))
+        & pl.col(target_column).is_not_null())
+    count = test_scan.select(pl.len()).collect().item()
+    limit = int(os.environ.get("BORG_XGB_MAX_TEST_ROWS", str(DEFAULT_MAX_VALID_ROWS)))
+    if not 0 < count <= limit:
+        raise ValueError(f"Holdout has {count} rows; require mature data and BORG_XGB_MAX_TEST_ROWS >= {count}")
+    frame = test_scan.collect(engine="streaming")
+    model = XGBClassifier()
+    model.load_model(model_path(target_column))
+    x, _ = prepare_matrix(frame, target_column)
+    predictions = frame.select("cluster_id", "collection_id", "instance_index", "start_time", "end_time",
+                               target_column).with_columns(pl.Series("risk_score", model.predict_proba(x)[:, 1]))
+    ap = average_precision(predictions, target_column)
+    result = {"status": "evaluated" if ap is not None else "insufficient_positive_evidence",
+              "evaluation_partition": "frozen_test", "rows": count,
+              "positive_rows": predictions.filter(pl.col(target_column)).height,
+              "average_precision": ap, "contract": contract, "sampling_method": "all_rows"}
+    with (output / "holdout_metrics.json").open("x") as handle:
+        json.dump(result, handle, indent=2)
+    predictions.write_parquet(output / "holdout_predictions.parquet")
+    return result
