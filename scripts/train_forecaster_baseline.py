@@ -136,18 +136,13 @@ def load_forecaster_data(clusters: list[str]) -> pl.DataFrame:
 
 
 def split_by_time(frame: pl.DataFrame, valid_fraction: float) -> tuple[pl.DataFrame, pl.DataFrame, int]:
-    if not 0.0 < valid_fraction < 1.0:
-        raise ValueError("Validation fraction must be between 0 and 1.")
+    from src.advanced_xgboost.train import temporal_splits
 
-    split_time = (
-        frame
-        .select(pl.col("end_time").quantile(1.0 - valid_fraction).alias("split_time"))
-        .item()
-    )
-
-    train_df = frame.filter(pl.col("end_time") < split_time)
-    valid_df = frame.filter(pl.col("end_time") >= split_time)
-    return train_df, valid_df, int(split_time)
+    train, valid, _, contract = temporal_splits(frame.lazy(), "target_failure_15m", valid_fraction)
+    train_df, valid_df = train.collect(), valid.collect()
+    if train_df.is_empty() or valid_df.is_empty():
+        raise ValueError("Insufficient mature baseline labels after horizon purging")
+    return train_df, valid_df, contract["validation_start"]
 
 
 def compute_feature_statistics(train_df: pl.DataFrame, features: list[str]) -> dict[str, dict[str, float]]:
@@ -243,34 +238,9 @@ def recall_at_k(frame: pl.DataFrame, k: int) -> float:
     return positives / positives_total
 
 
-def average_precision(frame: pl.DataFrame) -> float:
-    ranked = (
-        frame
-        .sort("risk_score", descending=True)
-        .with_row_index("rank", offset=1)
-        .with_columns(
-            [
-                pl.col("target_failure_15m").cast(pl.Int64).cum_sum().alias("true_positives"),
-            ]
-        )
-        .with_columns(
-            [
-                (pl.col("true_positives") / pl.col("rank")).alias("precision_at_rank"),
-            ]
-        )
-    )
-
-    positives_total = ranked.filter(pl.col("target_failure_15m")).height
-    if positives_total == 0:
-        return 0.0
-
-    ap_sum = (
-        ranked
-        .filter(pl.col("target_failure_15m"))
-        .select(pl.col("precision_at_rank").sum().alias("ap_sum"))
-        .item()
-    )
-    return float(ap_sum) / positives_total if ap_sum is not None else 0.0
+def average_precision(frame: pl.DataFrame) -> float | None:
+    from src.advanced_xgboost.train import average_precision as threshold_average_precision
+    return threshold_average_precision(frame, "target_failure_15m")
 
 
 def build_metrics(train_df: pl.DataFrame, valid_df: pl.DataFrame, split_time: int) -> dict[str, float | int]:
@@ -280,6 +250,10 @@ def build_metrics(train_df: pl.DataFrame, valid_df: pl.DataFrame, split_time: in
     point_one_percent = max(1, int(valid_df.height * 0.001))
 
     return {
+        "evaluation_partition": "development_validation",
+        "final_test_evaluated": False,
+        "causal_schema_version": 2,
+        "status": "evaluated" if positive_count else "insufficient_positive_evidence",
         "train_rows": train_df.height,
         "validation_rows": valid_df.height,
         "validation_positive_rows": positive_count,
