@@ -28,6 +28,17 @@ def write_cluster_features(cluster_id: str) -> None:
 
     path = feature_file(cluster_id)
     frame.write_parquet(path)
+    (path.parent / "README.md").write_text(
+        "# Advanced failure features (causal schema v2)\n\n"
+        "Prediction time is end_time in microseconds. Features are computed from completed usage "
+        "windows and as-of task/machine state, grouped by cluster and task. "
+        "Only ADVANCED_FEATURE_COLUMNS and MISSINGNESS_FLAG_COLUMNS are model inputs. "
+        "Outcome and coverage fields are metadata, never predictors.\n\n"
+        "target_failure_Nm is failure in (end_time, end_time + N minutes]. It is null when the "
+        "full horizon exceeds the asserted event_observation_end_time. Unknown labels must be "
+        "excluded, never converted to negatives. Legacy schema v1 is not compatible.\n",
+        encoding="utf-8",
+    )
     target_columns = [f"target_failure_{minutes}m" for minutes in parse_prediction_horizon_minutes()]
     positive_counts = {
         column: frame.filter(pl.col(column)).height
