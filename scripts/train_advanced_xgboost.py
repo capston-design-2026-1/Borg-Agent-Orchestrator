@@ -1,6 +1,8 @@
 from src.advanced_xgboost.features import target_column_name
 from src.advanced_xgboost.settings import feature_store_dir, parse_clusters, parse_prediction_horizon_minutes
-from src.advanced_xgboost.train import metrics_path, model_path, train_and_evaluate
+from src.advanced_xgboost.train import metrics_path, model_path, train_and_evaluate, evaluate_frozen_holdout
+import argparse
+import json
 import polars as pl
 
 
@@ -24,6 +26,10 @@ def load_feature_scan(clusters: list[str]) -> pl.LazyFrame:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--evaluate-holdout", action="store_true",
+                        help="Evaluate an already selected frozen model once on the reserved final interval")
+    args = parser.parse_args()
     clusters = parse_clusters()
     print(f"Reading advanced feature datasets from: {feature_store_dir()}")
     print(f"Clusters: {clusters}")
@@ -32,7 +38,12 @@ def main() -> None:
     all_metrics = []
     for minutes in parse_prediction_horizon_minutes():
         target = target_column_name(minutes)
+        if args.evaluate_holdout:
+            print(evaluate_frozen_holdout(feature_scan, target))
+            continue
         if metrics_path(target).exists() and model_path(target).exists():
+            if json.loads(metrics_path(target).read_text()).get("causal_schema_version") != 2:
+                raise ValueError(f"Legacy model artifacts for {target}; choose a new BORG_XGB_MODEL_NAME and rebuild v2 data")
             print(f"Skipping {target}: existing model artifacts found")
             continue
         metrics = train_and_evaluate(feature_scan, target)

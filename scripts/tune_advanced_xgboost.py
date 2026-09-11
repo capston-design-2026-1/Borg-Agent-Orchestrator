@@ -97,6 +97,8 @@ def temporary_env(overrides: dict[str, str]):
 
 
 def candidate_score(metrics: list[dict[str, int | float | str]]) -> float:
+    if not metrics or any(item.get("average_precision") is None for item in metrics):
+        raise ValueError("Cannot select a model without positive validation evidence; expand the event extract")
     average_precision = sum(float(item["average_precision"]) for item in metrics) / len(metrics)
     recall_at_1 = sum(float(item["recall_at_1_percent"]) for item in metrics) / len(metrics)
     precision_at_1 = sum(float(item["precision_at_1_percent"]) for item in metrics) / len(metrics)
@@ -134,6 +136,8 @@ def main() -> None:
             for minutes in horizons:
                 target = target_column_name(minutes)
                 metrics = train_and_evaluate(feature_scan, target)
+                if metrics.get("average_precision") is None:
+                    raise ValueError(f"No positive validation evidence for {target}; tuning cannot rank this extract")
                 horizon_metrics.append(metrics)
                 print(
                     f"candidate={candidate['name']} target={target} "

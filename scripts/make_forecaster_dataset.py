@@ -11,7 +11,6 @@ DEFAULT_PREDICTION_HORIZON = 15 * 60 * 1_000_000
 
 DATASET_DIR = Path(os.environ.get("BORG_DATASET_DIR", DEFAULT_DATASET_DIR)).expanduser()
 OUTPUT_DIR = Path(os.environ.get("BORG_FORECASTER_DIR", DEFAULT_OUTPUT_DIR)).expanduser()
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def parse_clusters() -> list[str]:
@@ -71,97 +70,25 @@ def add_temporal_features(frame: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def build_forecaster_frame(cluster_id: str) -> pl.DataFrame:
-    failure_event_types = parse_failure_event_types()
-    horizon_us = prediction_horizon()
+    from src.advanced_xgboost.features import build_feature_frame
 
-    dataset = pl.scan_parquet(dataset_file(cluster_id))
-
-    return (
-        dataset
-        .sort(["collection_id", "instance_index", "end_time"])
-        .with_columns(
-            [
-                (pl.col("last_event_time") - pl.col("end_time")).alias("time_to_terminal_event_us"),
-                pl.col("final_event_type").is_in(failure_event_types).alias("is_failure_terminal_event"),
-            ]
-        )
-        .pipe(add_temporal_features)
-        .with_columns(
-            [
-                (
-                    pl.col("is_failure_terminal_event") &
-                    pl.col("time_to_terminal_event_us").is_not_null() &
-                    (pl.col("time_to_terminal_event_us") >= 0) &
-                    (pl.col("time_to_terminal_event_us") <= horizon_us)
-                ).alias("failure_within_horizon"),
-                (
-                    pl.col("final_event_type").is_not_null() &
-                    (pl.col("last_event_time") < pl.col("end_time"))
-                ).alias("terminal_event_before_window_end"),
-            ]
-        )
-        .select(
-            [
-                pl.col("cluster_id"),
-                pl.col("collection_id"),
-                pl.col("instance_index"),
-                pl.col("machine_id"),
-                pl.col("start_time"),
-                pl.col("end_time"),
-                pl.col("usage_window"),
-                pl.col("avg_cpu"),
-                pl.col("max_cpu"),
-                pl.col("avg_mem"),
-                pl.col("max_mem"),
-                pl.col("avg_cpu_utilization"),
-                pl.col("max_cpu_utilization"),
-                pl.col("avg_mem_utilization"),
-                pl.col("max_mem_utilization"),
-                pl.col("avg_cpu_lag_1"),
-                pl.col("avg_cpu_delta_1"),
-                pl.col("avg_cpu_roll3_mean"),
-                pl.col("max_cpu_lag_1"),
-                pl.col("max_cpu_delta_1"),
-                pl.col("max_cpu_roll3_mean"),
-                pl.col("avg_mem_lag_1"),
-                pl.col("avg_mem_delta_1"),
-                pl.col("avg_mem_roll3_mean"),
-                pl.col("max_mem_lag_1"),
-                pl.col("max_mem_delta_1"),
-                pl.col("max_mem_roll3_mean"),
-                pl.col("avg_cpu_utilization_lag_1"),
-                pl.col("avg_cpu_utilization_delta_1"),
-                pl.col("avg_cpu_utilization_roll3_mean"),
-                pl.col("max_cpu_utilization_lag_1"),
-                pl.col("max_cpu_utilization_delta_1"),
-                pl.col("max_cpu_utilization_roll3_mean"),
-                pl.col("avg_mem_utilization_lag_1"),
-                pl.col("avg_mem_utilization_delta_1"),
-                pl.col("avg_mem_utilization_roll3_mean"),
-                pl.col("max_mem_utilization_lag_1"),
-                pl.col("max_mem_utilization_delta_1"),
-                pl.col("max_mem_utilization_roll3_mean"),
-                pl.col("req_cpu"),
-                pl.col("req_mem"),
-                pl.col("priority"),
-                pl.col("scheduling_class"),
-                pl.col("event_count"),
-                pl.col("first_event_time"),
-                pl.col("last_event_time"),
-                pl.col("final_event_type"),
-                pl.col("time_to_terminal_event_us"),
-                pl.col("is_failure_terminal_event"),
-                pl.col("failure_within_horizon").alias("target_failure_15m"),
-                pl.col("terminal_event_before_window_end"),
-            ]
-        )
-        .collect(engine="streaming")
-    )
+    if prediction_horizon() != DEFAULT_PREDICTION_HORIZON:
+        raise ValueError("The baseline target is 15 minutes; use the advanced track for other horizons")
+    return build_feature_frame(
+        pl.scan_parquet(dataset_file(cluster_id)), parse_failure_event_types(), [15]
+    ).collect(engine="streaming")
 
 
 def write_forecaster_frame(cluster_id: str) -> Path:
     frame = build_forecaster_frame(cluster_id)
     path = output_file(cluster_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    (path.parent / "README.md").write_text(
+        "# Baseline forecaster features (causal schema v2)\n\n"
+        "Prediction time is end_time. target_failure_15m is null without complete future event coverage. "
+        "Use only the declared model feature columns; future outcome fields are label metadata.\n",
+        encoding="utf-8",
+    )
     frame.write_parquet(path)
 
     positive_rows = frame.filter(pl.col("target_failure_15m")).height
