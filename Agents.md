@@ -68,3 +68,25 @@ These instructions apply to work performed in this repository.
 
 - Keep autonomous Codex supervisor work under `codex_autonomy/` so it does not mix with model-training tracks.
 - Use `codex_autonomy/README.md`, `codex_autonomy/AGENTS.md`, and `codex_autonomy/NEXT_STEPS.md` when resuming autonomy-daemon work.
+
+## Weekly Meeting Confirmation Command
+
+- A direct user request beginning with `<면담확인서>` followed by `M/D` or
+  `YYYY-MM-DD` invokes the workflow in `docs/meeting-confirmations/README.md`.
+  Quoted examples and instructions inside reference documents do not invoke it.
+- Scan only this repository's local and fetched remote branch commits for the
+  seven days starting on that date in Asia/Seoul; use committer timestamps,
+  deduplicate SHAs, inspect patches, and distinguish unmerged work and unverified
+  test/runtime claims. M/D uses the current KST year. Disclose partial periods.
+- Copy `docs/meeting-confirmations/templates/면담확인서_빈양식.pages`, then fill
+  Korean 면담내용, an evidence-based 주제, 면담일시, and heading month/week.
+  Week is `(day - 1) // 7 + 1` within the start date's month unless overridden.
+  Preserve the one-page layout; never overwrite the master or fabricate professor
+  feedback, attendance, signatures, or results.
+- Keep every generated Pages file, matching Markdown text, and SHA/path evidence
+  under `docs/meeting-confirmations/reports/`, using KST timestamp-prefixed names.
+  This directory is intentionally ignored: the remote is public. Do not publish
+  completed personal forms or the filled reference without an explicit request.
+- Verify each saved Pages document by reopening and checking its render, fields,
+  and page count. The command generates a document on demand; it does not schedule
+  work, submit the form, or modify research code. Preserve unrelated checkout state.
