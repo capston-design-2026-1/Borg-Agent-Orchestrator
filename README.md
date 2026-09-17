@@ -399,3 +399,12 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+
+## Weekly Meeting Confirmations
+
+Send `<면담확인서> 9/11` in Codex to prepare a Korean meeting confirmation from
+this repository's commits for September 11–17 (KST, current year). The reusable
+[blank Pages template](docs/meeting-confirmations/templates/면담확인서_빈양식.pages)
+and [command guide](docs/meeting-confirmations/README.md) live in
+`docs/meeting-confirmations/`. Completed forms and commit evidence remain local
+in its ignored `reports/` directory.
