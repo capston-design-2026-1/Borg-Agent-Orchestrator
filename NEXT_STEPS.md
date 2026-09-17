@@ -2,6 +2,13 @@
 
 This file is the resume point for a new Codex session in this repository.
 
+## Weekly Meeting Forms (2026-09-17)
+
+For `<면담확인서> M/D`, follow `docs/meeting-confirmations/README.md` and the root
+Agents.md command rules. The blank native Pages template is ready. No weekly
+report has been generated yet; gather fresh commits for the seven days starting
+on the requested date, from this repository only. Preserve other ongoing work.
+
 ## Resume Prompt
 
 Use this prompt after launching Codex from the repo root:
