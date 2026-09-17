@@ -1,0 +1,4 @@
+# Completed forms and commit evidence stay local; the configured remote is public.
+reports/*
+!reports/.gitkeep
+.DS_Store
